@@ -15,6 +15,8 @@ LOG_DIR="/var/log/hardening"
 LOG_FILE="/var/log/hardening/modulo1_fix.log"
 
 
+#FUNCIONES DE APOYO
+#=========================================================================================================
 #Función para la configuración logging
 def configurar_logging():
     if not os.path.isdir(LOG_DIR):
@@ -86,6 +88,10 @@ def ejecutar_comando(comando, descripcion, paso="General", capturarSalida=False)
 def volver_al_menu():
     print()
     input("Pulsa ENTER para volver al menú principal...")
+#=========================================================================================================
+
+
+
 
 
 
@@ -119,8 +125,16 @@ def paso1_proteger_grub():
     contrasenaGrub=pedir_input_doble("Contraseña para GRUB: ", ocultar=True)
 
     #genrando hash
+    print()
+    print("\n[INFO]: Generando hash PBKDF2 de la contraseña...")
     try:
-        proceso=subprocess.run(["grub-mkpasswd-pbkdf2"], input=f"{contrasenaGrub}\n{contrasenaGrub}\n", capture_output=True, text=True, check=True)
+        proceso=subprocess.run(
+            ["grub-mkpasswd-pbkdf2"], 
+            input=f"{contrasenaGrub}\n{contrasenaGrub}\n", 
+            capture_output=True, 
+            text=True, 
+            check=True)
+        
     except subprocess.CalledProcessError as e:
         registrar_errores("Paso 1", f"No se pudo generar el hash PBKDF2: {e.stderr}")
         return
@@ -138,8 +152,8 @@ def paso1_proteger_grub():
         registrar_errores("Paso 1", f"No se pudo extraer el hash. Salida: {proceso.stdout}")
         return
     
-    #escribiendo en GRUB_CUSTOM_FILE
-    contenidoGrub=f"""
+    #escribiendo en GRUB_CUSTOM_FILE. #!/bin/sh necesario para poder ejecutar el comando
+    contenidoGrub=f"""#!/bin/sh 
 set superusers="{nombreGrub}
 password_pbkdf2 {nombreGrub} {hashLinea}
 """
@@ -150,8 +164,8 @@ password_pbkdf2 {nombreGrub} {hashLinea}
             f.write(contenidoGrub)
         #0o755 son permisos en octal (0o)
         os.chmod(GRUB_CUSTOM_FILE, 0o755)
-        print(f"[CORRECTO]: COnfiguración escrita en {GRUB_CUSTOM_FILE}")
-    except PermissionErrors:
+        print(f"[CORRECTO]: Configuración escrita en {GRUB_CUSTOM_FILE}")
+    except PermissionError:
         registrar_errores("Paso 1", f"Sin permisos para escribir en {GRUB_CUSTOM_FILE}")
         return
     
@@ -161,6 +175,7 @@ password_pbkdf2 {nombreGrub} {hashLinea}
     print()
     print("[CORRECTO]: PASO 1 COMPLETADO: GRUB protegido con contraseña.")
     print(f"                              Usuario GRUB: {nombreGrub}")
+    print("                               Al editar entradas de GRUB (tecla 'e'), se pedirá autenticación.")
 
 
 
