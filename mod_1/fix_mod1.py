@@ -278,7 +278,7 @@ install usb-storage /bin/false
 
     resultado=subprocess.run(["lsmod"], capture_output=True, text=True)
     if "usb_storage" in resultado.stdout:
-        print("[INFO]: El módulo usb_storage está cargado. Descargando...")
+        print("[INFO]: El módulo usb_storage está cargado. Descargando... Si diese error, los cambios se aplicarán tras un reinicio del sistema.")
         ejecutar_comando(["modprobe","-r","usb_storage"],"descargar módulo usb_storage", "Paso 3")
         print("[CORRECTO]: Módulo usb_storage descargado de memoria")
     else:

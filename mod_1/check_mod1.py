@@ -255,6 +255,7 @@ def main():
 
     verificar_paso1()
     verificar_paso2()
+    verificar_paso3()
 
     mostrar_resumen()
 
