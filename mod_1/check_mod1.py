@@ -43,7 +43,7 @@ def registrar_errores(paso, mensaje):
     print(f"[ERROR]: {mensaje}")
 
 #función para comprobar el uso de sudo
-def comrpobar_root():
+def comprobar_root():
     if os.geteuid()!=0:
         print("[ERROR]: Este script ha de ejecutarse como root.")
         print("         Ejecuta: sudo python3 fix_mod1.py")
@@ -131,3 +131,25 @@ def verificar_paso1():
     else:
         resultado_warn(f"No se puede leer {GRUB_CFG_FILE} para la verificación cruzada")
     
+
+def main():
+    comprobar_root()
+    configurar_logging()
+
+    print()
+    print("="*70)
+    print("     VERIFICACIÓN: Módulo 1 - Seguridad en Acceso al Hardware - Ubuntu Server 24.04.4 LTS")
+    print("="*70)
+    print()
+    print("         Comprobando configuraciones...")
+
+    verificar_paso1()
+
+    if checksFail>0:
+        sys.exit(1)
+    else:
+        sys.exit(0)
+
+
+if __name__=="__main__":
+    main()

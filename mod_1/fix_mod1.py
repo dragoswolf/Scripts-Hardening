@@ -36,7 +36,7 @@ def registrar_errores(paso, mensaje):
     print(f"[ERROR]: {mensaje}")
 
 #función para comprobar el uso de sudo
-def comrpobar_root():
+def comprobar_root():
     if os.geteuid()!=0:
         print("[ERROR]: Este script ha de ejecutarse como root.")
         print("         Ejecuta: sudo python3 fix_mod1.py")
@@ -94,7 +94,7 @@ def volver_al_menu():
 def mostrar_menu():
     print()
     print("="*70)
-    print("     Módulo 1: Seguridad en Acceso al Hardware -  Ubuntu Server 24.04.4 LTS")
+    print("     IMPLEMENTACIÓN: Módulo 1 - Seguridad en Acceso al Hardware -  Ubuntu Server 24.04.4 LTS")
     print("="*70)
     print()
     print("     Opciones:")
@@ -207,7 +207,7 @@ password_pbkdf2 {nombreGrub} {hashLinea}
 
 #EJECUCIÓN
 def main():
-    comrpobar_root()
+    comprobar_root()
     configurar_logging()
 
     while True:
