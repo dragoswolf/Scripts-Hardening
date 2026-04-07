@@ -237,56 +237,51 @@ def paso3_deshabilitar_usb():
     print()
 
 
-    if os.path.isfile(USB_MODPROBE_FILE)==False:
+    if os.path.isfile(USB_MODPROBE_FILE):
         try:
-            f=open(USB_MODPROBE_FILE, "r+")
-            contenido= f.read()
-
+            with open(USB_MODPROBE_FILE, "r") as f:
+                contenido=f.read()
             if "blacklist usb-storage" in contenido:
                 print(f"[INFO]: La regla ya existe en {USB_MODPROBE_FILE}.")
-                print("[CORRECTO]: PASO 3: No se requieren cambios en la configuración")
+                print("[CORRECTO] PASO 3: No se requieren cambios en la configuración.")
 
-                #Comprobamos que no esta cargado en memoria y si lo esta lo descargamos
-                resultado=subprocess.run(["lsmod | grep usb_storage"], capture_output=True, text=True)
+                #comprobamos que no esta en memoria y si está lo descargamos de memoria
+                resultado=subprocess.run(["lsmod"], capture_output=True, text=True)
 
-                if "usb_storage" in resultado:
-                    print("[INFO]: El módulo 'usb_storage' aún está cargado en memoria.")
+                if "usb_storage" in resultado.stdout:
+                    print("[INFO]: El módulo usb_storage aún está cargado en memoria.")
                     print("[INFO]: Descargando módulo...")
-
-                    ejecutar_comando(["modprobe", "-r", "usb_storage"], "descargar módulo usb_storage", "Paso 3")
-                    print("[CORRECTO]: Módulo descargado de la memoria.")
-            f.close()
-            return
+                    ejecutar_comando(["modprobe", "-r", "usb-storage"], "descargar módulo usb_storage", "Paso 3")
+                    print("[CORRECTO]: Módulo descargado de memoria.")
+                return
         except PermissionError:
-            registrar_errores("Paso 3",  f"Sin permisos para leer {USB_MODPROBE_FILE}")
-        
-    print(f"[INFO]: Creando regla de bloqueo en {USB_MODPROBE_FILE}...")
+            registrar_errores("Paso 3", f"Sin permisos para leer {USB_MODPROBE_FILE}")
 
-    contenidoModProbe="""
+    print(f"[INFO]: Creando regla de bloqueo en {USB_MODPROBE_FILE}...")
+    contenidoModprobe="""
 blacklist usb-storage
 """
 
     try:
-        f.open(USB_MODPROBE_FILE, "w")
-        f.write(contenidoModProbe)
-        f.close()
+        with open(USB_MODPROBE_FILE, "w") as f:
+            f.write(contenidoModprobe)
         print(f"[CORRECTO]: Regla de bloqueo creada en {USB_MODPROBE_FILE}")
     except PermissionError:
         registrar_errores("Paso 3", f"Sin permisos para escribir en {USB_MODPROBE_FILE}")
         return
     
-    ejecutar_comando(["update-grub"], "actualizar grub", "Paso 3")
-    print("[CORRECTO]: GRUB actualizado.")
+    print("[INFO]: Actualizando initframfs (puede tardar unos segundos)...")
+    ejecutar_comando(["update-initramfs", "-u"],"actualizar initramfs", "Paso 3")
+    print("[CORRECTO]: initramfs actualizado.")
 
     resultado=subprocess.run(["lsmod"], capture_output=True, text=True)
-
-    #si el módulo aún está en memoria en la sesión actual:
-    if "usb_storage" in resultado:
-        print("[INFO]: EL módulo usb_storage está cargado. Descargando...")
-        ejecutar_comando(["modprobe", "-r", "usb_storage"], "descargar módulo usb_storage", "Paso 3")
-        print("[CORRECTO]: Módulo usb_storage descargado de memoria.")
+    if "usb_storage" in resultado.stdout:
+        print("[INFO]: El módulo usb_storage está cargado. Descargando...")
+        ejecutar_comando(["modprobe","-r","usb_storage"],"descargar módulo usb_storage", "Paso 3")
+        print("[CORRECTO]: Módulo usb_storage descargado de memoria")
     else:
-        print("[INFO]: El módulo usb_storage no estaba cargado.")
+        print("[INFO]: El módulo usb_storage no esta cargado.")
+
 
     print()
     print("[CORRECTO]: PASO 3 COMPLETADO: Almacenamiento USB deshabilitado.")
@@ -319,6 +314,9 @@ def main():
             case "2":
                 paso2_deshabilitar_ctrl_alt_del()
                 volver_al_menu()
+            case "3":
+                paso3_deshabilitar_usb()
+                volver_al_menu()    
             case "q":
                 print("\n[INFO]: Saliendo del script.")
                 sys.exit(0)

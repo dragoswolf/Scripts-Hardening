@@ -195,7 +195,31 @@ def verificar_paso2():
             resultado_warn("Inconsistencia: is-enabled devuelve 'masked' pero status no lo confirma.")
 
 
+#verificamos paso 3
+#comprobamos que el fichero existe, las reglas están dentro del fichero y que el módulo de USB no está en memoria
+def verificar_paso3():
+    print()
+    print("="*100)
+    print("[PASO 3]: Almacenamiento USB deshabilitado")
+    print("="*100)
 
+    contenidoModprobe=leer_fichero(USB_MODPROBE_FILE, paso="Paso 3")
+    if contenidoModprobe is None:
+        resultado_fail(f"No se encontró {USB_MODPROBE_FILE}.", paso="Paso 3")
+        resultado_fail("No hay regla de bloqueo para usb-storage.", paso="Paso 3")
+    else:
+        if "blacklist usb-storage" in contenidoModprobe:
+            resultado_ok("Directiva 'blacklist usb-storage' presents.")
+        else:
+            resultado_fail("Falta la directiva'blacklist usb-storage'.", paso="Paso 3")
+
+        
+    resultado=subprocess.run(["modprobe", "--dry-run", "usb_storage"], capture_output=True, text=True)
+    
+    if resultado.returncode !=0:
+        resultado_ok("modprobe confirma que usb_storage está bloqueado.")
+    else:
+        resultado_warn("modprobe podría cargar usb_storage (dry-run exitoso).")
 
 
 
