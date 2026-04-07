@@ -77,6 +77,7 @@ def leer_fichero(ruta, paso="General"):
         with open(ruta,"r") as f:
             return f.read()
     except FileNotFoundError:
+        print(f"Fichero {ruta} no encontrado.")
         return None
     except PermissionError:
         registrar_errores(paso, f"Sin permisos para leer {ruta}")
