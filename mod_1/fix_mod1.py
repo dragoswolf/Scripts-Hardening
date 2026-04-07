@@ -89,3 +89,38 @@ def volver_al_menu():
 
 
 
+def paso1_proteger_grub():
+    print("[PASO 1]: Proteger el gestor de arranque GRUB con contraseña.")
+
+    #1.Pedimos credenciales
+    print()
+    nombreGrub=pedir_input_doble("Nombre de superusuario para GRUB (ej: admin): ")
+    print()
+    contrasenaGrub=pedir_input_doble("Contraseña para GRUB: ", ocultar=True)
+
+    #2. Generar el hash con la password
+    comando=[f"echo {contrasenaGrub} | grub-mkpasswd-pbkdf2"]
+    proceso=subprocess.run(comando, capture_output=True, text=True)
+
+    #3. Guardar el hash generado
+    hashLinea=proceso.stdout
+
+    #4.Formatear el archivo de configuración
+    contenidoGrub=f"""
+        set superusers="{nombreGrub}"
+        password_pbkdf2 {nombreGrub} {hashLinea}
+    """
+    #5.Sobreescribir el archivo
+    f=open(GRUB_CUSTOM_FILE, "w")
+    f.write(contenidoGrub)
+    f.close()
+
+    #6. Actualizar GRUB
+    ejecutar_comando("update-grub", "actualizar GRUB", "Paso 1")
+
+    print()
+    print("[CORRECTO]: PASO 1 COMPLETADO: GRUB protegido con contraseña.")
+    print(f"                              Usuario GRUB: {nombreGrub}")
+    print("                               Al editar entradas de GRUB (tecla 'e'), se pedirá autenticación")
+    
+
