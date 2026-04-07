@@ -98,34 +98,73 @@ def paso1_proteger_grub():
     print("las entradas de GRUB para obtener una shell root sin contraseña.")
     print()
 
-    #1.Pedimos credenciales
+    #abrir archivo grub para verificación
+    try:
+        with open(GRUB_CUSTOM_FILE, "r") as f:
+            contenidoActual=f.read()
+        
+        if "set superusers" in contenidoActual:
+            print("[INFO]: GRUB ya tiene una configuración de superusuario")
+            respuesta=input("Desea sobreescribirla? (s/n): ").strip().lower()
+            if respuesta!="s":
+                print("[INFO]: PASO 1 OMITIDO. La configuración actual se mantiene.")
+                return
+    except FileNotFoundError:
+        print("[AVISO]: No se encontró /etc/grub.d/40_custom. Se creará automáticamente.")
+    
+    # pedimos credenciales
+    print()
     nombreGrub=pedir_input_doble("Nombre de superusuario para GRUB (ej: admin): ")
     print()
     contrasenaGrub=pedir_input_doble("Contraseña para GRUB: ", ocultar=True)
 
-    #2. Generar el hash con la password
-    comando=[f"echo {contrasenaGrub} | grub-mkpasswd-pbkdf2"]
-    proceso=subprocess.run(comando, capture_output=True, text=True)
+    #genrando hash
+    try:
+        proceso=subprocess.run(["grub-mkpasswd-pbkdf2"], input=f"{contrasenaGrub}\n{contrasenaGrub}\n", capture_output=True, text=True, check=True)
+    except subprocess.CalledProcessError as e:
+        registrar_errores("Paso 1", f"No se pudo generar el hash PBKDF2: {e.stderr}")
+        return
+    except FileNotFoundError:
+        registrar_errores("Paso 1", "grub-mkpasswd-pbkdf2 no encontrado. Está GRUB2 instalado?")
+        return
+    
+    hashLinea=None
+    for linea in proceso.stdout.splitlines():
+        if "grub.pbkdf2" in linea:
+            hashLinea=linea.split("is ")[-1].strip()
+            break
 
-    #3. Guardar el hash generado
-    hashLinea=proceso.stdout
-
-    #4.Formatear el archivo de configuración
+    if not hashLinea:
+        registrar_errores("Paso 1", f"No se pudo extraer el hash. Salida: {proceso.stdout}")
+        return
+    
+    #escribiendo en GRUB_CUSTOM_FILE
     contenidoGrub=f"""
-        set superusers="{nombreGrub}"
-        password_pbkdf2 {nombreGrub} {hashLinea}
-    """
-    #5.Sobreescribir el archivo
-    f=open(GRUB_CUSTOM_FILE, "w")
-    f.write(contenidoGrub)
-    f.close()
-
-    #6. Actualizar GRUB
-    ejecutar_comando("update-grub", "actualizar GRUB", "Paso 1")
+set superusers="{nombreGrub}
+password_pbkdf2 {nombreGrub} {hashLinea}
+"""
+    
+    try:
+        #también crea el archivo si no existe
+        with open(GRUB_CUSTOM_FILE, "w") as f:
+            f.write(contenidoGrub)
+        #0o755 son permisos en octal (0o)
+        os.chmod(GRUB_CUSTOM_FILE, 0o755)
+        print(f"[CORRECTO]: COnfiguración escrita en {GRUB_CUSTOM_FILE}")
+    except PermissionErrors:
+        registrar_errores("Paso 1", f"Sin permisos para escribir en {GRUB_CUSTOM_FILE}")
+        return
+    
+    #ejecutando update-grub para aplicar cambios
+    ejecutar_comando(["update-grub"], "actualizar GRUB", "Paso 1")
 
     print()
     print("[CORRECTO]: PASO 1 COMPLETADO: GRUB protegido con contraseña.")
     print(f"                              Usuario GRUB: {nombreGrub}")
-    print("                               Al editar entradas de GRUB (tecla 'e'), se pedirá autenticación")
+
+
+
+
+
 
 
