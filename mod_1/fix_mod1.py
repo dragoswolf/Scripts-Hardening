@@ -88,12 +88,25 @@ def ejecutar_comando(comando, descripcion, paso="General", capturarSalida=False)
 def volver_al_menu():
     print()
     input("Pulsa ENTER para volver al menú principal...")
+
+
+# menú
+def mostrar_menu():
+    print()
+    print("="*70)
+    print("     Módulo 1: Seguridad en Acceso al Hardware -  Ubuntu Server 24.04.4 LTS")
+    print("="*70)
+    print()
+    print("     Opciones:")
+    print("         1.Proteger el gestor de arranque GRUB con contraseña")
+    print("         q. Salir")
 #=========================================================================================================
 
 
 
 
-
+#FUNCIONES DE MODIFICACIÓN
+#=========================================================================================================
 
 def paso1_proteger_grub():
     print("\n" + "="*70)
@@ -184,6 +197,35 @@ password_pbkdf2 {nombreGrub} {hashLinea}
 
 
 
+#=========================================================================================================
+
+
+
+
+
+
+
+#EJECUCIÓN
+def main():
+    comrpobar_root()
+    configurar_logging()
+
+    while True:
+        mostrar_menu()
+        opcion=input("Selecciona una opción: ").strip().lower()
+
+        match opcion:
+            case "1":
+                paso1_proteger_grub()
+                volver_al_menu()
+            case "q":
+                print("\n[INFO]: Saliendo del script.")
+                sys.exit(0)
+            case _:
+                print("[ERROR]: Opción no válida. Inténtelo de nuevo.")
+
+if __name__=="__main__":
+    main()
 
 
 
