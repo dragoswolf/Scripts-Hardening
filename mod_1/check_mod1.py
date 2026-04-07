@@ -213,6 +213,19 @@ def verificar_paso3():
         else:
             resultado_fail("Falta la directiva'blacklist usb-storage'.", paso="Paso 3")
 
+        if "install usb-storage /bin/false" in contenidoModprobe:
+            resultado_ok("Directiva 'install usb-storage /bin/false' presente.")
+        else:
+            resultado_warn("Falta la directiva 'install usb-storage /bin/false'.")
+            resultado_warn("El módulo podría cargarse manualmente con 'modprobe usb_storage'.")
+    
+    resultado=subprocess.run(["lsmod"], capture_output=True, text=True)
+    if "usb_storage" in resultado.stdout:
+        resultado_fail("El módulo usb_storage está cargado en memoria.", paso="Paso 3")
+        resultado_fail("Ejecuta: sudo modprobe -r usb_storage", paso="Paso 3")
+    else:
+        resultado_ok("El módulo usb_storage NO está cargado en memoria.")
+
         
     resultado=subprocess.run(["modprobe", "--dry-run", "usb_storage"], capture_output=True, text=True)
     

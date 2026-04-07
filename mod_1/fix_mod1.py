@@ -260,6 +260,7 @@ def paso3_deshabilitar_usb():
     print(f"[INFO]: Creando regla de bloqueo en {USB_MODPROBE_FILE}...")
     contenidoModprobe="""
 blacklist usb-storage
+install usb-storage /bin/false
 """
 
     try:
