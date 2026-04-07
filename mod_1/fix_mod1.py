@@ -93,13 +93,14 @@ def volver_al_menu():
 # menú
 def mostrar_menu():
     print()
-    print("="*70)
+    print("="*100)
     print("     IMPLEMENTACIÓN: Módulo 1 - Seguridad en Acceso al Hardware -  Ubuntu Server 24.04.4 LTS")
-    print("="*70)
+    print("="*100)
     print()
     print("     Opciones:")
-    print("         1.Proteger el gestor de arranque GRUB con contraseña")
-    print("         q. Salir")
+    print("         1.Proteger el gestor de arranque GRUB con contraseña.")
+    print("         2.Enmascarar Ctrl+Alt+Delete.")
+    print("         q. Salir.")
 #=========================================================================================================
 
 
@@ -224,9 +225,73 @@ def paso2_deshabilitar_ctrl_alt_del():
     print()
 
 
+def paso3_deshabilitar_usb():
+    print()
+    print("="*100)
+    print("[PASO 3]: Deshabilitar almacenamiento USB (usb-storage).")
+    print("="*100)
+    print()
+    print("Esta medida impide que se conecten dispositivos de almacenamiento")
+    print("USB al servidor, previniendo la exfiltración de datos y ataques")
+    print("BadUSB. Los teclados y ratones USB NO se ven afectados.")
+    print()
 
 
+    if os.path.isfile(USB_MODPROBE_FILE)==False:
+        try:
+            f=open(USB_MODPROBE_FILE, "r+")
+            contenido= f.read()
 
+            if "blacklist usb-storage" in contenido:
+                print(f"[INFO]: La regla ya existe en {USB_MODPROBE_FILE}.")
+                print("[CORRECTO]: PASO 3: No se requieren cambios en la configuración")
+
+                #Comprobamos que no esta cargado en memoria y si lo esta lo descargamos
+                resultado=subprocess.run(["lsmod | grep usb_storage"], capture_output=True, text=True)
+
+                if "usb_storage" in resultado:
+                    print("[INFO]: El módulo 'usb_storage' aún está cargado en memoria.")
+                    print("[INFO]: Descargando módulo...")
+
+                    ejecutar_comando(["modprobe", "-r", "usb_storage"], "descargar módulo usb_storage", "Paso 3")
+                    print("[CORRECTO]: Módulo descargado de la memoria.")
+            f.close()
+            return
+        except PermissionError:
+            registrar_errores("Paso 3",  f"Sin permisos para leer {USB_MODPROBE_FILE}")
+        
+    print(f"[INFO]: Creando regla de bloqueo en {USB_MODPROBE_FILE}...")
+
+    contenidoModProbe="""
+blacklist usb-storage
+"""
+
+    try:
+        f.open(USB_MODPROBE_FILE, "w")
+        f.write(contenidoModProbe)
+        f.close()
+        print(f"[CORRECTO]: Regla de bloqueo creada en {USB_MODPROBE_FILE}")
+    except PermissionError:
+        registrar_errores("Paso 3", f"Sin permisos para escribir en {USB_MODPROBE_FILE}")
+        return
+    
+    ejecutar_comando(["update-grub"], "actualizar grub", "Paso 3")
+    print("[CORRECTO]: GRUB actualizado.")
+
+    resultado=subprocess.run(["lsmod"], capture_output=True, text=True)
+
+    #si el módulo aún está en memoria en la sesión actual:
+    if "usb_storage" in resultado:
+        print("[INFO]: EL módulo usb_storage está cargado. Descargando...")
+        ejecutar_comando(["modprobe", "-r", "usb_storage"], "descargar módulo usb_storage", "Paso 3")
+        print("[CORRECTO]: Módulo usb_storage descargado de memoria.")
+    else:
+        print("[INFO]: El módulo usb_storage no estaba cargado.")
+
+    print()
+    print("[CORRECTO]: PASO 3 COMPLETADO: Almacenamiento USB deshabilitado.")
+    print("            Los pendrives y discos USB ya no serán reconocidos.")
+    print("            Teclados y ratones USB siguen funcionando con normalidad.")
 
 
 
