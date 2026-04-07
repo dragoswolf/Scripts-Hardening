@@ -83,8 +83,37 @@ def leer_fichero(ruta, paso="General"):
         registrar_errores(paso, f"Sin permisos para leer {ruta}")
         return None
     
+def mostrar_resumen():
+    print()
+    print("="*100)
+    print("RESUMEN DE VERIFICACIÓN DE MÓDULO 1 - SEGURIDAD EN ACCESO AL HARDWARE")
+    print("="*100)
+    print()
+
+    print(f"    Total de verificaciones: {totalChecks}")
+    print(f"    \033[92mCorrectamente configurado: {checksOk}\033[0m")
+    print(f"    \033[91mConfiguraciones fallidas: {checksFail}\033[0m")    
+    print(f"    \033[93mAdvertencias: {checksWarn}\033[0m")
+    print()
+
+    if checksFail==0 and checksWarn==0:
+        print("="*100)
+        print("    \033[92mTODAS LAS CONFIGURACIONES SON CORRECTAS\033[0m")
+        print("="*100)
+    elif checksFail==0:
+        print("="*100)
+        print("    \033[93mEXISTEN ADVERTENCIAS. REVISARLAS.\033[0m")
+        print("="*100)
+    else:
+        print("="*100)
+        print("    \033[91mEXISTEN CONFIGURACIONES PENDIENTES.\033[0m")
+        print("="*100)
+    
+    print()
 #=========================================================================================================
 
+#=========================================================================================================
+#VERIFICACIONES
 
 #verificamos el paso 1
 # Leemos primero el archivo 40_custom
@@ -94,9 +123,9 @@ def leer_fichero(ruta, paso="General"):
 # ambos ficheros tienen que tener la configuración
 def verificar_paso1():
     print()
-    print("="*70)
-    print("PASO 1: Verificación de la protección del gestor de arranque GRUB.")
-    print("="*70)
+    print("="*100)
+    print("[PASO 1]: Verificación de la protección del gestor de arranque GRUB.")
+    print("="*100)
 
     contenidoCustom=leer_fichero(GRUB_CUSTOM_FILE, paso="Paso 1")
     if contenidoCustom is None:
@@ -130,7 +159,51 @@ def verificar_paso1():
             resultado_warn("Ejecuta 'sudo update-grub' para aplicar los cambios.")
     else:
         resultado_warn(f"No se puede leer {GRUB_CFG_FILE} para la verificación cruzada")
-    
+
+
+
+#verificamos paso 2
+#comprobamos que el servicio está enmascarado
+
+def verificar_paso2():
+    print()
+    print("="*100)
+    print("[PASO 2]")
+    print("="*100)
+
+    resultado=subprocess.run(["systemctl", "is-enabled", "ctrl-alt-del.target"], capture_output=True, text=True)
+    estado=resultado.stdout.strip()
+
+    if estado=="masked":
+        resultado_ok("ctrl-alt-del.target está enmascarado. La combinación de teclas está desactivada.")
+    elif estado=="disabled":
+        resultado_warn("ctrl-alt-del.target está deshabilitado pero no enmascarado.")
+        resultado_warn("Se recomienda enmascarar usando el siguiente comando: sudo systemctl mask ctrl-alt-del.target")
+    else:
+        resultado_fail(f"ctrl-alt-del.target tiene estado: '{estado}'.", paso="Paso 2")
+        resultado_fail("Ctrl+alt+delete puede reiniciar el sistema.", paso="Paso 2")
+
+    #verificamos el estado para confirmar que está enmascarado
+
+    resultado=subprocess.run(["systemctl", "status", "ctrl-alt-del.target"], capture_output=True, text=True)
+    salida=resultado.stdout
+
+    if "masked" in salida.lower():
+        resultado_ok("Verificación cruzada: systemctl status confirma masked.")
+    else:
+        if estado=="masked":
+            resultado_warn("Inconsistencia: is-enabled devuelve 'masked' pero status no lo confirma.")
+
+
+
+
+
+
+#=========================================================================================================
+
+
+
+  
 
 def main():
     comprobar_root()
@@ -144,6 +217,9 @@ def main():
     print("         Comprobando configuraciones...")
 
     verificar_paso1()
+    verificar_paso2()
+
+    mostrar_resumen()
 
     if checksFail>0:
         sys.exit(1)

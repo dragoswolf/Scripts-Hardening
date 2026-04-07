@@ -197,6 +197,39 @@ password_pbkdf2 {nombreGrub} {hashLinea}
 
 
 
+def paso2_deshabilitar_ctrl_alt_del():
+
+    print()
+    print("="*100)
+    print("[PASO 2]: Deshabilitar Ctrl+Alt+Delete")
+    print("="*100)
+    print("Esta medida impide que se use ctrl+alt+del para reiniciar el servidor o interrumpir servicios.")
+    print()
+
+    resultado=subprocess.run(["systemctl", "is-enabled", "ctrl-alt-del.target"], capture_output=True, text=True)
+    estadoActual=resultado.stdout.strip()
+
+    if estadoActual=="masked":
+        print("[INFO]: Ctrl+alt+delete ya está deshabilitado.")
+        return
+    
+    print("[INFO]: Deshabilitando ctrl-alt-del.target...")
+    ejecutar_comando(["systemctl", "mask", "ctrl-alt-del.target"], "enmascarar ctrl-alt-del.target", "Paso 2")
+
+    print("[INFO]: Recargando configuración de systemd...")
+    ejecutar_comando(["systemctl", "daemon-reload"], "recargar systemd", "Paso 2")
+
+    print()
+    print("[CORRECTO]: PASO 2 COMPLETADO: Ctrl+alt+del deshabilitado.")
+    print()
+
+
+
+
+
+
+
+
 #=========================================================================================================
 
 
@@ -217,6 +250,9 @@ def main():
         match opcion:
             case "1":
                 paso1_proteger_grub()
+                volver_al_menu()
+            case "2":
+                paso2_deshabilitar_ctrl_alt_del()
                 volver_al_menu()
             case "q":
                 print("\n[INFO]: Saliendo del script.")
