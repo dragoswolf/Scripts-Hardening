@@ -98,8 +98,9 @@ def mostrar_menu():
     print("="*100)
     print()
     print("     Opciones:")
-    print("         1.Proteger el gestor de arranque GRUB con contraseña.")
-    print("         2.Enmascarar Ctrl+Alt+Delete.")
+    print("         1. Proteger el gestor de arranque GRUB con contraseña.")
+    print("         2. Enmascarar Ctrl+Alt+Delete.")
+    print("         3. Deshabilitar USB.")
     print("         q. Salir.")
 #=========================================================================================================
 
