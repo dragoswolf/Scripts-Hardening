@@ -153,8 +153,12 @@ def paso1_proteger_grub():
         return
     
     #escribiendo en GRUB_CUSTOM_FILE. #!/bin/sh necesario para poder ejecutar el comando
-    contenidoGrub=f"""#!/bin/sh 
-set superusers="{nombreGrub}
+    #necesitamos exec tail -n n3 $0 para incrustar los datos en el archivo
+    # n3= desde la linea 3 hasta el final
+    #$0 = variable para ruta y archivo
+    contenidoGrub=f"""#!/bin/sh
+exec tail -n +3 $0
+set superusers="{nombreGrub}"
 password_pbkdf2 {nombreGrub} {hashLinea}
 """
     
