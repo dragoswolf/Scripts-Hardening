@@ -90,10 +90,15 @@ def volver_al_menu():
 
 
 def paso1_proteger_grub():
+    print("\n" + "="*70)
     print("[PASO 1]: Proteger el gestor de arranque GRUB con contraseña.")
+    print("\n" + "="*70)
+    print()
+    print("Esta medida impide que un atacante con acceso a la consola edite")
+    print("las entradas de GRUB para obtener una shell root sin contraseña.")
+    print()
 
     #1.Pedimos credenciales
-    print()
     nombreGrub=pedir_input_doble("Nombre de superusuario para GRUB (ej: admin): ")
     print()
     contrasenaGrub=pedir_input_doble("Contraseña para GRUB: ", ocultar=True)
@@ -122,5 +127,5 @@ def paso1_proteger_grub():
     print("[CORRECTO]: PASO 1 COMPLETADO: GRUB protegido con contraseña.")
     print(f"                              Usuario GRUB: {nombreGrub}")
     print("                               Al editar entradas de GRUB (tecla 'e'), se pedirá autenticación")
-    
+
 
