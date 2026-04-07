@@ -227,12 +227,14 @@ def verificar_paso3():
         resultado_ok("El módulo usb_storage NO está cargado en memoria.")
 
         
-    resultado=subprocess.run(["modprobe", "--dry-run", "usb_storage"], capture_output=True, text=True)
+    resultado=subprocess.run(["modprobe", "--showconfig"], capture_output=True, text=True)
+    configModprobe=resultado.stdout
     
-    if resultado.returncode !=0:
-        resultado_ok("modprobe confirma que usb_storage está bloqueado.")
+    if "install usb-storage /bin/false" in configModprobe or "install usb_storage /bin/false" in configModprobe:
+        resultado_ok("modprobe confirma directiva 'install usb-storage /bin/false' activa.")
     else:
-        resultado_warn("modprobe podría cargar usb_storage (dry-run exitoso).")
+        resultado_warn("No se detecta la directiva 'install usb-storage /bin/false' en modprobe.")
+        print("El módulo podría cargarse manualmente con 'modprobe usb_storage'.")
 
 
 
