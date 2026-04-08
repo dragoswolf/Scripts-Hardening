@@ -120,6 +120,7 @@ def mostrar_menu():
     print("         1. Proteger el gestor de arranque GRUB con contraseña.")
     print("         2. Enmascarar Ctrl+Alt+Delete.")
     print("         3. Deshabilitar USB.")
+    print("         4. Rehabilitar USB.")
     print("         q. Salir.")
 #=========================================================================================================
 
@@ -393,7 +394,10 @@ def main():
                 volver_al_menu()
             case "3":
                 paso3_deshabilitar_usb()
-                volver_al_menu()    
+                volver_al_menu()
+            case "4":
+                paso4_reactivar_usb()
+                volver_al_menu()
             case "q":
                 print("\n[INFO]: Saliendo del script.")
                 sys.exit(0)
