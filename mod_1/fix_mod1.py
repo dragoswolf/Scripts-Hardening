@@ -1,5 +1,24 @@
 #!/usr/bin/env python3
 
+#=========================================================================================================
+# fix_mod1.py - Script de fortificación para Módulo 1: Seguridad en Acceso al Hardware
+#=========================================================================================================
+# Este script implementa las siguientes medidas de seguridad en Ubuntu Server 24.04.4 LTS
+#       Paso 1: Proteger el gestor de arranque GRUB con contraseña
+#       Paso 2: Deshabilitar Ctrl+Alt+Delete 
+#       Paso 3: Deshabilitar almacenamiento USB (usb-storage)
+#       Paso 4: Rehabilitar almacenamiento USB (usb-storage)
+#
+#
+# IMPORTANTE: El script ha de ejecutarse como root (sudo) para poder realizar los cambios
+#
+# Los errores se registran en /var/log/hardening/modulo1_fix.log
+#
+# Auto: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#=========================================================================================================
+
+
 import os
 import sys
 import subprocess
@@ -290,6 +309,62 @@ install usb-storage /bin/false
     print("            Los pendrives y discos USB ya no serán reconocidos.")
     print("            Teclados y ratones USB siguen funcionando con normalidad.")
 
+
+#deshacemos los cambios hechos en el paso 3 para poder volver a cargar USBs
+def paso4_reactivar_usb():
+    print()
+    print("="*100)
+    print("[PASO 4]: Reactivar almacenamiento USB (reversión)")
+    print("="*100)
+    print()
+    print("Esta opción revierte el bloqueo de USB y permite volver a")
+    print("conectar dispositivos de almacenamiento USB al servidor.")
+    print()
+    print("[AVISO]: Solo usa esta opción si necesitas conectar un")
+    print("         dispositivo USB temporalmente.")
+    print("         Se recomienda volver a deshabilitar USB después.")
+    print()
+
+    confirmación= input("¿Estás seguro de que deseas reactivar USB? (s/n)").strip().lower()
+
+    if confirmacion!="s":
+        print("[INFO]: Operación cancelada. USB sigue deshabilitado.")
+        return
+    
+    if os.path.isfile(USB_MODPROBE_FILE):
+        try:
+            os.remove(USB_MODPROBE_FILE)
+            print(f"[CORRECTO]: Fichero de bloqueo eliminado: {USB_MODPROBE_FILE}")
+        except PermissionError:
+            registrar_errores("Paso 4", f"Sin permisos para eliminar {USB_MODPROBE_FILE}")
+            return
+    else:
+        print(f"[INFO]: {USB_MODPROBE_FILE} no existe (USB puede que ya esté activado)")
+
+    #actualizamos initial ram file system para el reinicio
+    print("[INFO]: Actualizando initramfs...")
+    ejecutar_comando(["update-initramfs", "-u"], "actualizar initramfs", "Paso 4")
+    print("[CORRECTO]: initramfs actualizado.")
+    
+    print("[INFO]: Cargando módulo usb_storage en memoria...")
+    ejecutar_comando(["modprobe","usb_storage"], "cargar módulo usb_storage", "Paso 4")
+
+    #verificar que el módulo USB está en memoria. Si diese error es posible
+    # que se necesite un reinicio del sistema
+
+    resultado=subprocess.run(["lsmod"], capture_output=True, text=True)
+
+    if "usb_storage" in resultado.stdout:
+        print("[CORRECTO]: Módulo 'usb_storage' cargado correctamente.")
+    else:
+        registrar_errores("Paso 4", "El módulo 'usb_storage' no se cargó tras modprobe")
+
+    print()
+    print("[CORRECTO]: PASO 4 COMPLETADO: Almacenamiento USB reactivado.")
+    print("                               Los pendrives y discos USB serán")
+    print("                               reconocidos de nuevo.")
+    print()
+    print("[AVISO]: RECUERDA DESHABILITAR USB CUANDO TERMINES.")
 
 
 #=========================================================================================================

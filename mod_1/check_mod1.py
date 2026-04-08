@@ -1,5 +1,26 @@
 #!/usr/bin/env python3
 
+#=========================================================================================================
+# check_mod1.py - Script de verificación para Módulo 1: Seguridad en Acceso al Hardware
+#=========================================================================================================
+# Este script verifica que las siguientes medidas de seguridad están correctamente configuradas
+# en Ubuntu Server 24.04.4 LTS:
+#       Paso 1: Protección del gestor de arranque GRUB con contraseña
+#       Paso 2: Ctrl+Alt+Delete deshabilitado
+#       Paso 3: Almacenamiento USB (usb-storage) deshabilitado
+#
+# Este script NO modifica nada en el sistema. Solo lee y comprueba.
+#
+# IMPORTANTE: El script ha de ejecutarse como root (sudo) para poder leer todos los ficheros
+#             de configuración necesarios.
+#
+# Los errores se registran en /var/log/hardening/modulo1_check.log
+#
+# Auto: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#=========================================================================================================
+
+
 import os
 import sys
 import subprocess
