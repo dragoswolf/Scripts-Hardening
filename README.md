@@ -17,7 +17,7 @@ Con este proyecto se consigue:
 *   Reducir la carga de trabajo técnica: Automatizar tareas complejas a través de una interfaz de usuario guiada que no requiere conocimientos avanzados de administración, previniendo así el estrés y el síndrome del trabajador quemado (burnout) en el personal informático.
 *   Validación empírica: Cuantificar la eficacia de las medidas aplicadas mediante herramientas de escaneo y auditoría como OpenSCAP y Lynis, comparando el estado del sistema antes y después del hardening.
 
-## Capas de Seguridad Implementadas
+## Capas de Seguridad Implementadas (borrador)
 Cada módulo de los scripts de automatización ha sido justificado identificando el vector de ataque que mitiga y su correspondencia con la tríada CIA (Confidencialidad, Integridad y Disponibilidad). Las capas abordadas incluyen:
 
 1.  Protección física y del arranque: Configuración segura de GRUB, bloqueo de reinicios forzados y deshabilitación del acceso a almacenamiento USB.
