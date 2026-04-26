@@ -403,7 +403,7 @@ def main():
     comprobar_root()
 
     #Configurar el sistema de logs
-    configurar_logging()
+    configurar_logging(LOG_FILE)
 
     while True:
         mostrar_menu()
