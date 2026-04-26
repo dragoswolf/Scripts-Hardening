@@ -24,9 +24,19 @@
 import os           #Comprueba existencia de ficheros y permisos
 import sys          #Para códigos de salida
 import subprocess   #Ejecuta comandos de verificación
-import getpass      #Para solicitar información sensible de forma segura
-import logging      #Para logging de los comandos usados y el resultado de la ejecución
-from datetime import datetime
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__),".."))
+from utils import (
+    configurar_logging, 
+    registrar_errores, 
+    comprobar_root, 
+    resultado_ok, 
+    resultado_fail,
+    resultado_warn,
+    leer_fichero,
+    mostrar_resumen,
+    contadores
+    )
 
 
 #=========================================================================================================
@@ -43,177 +53,10 @@ GRUB_CFG_FILE= "/boot/grub/grub.cfg"
 USB_MODPROBE_FILE="/etc/modprobe.d/usb-storage.conf"
 
 #Directorio y fichero de logs
-LOG_DIR="/var/log/hardening"
 LOG_FILE="/var/log/hardening/modulo1_fix.log"
 
 #=========================================================================================================
 
-
-#=========================================================================================================
-# CONTADORES GLOBALES - Variables globales usadas para el resumen final
-#=========================================================================================================
-
-# Estas variables llevan la cuenta de verificaciones correctas y fallidas
-totalChecks=0       #Número total de verificaciones realizadas
-checksOk=0          #Número de verificaciones correctas
-checksFail=0        #Número de verificaciones fallidas
-checksWarn=0        #Número de advertencias
-
-#=========================================================================================================
-
-#=========================================================================================================
-# FUNCIONES DE APOYO - Funciones utilizadas para realizar las funciones necesarias
-#=========================================================================================================
-
-# CONFIGURACIÓN DEL SISTEMA DE LOGS
-
-def configurar_logging():
-    """
-    Configura el sistema de logging para registrar errores en un fichero.
-    Crea el directorio /var/log/hardening/ si no existe.
-    El fichero de log es /var/log/hardening/modulo1_check.log
-    Cada entrada incluyte fecha, hora, nivel y mensaje.
-    """
-    #Crea el directorio de logs si no existe
-    if not os.path.isdir(LOG_DIR):
-        os.makedirs(LOG_DIR, exist_ok=True)
-
-    #Configura el logger con el formato "[YYYY-MM-DD HH:MM:SS] ERROR: <mensajeError>"
-    logging.basicConfig(filename=LOG_FILE, 
-                        level=logging.ERROR, 
-                        format="[%(asctime)s] %(levelname)s: %(message)s", 
-                        datefmt="%Y-%m-%d %H:%M:%S"
-                        )
-    
-def registrar_errores(paso, mensaje):
-    """
-    Registra un error en el fichero de log y además lo muestra por pantalla
-
-    Args:
-        paso (str): Identificador del paso donde ocurrió el error (ej: "Paso 1").
-        mensaje (str): Descripción del error.
-    Return:
-        None.
-    """
-    textoLog=f"[{paso}] {mensaje}"
-    logging.error(textoLog)
-    print(f"[ERROR]: {mensaje}")
-
-# ASEGURAR USO DE SUDO
-
-def comprobar_root():
-    """
-    Comprueba que el script se ejecuta como root.
-    Necesario para leer ficheros protegidos (como /boot/grub/grub.cfg)
-    """
-    if os.geteuid()!=0:
-        print("[ERROR]: Este script ha de ejecutarse como root.")
-        print("         Ejecuta: sudo python3 fix_mod1.py")
-        sys.exit(1)
-
-# RECOGIDA DE RESULTADOS
-def resultado_fail(mensaje, paso="General"):
-    """
-    Registra una verificación fallida y muestra el resultado en rojo.
-    
-    Args:
-        mensaje (str): Descripción de lo que ha fallado
-        paso (str): Identificador del paso para el log
-    Return:
-        None.
-    """
-    global totalChecks, checksFail
-    totalChecks +=1
-    checksFail +=1
-
-    #imprimir en rojo el fallo y luego resetear el color. Esta logica se va a usar en todos los resultados
-    print(f"    \033[91m[FALLO]:\033[0m {mensaje}")
-    registrar_errores(paso, mensaje)
-
-def resultado_warn(mensaje):
-    """
-    Registra una advertencia y muestra el resultado en amarillo.
-
-    Args:
-        mensaje (str): Descripción de la advertencia
-    Return:
-        None.
-    """
-    global totalChecks, checksWarn
-    totalChecks+=1
-    checksWarn+=1
-
-    print(f"    \033[93m[AVISO]:\033[0m {mensaje}")
-
-def resultado_ok(mensaje):
-    """
-    Registra una verificación exitosa y muestra el resultado en verde.
-
-    Args:
-        mensaje(str): Descripción de lo que se ha verificado correctamente.
-    Return:
-        None.
-    """
-    global totalChecks, checksOk
-    totalChecks+=1
-    checksOk+=1
-
-    print(f"    \033[92m[CORRECTO]:\033[0m {mensaje}")
-
-def leer_fichero(ruta, paso="General"):
-    """
-    Lee el contenido de un fichero y lo devuelve como string.
-    Si el fichero no existe o no se puede leer, devuelve None.
-
-    Args:
-        ruta (str): Ruta ABSOLUTA del fichero
-        paso (str): Identificador del paso para el log
-    Return:
-        str o None: Contenido del fichero, o None si hubo error
-    """
-    try:
-        with open(ruta,"r") as f:
-            return f.read()
-    except FileNotFoundError:
-        print(f"Fichero {ruta} no encontrado.")
-        return None
-    except PermissionError:
-        registrar_errores(paso, f"Sin permisos para leer {ruta}")
-        return None
-    
-# RESUMEN FINAL
-def mostrar_resumen():
-    """
-    Muestra un resumen de todas las verificaciones realizadas 
-    con el conteo de éxitos, fallos y advertencias.
-    """
-    print()
-    print("="*100)
-    print("RESUMEN DE VERIFICACIÓN DE MÓDULO 1 - SEGURIDAD EN ACCESO AL HARDWARE")
-    print("="*100)
-    print()
-
-    print(f"    Total de verificaciones: {totalChecks}")
-    print(f"    \033[92mCorrectamente configurado: {checksOk}\033[0m")
-    print(f"    \033[91mConfiguraciones fallidas: {checksFail}\033[0m")    
-    print(f"    \033[93mAdvertencias: {checksWarn}\033[0m")
-    print()
-
-    if checksFail==0 and checksWarn==0:
-        print("="*100)
-        print("    \033[92mTODAS LAS CONFIGURACIONES SON CORRECTAS\033[0m")
-        print("="*100)
-    elif checksFail==0:
-        print("="*100)
-        print("    \033[93mEXISTEN ADVERTENCIAS. REVISARLAS.\033[0m")
-        print("="*100)
-    else:
-        print("="*100)
-        print("    \033[91mEXISTEN CONFIGURACIONES PENDIENTES.\033[0m")
-        print("="*100)
-    
-    print()
-#=========================================================================================================
 
 #=========================================================================================================
 # VERIFICACION PASO 1 - Protección del GRUB
@@ -237,7 +80,7 @@ def verificar_paso1():
     if contenidoCustom is None:
         #Si el fichero no existe, GRUB no está protegido
         resultado_fail(
-            f"No se encontró {GRUB_CUSTOM_FILE}. GRUB no tiene configuración de contraseña", 
+            f"[ERROR]: No se encontró {GRUB_CUSTOM_FILE}. GRUB no tiene configuración de contraseña", 
             paso="Paso 1")
         return
     
@@ -412,7 +255,7 @@ def main():
 
     #Devolver código de salida según resultado
     #0 = todo bien, 1= hay fallos
-    if checksFail>0:
+    if contadores["checksFail"]>0:
         sys.exit(1)
     else:
         sys.exit(0)

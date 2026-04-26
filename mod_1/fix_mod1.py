@@ -22,9 +22,17 @@
 import os                           #Para operaciones del sistema de ficheros
 import sys                          #Para salir del script con códigos de error
 import subprocess                   #Para ejecutar comandos del sistema
-import getpass                      #Para solicitar contraseñas sin mostrarlas en pantalla
-import logging                      #Para registrar errores en fichero de log
-from datetime import datetime       #Para timestamps en los mensajes de log
+
+#Importar utils.py
+sys.path.insert(0, os.path.join(os.path.dirname(__file__),".."))
+from utils import(
+    configurar_logging,
+    registrar_errores,
+    comprobar_root,
+    ejecutar_comando,
+    volver_al_menu,
+    pedir_input_doble
+)
 
 #=========================================================================================================
 # CONSTANTES - Rutas de ficheros necesarios a modificar por los scripts
@@ -36,147 +44,13 @@ GRUB_CUSTOM_FILE="/etc/grub.d/40_custom"
 #Fichero de configuración de modprobe para bloquear módulos del kernel (paso 3)
 USB_MODPROBE_FILE="/etc/modprobe.d/usb-storage.conf"
 
-#Directorio y fichero de logs
-LOG_DIR="/var/log/hardening"
+#Fichero de logs
 LOG_FILE="/var/log/hardening/modulo1_fix.log"
-
-
-#FUNCIONES DE APOYO
 #=========================================================================================================
 
-
-def configurar_logging():
-    """
-    Configura el sistema de logging para registrar errores en un fichero.
-    Crea el directorio /var/log/hardening/ si no existe
-    El fichero de log /var/log/hardening/modulo1_fix.log
-    Cada entrada incluye fecha, hora, nivel y mensaje
-    """
-    #Crear el directorio de logs si no existe
-    if not os.path.isdir(LOG_DIR):
-        os.makedirs(LOG_DIR, exist_ok=True)
-
-    #Configurar el logger con formato: [YYYY-MM-DD HH:MM:SS] ERROR: <mensajeError>
-    logging.basicConfig(filename=LOG_FILE, 
-                        level=logging.ERROR, 
-                        format="[%(asctime)s] %(levelname)s: %(message)s", 
-                        datefmt="%Y-%m-%d %H:%M:%S"
-                        )
-    
-def registrar_errores(paso, mensaje):
-    """
-    Registra un error en el fichero de log y además lo muestra por pantalla
-
-    Args:
-        paso (str): Identificador del paso donde ocurrió el error (ej: "Paso 1").
-        mensaje (str): Descripción del error.
-    Return:
-        None.
-    """
-    textoLog=f"[{paso}] {mensaje}"
-    logging.error(textoLog)
-    print(f"[ERROR]: {mensaje}")
-
-#función para comprobar el uso de sudo
-def comprobar_root():
-    """
-    Comprueba que el script se está ejecutando con privilegios de root.
-    Muchas de las operaciones (modificar GRUB, modprobe, systemctl) requieren
-    permisos de superusuario. Si no se ejecuta como root, el script se detiene.
-    """
-    if os.geteuid()!=0:
-        #os.geteuid() devuelve el UID efectivo del proceso. 0=root
-        print("[ERROR]: Este script ha de ejecutarse como root.")
-        print("         Ejecuta: sudo python3 fix_mod1.py")
-        sys.exit(1)
-
-
-def pedir_input_doble(mensaje, ocultar=False):
-    """
-    Solicita un dato al usuario DOS veces y compara ambas entradas.
-    Si coinciden, devuelve el valor, si no coinciden vuelve a pedir las dos entradas.
-    Estos previene errores tipográficos en contraseñas, nombres de usuarios o rutas de dispositivos.
-
-    Args:
-        mensaje (str): El texto que se muestra al usuario.
-        ocultar (bool): Si es True, no se muestra lo que el usuario escribe (ej: contraseñas)
-                        Usa getpass en lugar de input
-
-    Return:
-        str: El valor introducido por el usuario (verificado por doble entrada).
-    """
-    while True:
-        #Primera entrada: Se pide el dato por primera vez
-        if ocultar:
-            #getpass() no muestra los caracteres en pantalla
-            entrada1=getpass.getpass(f"{mensaje}: ")
-        else:
-            #input() muestra los caracteres normalmente
-            entrada1=input(f"{mensaje}: ")
-        #Validar que no esté vacío
-        if not entrada1.strip():
-            print("[ERROR]: El valor no puede ser estar vacío.\n")
-            continue
-        
-        #Segunda entrada: se pide lo mismo para confirmar
-        if ocultar:
-            entrada2=getpass.getpass(f"{mensaje} (confirmar): ")
-        else:
-            entrada2=input(f"{mensaje} (confirmar): ")
-        
-        #Comparación: si ambas entradas coinciden, se acepta el valor
-        if entrada1==entrada2:
-            return entrada1
-        else:
-            #Si no coinciden, se informa al usuario y se repite el proceso
-            print("[ERROR]: Las entradas no coinciden. Inténtalo de nuevo.\n")
-
-
-def ejecutar_comando(comando, descripcion, paso="General", capturarSalida=False):
-    """
-    Ejecuta un comando del sistema y gestiona posibles errores.
-    Los errores se registran tanto en pantalla como en el fichero de log.
-
-    Args:
-        comando (list): Lista con el comando y sus argumentos.
-        descripcion (str): Texto descriptivo de lo que hace el comando
-        paso (str): Identificador del paso
-        capturarSalida (bool): Si es True, captura y devuelve stdout.
-
-    Return:
-        str o None: La salida del comando si capturarSalida=True, None en otro caso
-    """
-    try:
-        #subprocess.run() ejecuta el comando como un proceso hijo
-        resultado=subprocess.run(
-            comando,                #Comando a ejecutar
-            capture_output=True,    #Capturar stdout y stderr
-            text=True,              #Devolver strings en vez de bytes
-            check=True              #Lanzar excepción si el código de retorno !=0
-        )
-        if capturarSalida:
-            return resultado.stdout #Devolver la salida estándar
-        return None
-    except subprocess.CalledProcessError as e:
-        #Si el comando falla (código de retorno != 0), registrar el error
-        mensajeError=(f"Fallo al {descripcion}: " 
-                      f"Comando: {' '.join(comando)} | " 
-                      f"Error: {e.stderr.strip()}")
-        registrar_errores(paso, mensajeError)
-        return None
-    except FileNotFoundError:
-        #Si el ejecutable no existe en el sistema.
-        mensajeError=(f"Comando no encontrado: {comando[0]}. " 
-                      f"Asegúrate de que está instalado.")
-        registrar_errores(paso, mensajeError)
-        return None
-
-def volver_al_menu():
-    """
-    Espera a que el usuario pulse Enter para volver al menú principal.
-    """
-    print()
-    input("Pulsa ENTER para volver al menú principal...")
+#=========================================================================================================
+# FUNCIÓN DE MENÚ
+#=========================================================================================================
 
 def mostrar_menu():
     """
@@ -195,10 +69,6 @@ def mostrar_menu():
     print("         q. Salir.")
 #=========================================================================================================
 
-
-
-
-#FUNCIONES DE MODIFICACIÓN
 
 #=========================================================================================================
 # PASO 1: Proteger el gestor de arranque GRUB
@@ -558,12 +428,14 @@ def main():
             case _:
                 print("[ERROR]: Opción no válida. Inténtelo de nuevo.")
 
-if __name__=="__main__":
-    main()
 
 #=========================================================================================================
 # PUNTO DE ENTRADA - Se ejecuta solo si el fichero se llama directamente.
 #=========================================================================================================
+if __name__=="__main__":
+    main()
+
+
 
 
 
