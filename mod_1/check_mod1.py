@@ -235,7 +235,7 @@ def main():
     comprobar_root()
 
     #Inicializa el sistema de logging
-    configurar_logging()
+    configurar_logging(LOG_FILE)
 
     #Cabecera del script
     print()
