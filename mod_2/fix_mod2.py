@@ -97,20 +97,22 @@ def paso1_personalizar_motd():
         print(f"[INFO]: Deshabilitando scripts dinámicos en {MOTD_DIR}...")
         for fichero in os.listdir(MOTD_DIR):
             if os.path.isfile(fichero):
-                os.chmod(fichero, ~0o111)
+                rutaCompleta=os.path.join(MOTD_DIR, fichero)
+                if os.path.isfile(rutaCompleta):
+                    statActual=os.stat(rutaCompleta)
+                    nuevosPermisos=statActual.st_mode & ~0o111
+                    os.chmod(rutaCompleta, nuevosPermisos)
         print("[CORRECTO]: Scripts por defecto deshabilitados.")
     else:
         print(f"[AVISO]: Directorio {MOTD_DIR} no encontrado.")
 
-    rutaScriptCustom=MOTD_DIR+"01-banner-custom"
-
+    rutaScriptCustom=os.path.join(MOTD_DIR, "01-banner-custom")
     print(f"[INFO]: Creando script personalizado en {rutaScriptCustom}...")
-
     if escribir_fichero(rutaScriptCustom, TEXTO_MOTD_SCRIPT, 0o700):
         print(f"[CORRECTO]: Script personalizado creado con permisos de ejecución.")
 
-    if os.path.exists(MOTD_FILE):
-        os.remove(MOTD_FILE)
+    print(f"[INFO]: Vaciando {MOTD_FILE}...")
+    if escribir_fichero(MOTD_FILE, "", 0o644):
         print(f"[CORRECTO]: {MOTD_FILE} vaciado.")
 
     print()
@@ -139,17 +141,29 @@ def paso2_configurar_banners():
 
     contenidoSshd=leer_fichero(SSHD_CONFIG_FILE)
     if contenidoSshd is not None:
-        nuevoContenido=contenidoSshd.replace("#Banner none", "Banner /etc/issue.net")
+        bannerYaConfigurado=False
+        lineasNuevas=[]
+        for linea in contenidoSshd.splitlines():
+            lineaLimpia=linea.strip()
+            if lineaLimpia.lower().startswith("banner") or lineaLimpia.lower().startswith("#banner"):
+                if not bannerYaConfigurado:
+                    lineasNuevas.append("Banner /etc/issue.net")
+                    bannerYaConfigurado=True
+            else:
+                lineasNuevas.append(linea)
 
-        if nuevoContenido==contenidoSshd:
-            nuevoContenido+="Banner /etc/issue.net\n"
+        if not bannerYaConfigurado:
+            lineasNuevas.append("")
+            lineasNuevas.append("# Banner legal añadido por fix_mod2.py")
+            lineasNuevas.append("Banner /etc/issue.net")
+
+        nuevoContenido="\n".join(lineasNuevas)+"\n"
         print(f"[INFO]: Configurando directiva Banner en {SSHD_CONFIG_FILE}...")
         if escribir_fichero(SSHD_CONFIG_FILE, nuevoContenido, 0o600):
-            print("[CORRECTO]: Directiva 'Banner /etc/issue.net' configurada.")
-
+            print("[CORRECTO]: Directiva 'Banner /etc/issue.net' configurada")
+        
         print("[INFO]: Reiniciando servicio SSH...")
-
-        ejecutar_comando(["systemctl", "restart", "sshd"], "reiniciar SSH")
+        ejecutar_comando(["systemctl", "restart", "sshd"], "reiniciar SSH", "Paso 2")
         print("[CORRECTO]: SSH reiniciado.")
     else:
         print(f"[ERROR]: No se puede leer {SSHD_CONFIG_FILE}")
@@ -167,32 +181,35 @@ def paso3_eliminar_paquetes():
     print("[PASO 3]: Eliminar paquetes innecesarios u huérfanos")
     print("="*100)
     print()
+    print("Esta medida reduce la superficie de ataque eliminando software")
+    print("que no es necesario para la función del servidor.")
 
     print("[INFO]: Eliminando paquetes huérfanos...")
     ejecutar_comando(
-        ["apt", "autoremove", "--purge", "-y"], "eliminar paquetes huérfanos"
+        ["apt", "autoremove", "--purge", "-y"], "eliminar paquetes huérfanos", "Paso 3"
     )
 
     print("[CORRECTO]: Paquetes huérfanos eliminados.")
-    resultado= subprocess.run(["dpkg", "-l",paquete], capture_output=True, text=True)
 
     for paquete in PAQUETES_INNECESARIOS:
-        if paquete in resultado.stdout:
+        resultado= subprocess.run(["dpkg", "-l",paquete], capture_output=True, text=True)
+
+        if resultado.returncode==0 and f"ii  {paquete}" in resultado.stdout:
             print(f"[INFO]: Eliminando paquete innecesario: {paquete}...")
-            ejecutar_comando(["apt", "purge", "-y", paquete], f"eliminar {paquete}")
+            ejecutar_comando(["apt", "purge", "-y", paquete], f"eliminar {paquete}", "Paso 3")
             print(f"[CORRECTO]: {paquete}, eliminado.")
         else:
             print(f"[INFO]: {paquete} no está instalado. Todo correcto.")
     
     print("[INFO]: Limpiando caché de paquetes descargados...")
-    ejecutar_comando(["apt", "clean"], "limpiar caché APT")
+    ejecutar_comando(["apt", "clean"], "limpiar caché APT", "Paso 3")
     print("[CORRECTO]: Caché limpia.")
 
     print("[INFO] Verificando dependencias...")
-    ejecutar_comando(["apt", "--fix-broken", "install", "-y"], "reparar dependencias")
+    ejecutar_comando(["apt", "--fix-broken", "install", "-y"], "reparar dependencias", "Paso 3")
 
     print()
-    print("PASO 3 COMPLETADO. PAQUETES INNECESARIOS ELIMINADOS")
+    print("[CORRECTO]: PASO 3 completado. Paquetes innecesarios eliminados.")
 
 
 def paso4_actualizar_sistema():
@@ -207,15 +224,15 @@ def paso4_actualizar_sistema():
     print()
 
     print("[INFO] Actualizando lista de paquetes...")
-    ejecutar_comando(["apt", "update"], "actualizar lista de paquetes")
+    ejecutar_comando(["apt", "update"], "actualizar lista de paquetes", "Paso 4")
     print("[CORRECTO]: Lista actualizada.")
 
     print("[INFO]: Aplicando actualizaciones (apt upgrade)...")
-    ejecutar_comando(["apt", "upgrade", "-y"], "aplicar actualizaciones")
+    ejecutar_comando(["apt", "upgrade", "-y"], "aplicar actualizaciones", "Paso 4")
     print("[CORRECTO]: Actualizaciones aplicadas.")
 
     print("[INFO]: Aplicando actualizaciones con dependencias (apt dist-upgrade)...")
-    ejecutar_comando(["apt", "dist-upgrade", "-y"], "aplicar dist-upgrade")
+    ejecutar_comando(["apt", "dist-upgrade", "-y"], "aplicar dist-upgrade", "Paso 4")
     print("[CORRECTO]: dist-upgrade completado.")
 
     if os.path.isfile("/var/run/reboot-required"):
@@ -245,12 +262,14 @@ def paso5_configurar_gpg():
 
     contenidoGpg="""// Fichero generado por fix_mod2.py
 // Forzar verificación GPG en todos los repositorios
+// No permitir repositorios sin autenticar
 APT::Get::AllowUnauthenticated "false"
+// No permitir repositorios inseguros (sin firma)
 Acquire::AllowInsecureRepositories "false"
+// No permitir downgrade de paquetes
 Acquire:: AllowDowngradeToInsecureRepositories "false"
 """
     print(f"[INFO]: Creando fichero de refuerzo GPG en {GPG_ENFORCE_FILE}...")
-
     if escribir_fichero(GPG_ENFORCE_FILE, contenidoGpg, 0o644):
         print(f"[CORRECTO]: {GPG_ENFORCE_FILE} creado.")
 
@@ -260,11 +279,12 @@ Acquire:: AllowDowngradeToInsecureRepositories "false"
         print("[INFO]: debsums ya está instalado.")
     else:
         print("[INFO]: Instalando debsums...")
-        ejecutar_comando(["apt", "install", "-y", "debsums"], "instalar debsums")
+        ejecutar_comando(["apt", "install", "-y", "debsums"], "instalar debsums", "Paso 5")
         print("[CORRECTO]: debsums instalado.")
 
     print()
-    print("PASO 5 COMPLETADO. iNTEGRIDAD DE PAQUETES CONFIGURADA.")
+    print("[CORRECTO]: PASO 5 completado. Integridad de paquetes configurada.")
+    print("            'debsums' disponible para verificar integridad con: sudo debsums -s")
     print()
 
 
@@ -282,31 +302,31 @@ def paso6_configurar_unattended():
 
     if "ii" not in resultado.stdout:
         print("[INFO]: Instalando unattended-upgrades...")
-        ejecutar_comando(["apt install", "-y", "unattended-upgrades"], "instalar unattended-upgrades")
+        ejecutar_comando(["apt", "install", "-y", "unattended-upgrades"], "instalar unattended-upgrades", "Paso 6")
         print("[CORRECTO]: unattended-upgrades instalado.")
     else:
         print("[INFO]: unattended-upgrades ya está instalado.")
 
-    contenidoAutoUpgrades="""APT::Periodic:Update-Package-Lists "True"
-APT::Periodic::Unattended-Upgrade "True"
-APT::Periodic:: Download-Upgradeable-Packages "True"
+    contenidoAutoUpgrades="""APT::Periodic:Update-Package-Lists "1"
+APT::Periodic::Unattended-Upgrade "1"
+APT::Periodic:: Download-Upgradeable-Packages "1"
 APT::Periodic::AutocleanInterval "7"
 """
 
-    print("[INFO]: COnfigurando periodicidad...")
+    print("[INFO]: Configurando periodicidad...")
 
     if escribir_fichero(AUTO_UPGRADES_FILE, contenidoAutoUpgrades, 0o644):
-        print(f"[CORRECTO]: {AUTO_UPGRADES_FILE} configurado.")
+        print(f"[CORRECTO]: {AUTO_UPGRADES_FILE} configurado (actualizaciones diarias).")
 
     for timer in ["apt-daily.timer", "apt-daily-upgrade.timer"]:
         print(f"[INFO]: Habilitando {timer}...")
-        ejecutar_comando(["systemctl", "enable", timer], f"habilitar {timer}")
-        ejecutar_comando(["systemctl", "start", timer], f"arrancar {timer}")
+        ejecutar_comando(["systemctl", "enable", timer], f"habilitar {timer}", "Paso 6")
+        ejecutar_comando(["systemctl", "start", timer], f"arrancar {timer}", "Paso 6")
 
     print("[CORRECTO]: Timers de APT habilitados y activos.")
 
     print()
-    print("PASO 6 COMPLETADO. ACTUALIZACIONES AUTOMÁTICAS CONFIGURADAS.")
+    print("[CORRECTO]: PASO 6 completado. Actualizaciones automáticas configuradas.")
 
 
 def paso7_deshabilitar_servicios():
@@ -323,7 +343,7 @@ def paso7_deshabilitar_servicios():
         resultado=subprocess.run(["systemctl", "is-enabled", servicio], capture_output=True, text=True)
         estado=resultado.stdout.strip()
 
-        if "could not be found" in resultado.stderr and estado=="":
+        if "could not be found" in resultado.stderr or resultado.returncode==1 and estado=="":
             print(f"[INFO]: {servicio} no está instalado.")
             continue
 
@@ -335,18 +355,18 @@ def paso7_deshabilitar_servicios():
 
         if resultadoActivo.stdout.strip()=="active":
             print(f"[INFO]: Deteniendo {servicio}...")
-            ejecutar_comando(["systemctl", "stop", servicio], f"detener {servicio}")
+            ejecutar_comando(["systemctl", "stop", servicio], f"detener {servicio}", "Paso 7")
 
         print(f"[INFO]: Deshabilitando {servicio}...")
-        ejecutar_comando(["systemctl", "disable", servicio], f"deshabilitar {servicio}")
+        ejecutar_comando(["systemctl", "disable", servicio], f"deshabilitar {servicio}", "Paso 7")
 
         print(f"[INFO]: Enmascarando {servicio}...")
-        ejecutar_comando(["systemctl", "mask", servicio], f"enmascarar {servicio}")
+        ejecutar_comando(["systemctl", "mask", servicio], f"enmascarar {servicio}", "Paso 7")
 
         print(f"[CORRECTO]: {servicio} detenido, deshabilitado y enmascarado.")
     
     print()
-    print("PASO 7 COMPLETADO. SERVICIOS INNECESARIOS DESHABILITADOS.")
+    print("[CORRECTO]: PASO 7 completado. Servicios innecesarios deshabilitados.")
 
 
 def paso8_documentar_servicios():
@@ -362,7 +382,9 @@ def paso8_documentar_servicios():
 
     resultado=subprocess.run(["ss", "-tulnp"], capture_output=True, text=True)
 
-    serviciosActivos=resultado.stdout
+    serviciosActivos=""
+    if resultado.returncode==0:
+        serviciosActivos=resultado.stdout
 
     fechaActual=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -411,16 +433,16 @@ def paso9_habilitar_ntp():
 
     resultado=subprocess.run(["dpkg", "-l", "chrony"], capture_output=True, text=True)
 
-    if resultado >"/dev/null 2>&1":
-        print("[INFO]: Chrony ya está instalado...")
-    else:
+    if "ii" not in resultado.stdout:
         print("[INFO]: Instalando chrony...")
-        ejecutar_comando(["apt", "install", "-y", "chrony"], "instalar chrony")
+        ejecutar_comando(["apt", "install", "-y", "chrony"], "instalar chrony", "Paso 9")
         print("[CORRECTO]: Chrony instalado.")
+    else:
+        print("[INFO]: Chrony ya está instalado...")
+
     
     print("[INFO]: Habilitando y arrancando chrony...")
-
-    ejecutar_comando(["systemctl enable", "chrony"], "habilitar chrony")
+    ejecutar_comando(["systemctl enable", "chrony"], "habilitar chrony", "Paso 9")
     ejecutar_comando(["systemctl start", "chrony"], "arrancar chrony", "Paso 9")
     print("[CORRECTO]: Chrony Habilitado y activo.")
 
@@ -431,11 +453,15 @@ def paso9_habilitar_ntp():
     print("[INFO] Verificando sincronización NTP...")
     resultado=subprocess.run(["chronyc", "tracking"], capture_output=True, text=True)
 
-    if "Reference ID" in str(resultado.stdout):
+    if resultado.returncode==0:
         print("[CORRECTO]: Chrony está sincronizando.")
+        for linea in resultado.stdout.splitlines():
+            if "Reference ID" in linea or "System time" in linea or "Frequency" in linea:
+                print(f"    {linea.strip()}")
 
     print()
-    print("PASO 9 COMPLETADO. NTP/CHRONYD HABILITADO.")
+    print("[CORRECTO]: PASO 9 completado. NTP/Chronyd habilitad.")
+    print("            El reloj del sistema se sincroniza automáticamente.")
 
 
 
@@ -451,29 +477,33 @@ def paso10_restringir_cron():
 
     print(f"[INFO] Creando {CRON_ALLOW_FILE} (solo root)...")
     if escribir_fichero(CRON_ALLOW_FILE, "root\n", 0o640):
-        os.chown(CRON_ALLOW_FILE, "root", "root")
-        os.chmod(CRON_ALLOW_FILE, "root")
-        print(f"[CORRECTO]: {CRON_ALLOW_FILE} creado.")
+        os.chown(CRON_ALLOW_FILE, 0, 0)
+        print(f"[CORRECTO]: {CRON_ALLOW_FILE} creado (permiso solo root).")
     
-    print(f"[INFO]: Eliminando {CRON_DENY_FILE}...")
-    os.remove(CRON_DENY_FILE)
-    print(f"[CORRECTO]: {CRON_DENY_FILE} eliminado.")
+    if os.path.isfile(CRON_DENY_FILE):
+        print(f"[INFO]: Eliminando {CRON_DENY_FILE} (cron.allow tiene prioridad)...")
+        os.remove(CRON_DENY_FILE)
+        print(f"[CORRECTO]: {CRON_DENY_FILE} eliminado.")
 
-    print(f"[INFO]: Creando {AT_ALLOW_FILE} (solo root).")
     if escribir_fichero(AT_ALLOW_FILE, "root\n", 0o640):
-        os.chown(AT_ALLOW_FILE, "root", "root")
-        print(f"[CORRECTO]: {AT_ALLOW_FILE} creado.")
-        os.chmod(AT_ALLOW_FILE, "root")
-
-    os.remove(AT_DENY_FILE)
+        print(f"[INFO]: Creando {AT_ALLOW_FILE} (solo root).")
+        os.chown(AT_ALLOW_FILE, 0, 0)
+        print(f"[CORRECTO]: {AT_ALLOW_FILE} creado (permiso solo root).")
+        
+    if os.path.isfile(AT_DENY_FILE):
+        print(f"[INFO]: Eliminando {AT_DENY_FILE}...")
+        os.remove(AT_DENY_FILE)
+        print(f"[CORRECTO]: {AT_DENY_FILE} eliminado.")
 
     print("[INFO]: Protegiendo directorios de cron del sistema...")
     for directorio in DIRECTORIOS_CRON:
-        os.chmod(directorio, 0700)
-        print(f"[CORRECTO]: {directorio} tiene permisos 700")
+        if os.path.isdir(directorio):
+            os.chmod(directorio, 0o700)
+            print(f"[CORRECTO]: {directorio} tiene permisos 700")
     
     print()
-    print("PASO 10 COMPLETADO. CRONJOBS RESTRINGIDOS.")
+    print("[CORRECTO]: PASO 10 completado. Cronjobs restringidos.")
+    print("            Solo root puede crear cronjobs y tareas 'at'.")
 
 
 def paso11_asegurar_contrasenas():
@@ -489,45 +519,63 @@ def paso11_asegurar_contrasenas():
 
     contenidoShadow=leer_fichero(SHADOW_FILE)
 
-    cuentasVacias=[]
-
-    for linea in contenidoShadow.split("\n"):
-        campos=linea.split(":")
-        usuario=campos
-
-        hashContrasena=campos[2]
-
-        if hashContrasena=="":
-            cuentasVacias.append(usuario)
-    
-    if cuentasVacias:
-        for cuenta in cuentasVacias:
-            ejecutar_comando(["passwd", "-l", cuenta], f"bloquear cuenta {cuenta}", "Paso 11")
-            print(f"[CORRECTO]: {cuenta} bloqueada correctamente.")
-
-    if os.subprocess("passwd -S root | grep -q ' P '"):
-        print("[INFO]: Bloqueando cuenta root (acceso solo mediante sudo)...")
-        ejecutar_comando("passwd", "-l", "root")
+    if contenidoShadow is not None:
+        cuentasVacias=[]
+        
+        for linea in contenidoShadow.splitlines():
+            if not linea.strip():
+                continue
+            campos=linea.split(":")
+            if len(campos) >=2:
+                usuario=campos[0]
+                hashContrasena=campos[1]
+                if hashContrasena=="":
+                    cuentasVacias.append(usuario)
+        
+        if cuentasVacias:
+            print(f"[AVISO]: Cuentas con contraseña VACÍA: {', '.join(cuentasVacias)}")
+            for cuenta in cuentasVacias:
+                print(f"[INFO]: Bloqueando cuenta sin contraseña: {cuenta}")
+                ejecutar_comando(["passwd", "-l", cuenta], f"bloquear cuenta {cuenta}", "Paso 11")
+                print(f"[CORRECTO]: {cuenta} bloqueada.")
+        else:
+            print("[CORRECTO]: No hay cuentas con contraseña vacía.")
     else:
-        print("[INFO]: Cuenta root ya está bloqueada.")
+        print(f"[ERROR]: No se pudo leer {SHADOW_FILE}.")
+
+    resultado=subprocess.run(["passwd", "-S", "root"], capture_output=True, text=True)
+
+    if resultado.returncode==0:
+        campos=resultado.stdout.split()
+        if len(campos)>=2 and campos[1]!="L":
+            print("[INFO]: Bloqueando cuenta root. Se permitirá solo el acceso mediante sudo.")
+            ejecutar_comando(["passwd", "-l", "root"], "bloquear root", "Paso 11")
+            print("[CORRECTO]: Cuenta root bloqueada.")
+        else:
+            print("[INFO]: Cuenta root ya está bloqueada.")
     
     contenidoPasswd=leer_fichero(PASSWD_FILE)
+    if contenidoPasswd is not None:
+        for linea in contenidoPasswd.splitlines():
+            if not linea.strip():
+                continue
+            campos=linea.split(":")
+            if len(campos)>=7:
+                usuario=campos[0]
+                uid=int(campos[2])
+                shell=campos[6]
 
-    for linea in contenidoPasswd.splitlines():
-        if not linea.strip():
-            continue
-        campos=linea.split(":")
-        usuario=campos
-        uid=int(campos[3])
-        shell=campos[4]
-
-        if uid<1000:
-            if "nologin" not in shell:
-                print(f"[INFO]: Cambiando shell de: {usuario}...")
-                ejecutar_comando(["usermod", "-s", "/usr/bin/nologin", usuario], f"cambiar shell de {usuario}", "Paso 11")
-    
+                if uid>0 and uid<1000:
+                    if ("nologin" not in shell and "/false" not in shell and "sync" not in shell):
+                        print(f"[INFO]: Cambiando shell de cuenta de servicio: {usuario} ({shell}->/usr/sbin/nologin)...")
+                        ejecutar_comando(["usermod", "-s", "/usr/bin/nologin", usuario], f"cambiar shell de {usuario}", "Paso 11")
+                        print(f"[CORRECTO]: El usuario {usuario} ya no puede iniciar sesión.")
+        
     print()
-    print("PASO 11 COMPLETADO. CONTRASEÑAS Y CUENTAS ASEGURADAS.")
+    print("[CORRECTO]: PASO 11 completado. Contraseñas y cuentas aseguradas.")
+    print("            No hay cuentas con contraseña vacía.")
+    print("            Root bloqueado. Acceso solo mediante sudo.")
+    print("            Cuentas de servicio sin shell interactiva.")
 
 
 def mostrar_menu():
@@ -556,17 +604,49 @@ def main():
     comprobar_root()
     configurar_logging(LOG_FILE)
 
-    paso1_personalizar_motd()
-    paso2_configurar_banners()
-    paso3_eliminar_paquetes()
-    paso4_actualizar_sistema()
-    paso5_configurar_gpg()
-    paso6_configurar_unattended()
-    paso7_deshabilitar_servicios()
-    paso8_documentar_servicios()
-    paso9_habilitar_ntp()
-    paso10_restringir_cron()
-    paso11_asegurar_contrasenas()
+    while True:
+        mostrar_menu()
+        opcion=input("Selecciona una opción: ").strip().lower()
+
+        match opcion:
+            case "1":
+                paso1_personalizar_motd()
+                volver_al_menu()
+            case "2":
+                paso2_configurar_banners()
+                volver_al_menu()
+            case "3":
+                paso3_eliminar_paquetes()
+                volver_al_menu()
+            case "4":
+                paso4_actualizar_sistema()
+                volver_al_menu()
+            case "5":
+                paso5_configurar_gpg()
+                volver_al_menu()
+            case "6":
+                paso6_configurar_unattended()
+                volver_al_menu()
+            case "7":
+                paso7_deshabilitar_servicios()
+                volver_al_menu()
+            case "8":
+                paso8_documentar_servicios()
+                volver_al_menu()
+            case "9":
+                paso9_habilitar_ntp()
+                volver_al_menu()
+            case "10":
+                paso10_restringir_cron()
+                volver_al_menu()
+            case "11":
+                paso11_asegurar_contrasenas()
+                volver_al_menu()
+            case "q":
+                print("\n[INFO]: Saliendo del script.")
+                sys.exit(0)
+            case _:
+                print("[ERROR]: Opción no válida. Inténtelo de nuevo.")
 
 
 if __name__=="__main__":
