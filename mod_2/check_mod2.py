@@ -343,5 +343,70 @@ def verificar_paso6():
         resultado_ok(f"Servicio {servicio} está activo.")
     else:
         resultado_fail(f"Servicio {servicio} no está activo.")
+
+def verificar_paso7():
+    print()
+    print("=" * 100)
+    print("PASO 7: Servicios innecesarios deshabilitados.")
+    print("=" * 100)
              
+    for servicio in SERVICIOS_INNECESARIOS:
+        codigoRet, salida, _ = ejecutar_comando_check(["systemctl", "is-enabled", servicio])
+        estado=salida.strip()
+        if "enabled" in estado:
+            if subprocess.run(["systemctl", "is-active"]).stdout in servicio:
+                resultado_fail(f"{servicio} está ACTIVO y en ejecución.")
+            else:
+                resultado_warn(f"{servicio} está habilitado pero no en ejecución.")
+        else:
+            resultado_ok(f"{servicio} no está habilitado.")
+        
+    resultado_puertos=subprocess.run("ss -tulnp | wc -l", capture_output=True, text=True)
+
+    try:
+        numeroPuertos=int(resultado_puertos.stdout.strip())
+    except ValueError:
+        numeroPuertos=999
+    
+    if numeroPuertos <=5:
+        resultado_ok(f"Solo {numeroPuertos} puerto(s) en escucha.")
+    elif numeroPuertos <=10:
+        resultado_warn(f"{numeroPuertos} puertos en escucha. Revisar si todos son necesarios.")
+    else:
+        resultado_fail(f"{numeroPuertos} puertos en escucha. Posible exceso de servicios.")
+
+
+def verificar_paso8():
+    print()
+    print("=" * 100)
+    print("PASO 8: Principio de un servicio por sistema")
+    print("=" * 100)
+
+    rutaDocServicios="/etc/servicios-autorizados.txt"
+
+    if os.path.isfile(rutaDocServicios):
+        resultado_ok("Fichero de servicios autorizados presente (/etc/servicios-autorizados.txt)")
+    else:
+        resultado_warn("No existe /etc/servicios-autorizados.txt. Se recomienda documentar los servicios")
+
+    codigoRet, salida, _ =ejecutar_comando_check(["ss", "-tulnp"])
+
+    if codigoRet==0:
+        procesosActivos=[]
+
+        for linea in salida.splitlines():
+            if "users:" in linea:
+                columnas=linea.split(" ")
+                infoProc=columnas[-1]
+                procesosActivos.append(infoProc)
+        
+        if procesosActivos:
+            resultado_ok(f"Servicios de red activos: {', '.join(procesosActivos)}")
+            if len(procesosActivos)>3:
+                resultado_fail(f"{len(procesosActivos)} servicios de red distintos. Exceso detectado.")
+        else:
+            resultado_ok("No se detectaron servicios de red.")
+    else:
+        resultado_warn("No se pudo ejecutar ss.")
+
 
