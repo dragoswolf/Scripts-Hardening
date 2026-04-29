@@ -410,3 +410,197 @@ def verificar_paso8():
         resultado_warn("No se pudo ejecutar ss.")
 
 
+def verificar_paso9():
+    print()
+    print("=" * 100)
+    print("PASO 9: NTP/Chronyd habilitado.")
+    print("=" * 100)
+
+    chronyActivo=False
+    codigoRet, salida, _ =ejecutar_comando_check(["systemctl", "is-active", "chrony"])
+
+    if salida.strip() =="active":
+        resultado_ok("Servicio Chrony está activo")
+        chronyActivo=True
+    else:
+        codigoRet, salida2, _=ejecutar_comando_check(["systemctl", "is-active", "systemd-timesyncd"])
+        if salida2.strip()=="active":
+            resultado_ok("systemd-timesyncd está activo (alternativa a chrony)")
+            chronyActivo=True
+        else:
+            resultado_fail("Ni chrony ni systemd-timesyncd están activos. NTP deshabilitado")
+        
+    codigoRet, salida, _ = ejecutar_comando_check(["timedatectl", "status"])
+    if codigoRet==0:
+        sincronizado=False
+        ntpActivo=False
+
+        for linea in salida.splitlines():
+            if "synchronized" in linea.lower() and "yes" in linea.lower():
+                sincronizado=True
+            if "ntp service" in linea.lower() and "active" in linea.lower():
+                ntpActivo=True
+            
+        if sincronizado:
+            resultado_ok("Reloj del sistema sincronizado (NTP).")
+        else:
+            resultado_fail("Reloj del sistema no sincronizado.")
+        
+        if ntpActivo:
+            resultado_ok("Servicio NTP marcado como activo en timedatectl.")
+        else:
+            resultado_warn("Servicio NTP no aparece como activo en timedatectl")
+    
+    if chronyActivo:
+        codigoRet, salida, _=ejecutar_comando_check(["chronyc", "sources"])
+
+        if codigoRet==0:
+            fuentesActivas=[
+                l for l in salida.splitlines()
+                if l.strip() and (l.strip().startswith("*") or l.strip().startswith("*"))
+            ]
+        if fuentesActivas:
+            resultado_ok(f"{len(fuentesActivas)} fuente(s) NTP activa(s).")
+        else:
+            resultado_warn("No se detectaron fuentes NTP activas en chrony.")
+
+
+def verificar_paso10():
+    print()
+    print("=" * 100)
+    print("PASO 10: Cronjobs restringidos a usuarios autorizados.")
+    print("=" * 100)
+    contenidoCronAllow=leer_fichero(CRON_ALLOW_FILE)
+
+    if contenidoCronAllow:
+        resultado_ok(f"{CRON_ALLOW_FILE} existe.")
+
+        usuariosAutorizados=[
+            l.strip() for l in contenidoCronAllow.split("\n")
+            if "#" not in l
+        ]
+
+        if usuariosAutorizados:
+            resultado_ok(f"Usuarios con acceso a cron: {', '.join(usuariosAutorizados)}")
+        else:
+            resultado_warn("cron.allow existe pero está vacío.")
+
+    else:
+        resultado_fail(f"{CRON_ALLOW_FILE} no existe.")
+
+    if os.path.exists(CRON_DENY_FILE):
+        resultado_warn(f"{CRON_DENY_FILE} existe.")
+    else:
+        resultado_ok(f"No existe {CRON_DENY_FILE}.")
+
+    if os.path.exists(CRON_ALLOW_FILE):
+        permisos=os.stat(CRON_ALLOW_FILE).st_mode
+        if permisos==640 or permisos==600:
+            resultado_ok("Permisos de cron.allow correctos.")
+        else:
+            resultado_warn("Permisos de cron.allow incorrectos.")
+    
+    contenidoAtAllow=leer_fichero(AT_ALLOW_FILE)
+
+    if contenidoAtAllow:
+        resultado_ok(f"{AT_ALLOW_FILE} existe")
+    
+    for directorio in DIRECTORIOS_CRON:
+        if os.path.isdir(directorio):
+            if os.stat(directorio).st_mode=="700"
+                resultado_ok(f"{directorio} tiene permisos restrictivos (700)")
+            else:
+                resultado_warn(f"{directorio} no tiene permisos 700.")
+
+
+
+def verificar_paso11():
+    print()
+    print("=" * 100)
+    print("PASO 11: Contraseñas por defecto cambiadas.")
+    print("=" * 100)
+
+    contenidoShadow=leer_fichero(SHADOW_FILE)
+
+    cuentasVacias=[]
+
+    for linea in contenidoShadow.split("\n"):
+        campos=linea.split(":")
+        usuario=campos
+        hashContrasena=campos[2]
+
+        if hashContrasena=="":
+            cuentasVacias.append(usuario)
+
+        if cuentasVacias:
+            resultado_fail(f"Cuentas con contraseña vacía: {', '.join(cuentasVacias)}")
+        else:
+            resultado_ok("No hay cuentas con contraseña vacía.")
+        
+        codigoRet, salida, _=ejecutar_comando_check(["passwd","-S","root"])
+        if codigoRet==0:
+            estadoRoot=salida.split()
+            if len(estadoRoot)>=2:
+                if estadoRoot[1]=="L":
+                    resultado_ok("Cuenta root bloqueada (acceso solo mediante sudo).")
+                elif estadoRoot[1]=="P":
+                    resultado_warn("Cuenta root tiene contraseña activa. Se recomienda bloquearla si se usa sudo.")
+                else:
+                    resultado_fail("Cuenta root sin contraseña.")
+        
+        contenidoPasswd=leer_fichero(PASSWD_FILE)
+        cuentasConShell=[]
+
+        for linea in contenidoShadow.splitlines():
+            if not linea.strip():
+                continue
+
+            campos=linea.split(":")
+            usuario=campos
+            uid=int(campos[3])
+            shell=campos[4]
+
+            if uid<1000:
+                if shell!="/usr/sbin/nologin":
+                    cuentasConShell.append(f"{usuario} ({shell})")
+                
+        if cuentasConShell:
+            resultado_fail(f"Cuenta(s) de servicio con shell interactiva(s): {', '.join(cuentasConShell)}")
+        else:
+            resultado_ok("Ninguna cuenta de servicio tiene shell interactiva.")
+
+
+
+
+
+def main():
+    comprobar_root()
+    configurar_logging(LOG_FILE)
+
+    print()
+    print("=" * 100)
+    print(" VERIFICACIÓN: Hardening General del Sistema Operativo")
+    print("=" * 100)
+    print(" Comprobando configuraciones de los pasos 1 al 11...")
+
+    verificar_paso1()
+    verificar_paso2()
+    verificar_paso3()
+    verificar_paso4()
+    verificar_paso5()
+    verificar_paso6()
+    verificar_paso7()
+    verificar_paso8()
+    verificar_paso9()
+    verificar_paso10()
+    verificar_paso11()
+
+    mostrar_resumen("fix_mod2.py")
+
+    if contadores["checksFail"] > 0:
+        sys.exit(1)
+    else:
+        sys.exit(0)
+
+if __name__=="__main__":
+    main()
