@@ -77,6 +77,19 @@ PALABRAS_SENSIBLES=[
 ]
 
 
+SCRIPTS_DEFECTO=[
+    "00-header",
+    "10-help-text",
+    "50-motd-news",
+    "80-esm",
+    "80-livepatch",
+    "91-release-upgrade",
+    "95-hwe-eol",
+    "97-overlayroot", 
+    "98-fsck-at-reboot",
+    "98-reboot-required"
+]
+
 
 def verificar_paso1():
     print()
@@ -88,59 +101,47 @@ def verificar_paso1():
         scriptsActivos=[]
 
         for fichero in os.listdir(MOTD_DIR):
-            if os.access(fichero, os.X_OK):
+            rutaCompleta=os.path.join(MOTD_DIR, fichero)
+            if os.access(rutaCompleta, os.X_OK):
                 scriptsActivos.append(fichero)
 
-        scriptsDefecto=[
-            "00-header",
-            "10-help-text",
-            "50-motd-news",
-            "80-esm",
-            "80-livepatch",
-            "91-release-upgrade",
-            "95-hwe-eol",
-            "97-overlayroot", 
-            "98-fsck-at-reboot",
-            "98-reboot-required"
-        ]
-
         scriptsDefectoActivos=[
-            s for s in scriptsActivos if s==scriptsDefecto
+            s for s in scriptsActivos if s in SCRIPTS_DEFECTO
         ]
 
         if scriptsDefectoActivos:
-            resultado_fail(f"[ERROR]: Scripts MOTD por defecto activos: {', '.join(scriptsDefectoActivos)}")
+            resultado_fail(f"Scripts MOTD por defecto activos: {', '.join(scriptsDefectoActivos)}")
         else:
-            resultado_ok("[CORRECTO]: Scripts MOTD por defecto deshabilitados.")
+            resultado_ok("Scripts MOTD por defecto deshabilitados.")
         
         scriptsPersonalizados=[
-            s for s in scriptsActivos if s not in scriptsDefecto
+            s for s in scriptsActivos if s not in SCRIPTS_DEFECTO
         ]
 
         if scriptsPersonalizados:
-            resultado_ok(f"[CORRECTO]: Script(s) MOTD personalizado(s): {', '.join(scriptsPersonalizados)}")
+            resultado_ok(f"Script(s) MOTD personalizado(s): {', '.join(scriptsPersonalizados)}")
         else:
-            resultado_warn("[AVISO]: No se encontró un script MOTD personalizado.")
+            resultado_warn("No se encontró un script MOTD personalizado.")
 
     else:
-        resultado_warn(f"[AVISO]: Directorio {MOTD_DIR} no encontrado.")
+        resultado_warn(f"Directorio {MOTD_DIR} no encontrado.")
 
     contenidoMotd=leer_fichero(MOTD_DIR, "Paso 1")
 
     if contenidoMotd is not None:
         if contenidoMotd.strip() is "":
-            resultado_ok("[CORRECTO]: /etc/motd está vacío (correcto).")
+            resultado_ok("/etc/motd está vacío (correcto).")
         else:
             infoSensible=False
             for palabra in PALABRAS_SENSIBLES:
-                if contenidoMotd in palabra:
+                if palabra in contenidoMotd:
                     infoSensible=True
                     break
 
             if infoSensible:
-                resultado_fail("[ERROR]: /etc/motd contiene información sensible.")
+                resultado_fail("/etc/motd contiene información sensible.")
             else:
-                resultado_ok("[CORRECTO]: /etc/motd tiene contenido personalizado sin info sensible.")
+                resultado_ok("/etc/motd tiene contenido personalizado sin info sensible.")
 
 
 def verificar_paso2():
@@ -154,38 +155,49 @@ def verificar_paso2():
     if contenidoIssue is not None:
         infoSensible=False
         for palabra in PALABRAS_SENSIBLES:
-            if contenidoIssue in palabra:
+            if palabra in contenidoIssue:
                 infoSensible=True
                 break
         
         if infoSensible:
-            resultado_fail("[ERROR]: /etc/issue contiene información sensible.")
+            resultado_fail("/etc/issue contiene información sensible.")
         else:
-            resultado_ok("[CORRECTO]: /etc/issue no revela información sensible")
+            resultado_ok("/etc/issue no revela información sensible")
+    else:
+        resultado_warn(f"No se encontró {ISSUE_FILE}.")
         
-    try:
-        contenidoIssueNet=leer_fichero(ISSUE_NET_FILE)
-        if contenidoIssueNet in PALABRAS_SENSIBLES:
-            resultado_fail("[ERROR]: /etc/issue.net contiene información sensible.")
+
+    contenidoIssueNet=leer_fichero(ISSUE_NET_FILE)
+    if contenidoIssueNet is not None:
+        infoSensible=False
+        for palabra in PALABRAS_SENSIBLES:
+            if palabra in contenidoIssueNet:
+                infoSensible=True
+                break
+        if infoSensible:
+            resultado_fail("/etc/issue.net contiene información sensible.")
         else:
-            resultado_ok("[CORRECTO]: /etc/issue.net no revela información sensible.")
-    except Exception:
+            resultado_ok("/etc/issue.net no revela información sensible.")
+    else:
         resultado_warn(f"[ERROR]: No se encontró {ISSUE_NET_FILE}.")
 
     contenidoSshd=leer_fichero(SSHD_CONFIG_FILE)
 
-    if contenidoSshd:
+    if contenidoSshd is not None:
         bannerConfigurado=False
-        for linea in contenidoSshd.split("\n"):
-            if "Banner" in linea:
+        for linea in contenidoSshd.splitlines():
+            lineaLimpia=linea.strip()
+            if lineaLimpia.startswith("#"):
+                continue
+            if lineaLimpia.lower().startswith("banner"):
                 bannerConfigurado=True
-                resultado_ok(f"[CORRECTO]: SSH tiene banner configurado: {linea}")
+                resultado_ok(f"[CORRECTO]: SSH tiene banner configurado: {lineaLimpia}")
                 break
 
         if not bannerConfigurado:
             resultado_fail("[ERROR]: SSH no tiene la directiva 'Banner' configurada.")
-        else:
-            resultado_warn(f"[AVISO]: No se pudo leer {SSHD_CONFIG_FILE}.")
+    else:
+        resultado_warn(f"[AVISO]: No se pudo leer {SSHD_CONFIG_FILE}.")
 
 
 def verificar_paso3():
@@ -193,29 +205,37 @@ def verificar_paso3():
     print("="*100)
     print("[PASO 3]: Paquetes innecesarios y/o huérfanos.")
     print("="*100)
-    resultado=subprocess.run(["apt", "autoremove", "--dry-run"], capture_output=True)
+    
+    codigoRet, salida, _ = ejecutar_comando_check(["apt", "autoremove", "--dry-run"])
 
-    if resultado.returncode==0:
-        if "0" in str(resultado.stdout):
-            resultado_ok("[CORRECTO]: No hay paquetes huérfanos.")
+    if codigoRet==0:
+        for linea in salida.splitlines():
+            if "to remove" in linea.lower() or "a eliminar" in linea.lower():
+                if "0 to remove" in linea or "0 a eliminar" in linea:
+                    resultado_ok("No hay paquetes huérfanos.")
+                else:
+                    resultado_fail(f"Hay paquetes huérfanos: {linea.strip()}")
+                break
         else:
-            resultado_fail("[ERROR]: Hay paquetes huérfanos pendientes de eliminar.")
+            if "The following packages will be REMOVED" in salida:
+                resultado_fail("Hay paquetes huérfanos pendientes de eliminar.")
+            else:
+                resultado_ok("No hay paquetes huérfanos.")
 
     else:
-        resultado_warn("[AVISO]: No se pudo ejecutar apt.")
-
-    salida_dpkg=subprocess.run(["dpkg", "-l"], capture_output=True, text=True)
+        resultado_warn("No se pudo ejecutar apt autoremove --dry-run.")
 
     paquetesEncontrados=[]
 
     for paquete in PAQUETES_INNECESARIOS:
-        if paquete in salida_dpkg:
+        codigoRet, salida, _=ejecutar_comando_check(["dpkg", "-l", paquete])
+        if codigoRet==0 and f"ii  {paquete}" in salida:
             paquetesEncontrados.append(paquete)
     
     if paquetesEncontrados:
-        resultado_fail(f"[ERROR]: Paquetes innecesarios instalados: {', '.join(paquetesEncontrados)}")
+        resultado_fail(f"Paquetes innecesarios instalados: {', '.join(paquetesEncontrados)}")
     else:
-        resultado_ok("[CORRECOT]: No se encontraron paquetes típicamente innecesarios.")
+        resultado_ok("No se encontraron paquetes típicamente innecesarios.")
 
 
 def verificar_paso4():
