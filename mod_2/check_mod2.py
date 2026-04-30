@@ -255,9 +255,9 @@ def verificar_paso4():
         ]
 
         if len(lineasActualizables)==0:
-            resultado_ok("[CORRECTO]: Todos los paquetes están actualizados.")
+            resultado_ok("Todos los paquetes están actualizados.")
         else:
-            resultado_fail(f"[ERROR]: Hay {len(lineasActualizables)} paquete(s) con actualizaciones pendientes.")
+            resultado_fail(f"Hay {len(lineasActualizables)} paquete(s) con actualizaciones pendientes.")
 
             for linea in lineasActualizables[:5]:
                 print(f"        -> {linea.strip()}")
@@ -265,10 +265,10 @@ def verificar_paso4():
                 print(f"        -> ... y otros {len(lineasActualizables)-5} paquetes más.")
     
     else:
-        resultado_warn("[AVISO]: No se pudieron comprobar las actualizaciones pendientes.")
+        resultado_warn("No se pudieron comprobar las actualizaciones pendientes.")
     
     if os.path.isfile("/var/run/reboot-required"):
-        resultado_warn("[AVISO]: El sistema requiere un REINICIO para aplicar actualizaciones.")
+        resultado_warn("El sistema requiere un REINICIO para aplicar actualizaciones.")
     else:
         resultado_ok("No hay reinicio pendiente.")
 
@@ -285,27 +285,33 @@ def verificar_paso5():
     permiteSinFirma=False
     if os.path.isdir(APT_CONF_DIR):
         for fichero in os.listdir(APT_CONF_DIR):
-            try:
-                rutaCompleta=os.path.join(APT_CONF_DIR, fichero)
-                contenido=leer_fichero(rutaCompleta)
-
-                if 'AllowUnauthenticated "true"' in contenido or 'AllowInsecureRepositories "true"' in contenido:
-                    permiteSinFirma=True
-
-            except:
-                pass
-
+            rutaCompleta=os.path.join(APT_CONF_DIR, fichero)
+            contenido=leer_fichero(rutaCompleta)
+            if contenido is not None:
+                for linea in contenido.splitlines():
+                    lineaLimpia=linea.strip()
+                    if lineaLimpia.startswith("//"):
+                        continue
+                    if "allowunauthenticated" in lineaLimpia.lower():
+                        if '"true"' in lineaLimpia.lower():
+                            permiteSinFirma=True
+                            break
+                    if "allowinsecurerepositories" in lineaLimpia.lower():
+                        if '"true"' in lineaLimpia.lower():
+                            permiteSinFirma=True
+                            break
+ 
     if permiteSinFirma:
         resultado_fail("APT permite repositorios sin autenticar.")
     else:
         resultado_ok("APT no permite repositorios sin autenticar.")
     
-    rutaRefuerzo=APT_CONF_DIR + "99-force-gpg-verify"
+    rutaRefuerzo=os.path.join(APT_CONF_DIR, "99-force-gpg-verify")
 
     if os.path.exists(rutaRefuerzo):
         resultado_ok("Fichero de refuerzo GPG presente.")
     else:
-        resultado_warn("No existe 99-force-gpg-verify")
+        resultado_warn("No existe 99-force-gpg-verify. Se recomienda crear un refuerzo explícito.")
     
     codigoRet, _, _=ejecutar_comando_check(["which", "debsums"])
     if codigoRet==0:
@@ -315,10 +321,11 @@ def verificar_paso5():
     
     rutaTrusted="/etc/apt/trusted.gpg.d"
     if os.path.isdir(rutaTrusted):
-        clavesGpg=[]
-        for f in os.listdir(rutaTrusted):
-            if os.path.isfile(f) and (".gpg" in f or ".asc" in f):
-                clavesGpg.append(f)
+        clavesGpg=[
+            f for f in os.listdir(rutaTrusted)
+            if f.endswith(".gpg") or f.endswith(".asc")
+        ]
+
         if clavesGpg:
             resultado_ok(f"{len(clavesGpg)} clave(s) GPG en {rutaTrusted}")
         else:
@@ -334,35 +341,60 @@ def verificar_paso6():
     print("PASO 6: Actualizaciones automáticas de seguridad")
     print("=" * 100)
 
-    resultado=subprocess.run(["dpkg", "-l", "unattended-upgrades"], capture_output=True, text=True)
+    codigoRet, salida, _ =ejecutar_comando_check(["dpkg", "-l", "unattended-upgrades"])
+
+    if codigoRet==0 and "ii" in salida:
+        resultado_ok("Paquete unattended-upgrades instalado.")
+    else:
+        resultado_fail("Paquete unattended-upgrades NO está instalado.")
+        return
 
     contenidoConf=leer_fichero(UNATTENDED_CONF_FILE)
-
-    if "unattended-upgrades" in resultado.stdout:
-        resultado_ok("Paquete 'unattended-upgrades' instalado.")
-    else:
-        resultado_fail("Paquete 'unattended-upgrades' no está instalado.")
-        return
+    if contenidoConf is not None:
+        if "securit" in contenidoConf.lower():
+            resultado_ok("Repositorios de seguridad configurados en unattended-upgrades.")
+        else:
+            resultado_fail("No se encontraron repositorios de seguridad en la configuración.")
     
-    if 'Unattended-Upgrade::Remove-Unused-Dependencies "true"' in contenidoConf:
-        resultado_ok("Eliminación automática de dependencias huérfanas habilitada.")
+        tieneAutoRemove=False
+        for linea in contenidoConf.splitlines():
+            lineaLimpia=linea.strip()
+            if lineaLimpia.startswith("//"):
+                continue
+            if "remove-unused-dependencies" in lineaLimpia.lower():
+                if '"true"' in lineaLimpia.lower():
+                    tieneAutoRemove=True
+                    break
+        
+        if tieneAutoRemove:
+            resultado_ok("Eliminación automática de dependencias huérfanas habilitada.")
+        else:
+            resultado_warn("Remove-Unused-Dependencias no está habilitado (recomendado).")
     else:
-        resultado_warn("Remove-Unused-Dependencies no está habilitado.")
+        resultado_fail(f"No se encontró {UNATTENDED_CONF_FILE}.")
 
     contenidoAuto=leer_fichero(AUTO_UPGRADES_FILE)
-
-    if 'APT::Periodic::Update-Package-Lists "1";' in contenidoAuto and 'APT::Periodic::Unattended-Upgrade "1";' in contenidoAuto:
-        resultado_ok("Actualizaciones periódicas habilitadas (diarias).")
+    if contenidoAuto is not None:
+        tieneUpdateList=False
+        tieneUnattended=False
+        for linea in contenidoAuto.splitlines():
+            if "Update-Package-Lists" in linea and '"1"' in linea:
+                tieneUpdateList=True
+            if "Unattended-Upgrade" in linea and '"1"' in linea:
+                tieneUnattended=True
+        if tieneUnattended and tieneUpdateList:
+            resultado_ok("Actualizaciones periódicas habilitadas.")
+        else:
+            resultado_fail("Las actualizaciones periódicas no están configuradas correctamente.")
     else:
-        resultado_fail("Las actualizaciones periódicas no están configuradas correctamente.")
+        resultado_fail(f"No se encontró {AUTO_UPGRADES_FILE}.")
     
-    for servicio in ["apt-daily", "apt-daily-upgrade"]:
-        estado=subprocess.run(["systemctl", "is-active", servicio], capture_output=True, text=True)
-
-    if estado=="active":
-        resultado_ok(f"Servicio {servicio} está activo.")
-    else:
-        resultado_fail(f"Servicio {servicio} no está activo.")
+    for timer in ["apt-daily.timer", "apt-daily-upgrade.timer"]:
+        codigoRet, salida, _=ejecutar_comando_check(["systemctl", "is-active", timer])
+        if salida.strip()=="active":
+            resultado_ok(f"Timer {timer} está activo.")
+        else:
+            resultado_fail(f"Timer {timer} NO está activo.")
 
 def verificar_paso7():
     print()
@@ -373,21 +405,32 @@ def verificar_paso7():
     for servicio in SERVICIOS_INNECESARIOS:
         codigoRet, salida, _ = ejecutar_comando_check(["systemctl", "is-enabled", servicio])
         estado=salida.strip()
-        if "enabled" in estado:
-            if subprocess.run(["systemctl", "is-active"]).stdout in servicio:
-                resultado_fail(f"{servicio} está ACTIVO y en ejecución.")
-            else:
-                resultado_warn(f"{servicio} está habilitado pero no en ejecución.")
-        else:
-            resultado_ok(f"{servicio} no está habilitado.")
-        
-    resultado_puertos=subprocess.run("ss -tulnp | wc -l", capture_output=True, text=True)
 
-    try:
-        numeroPuertos=int(resultado_puertos.stdout.strip())
-    except ValueError:
-        numeroPuertos=999
-    
+        if estado=="masked":
+            resultado_ok(f"{servicio} está enmascarado (máxima protección).")
+        elif estado=="disabled":
+            resultado_ok(f"{servicio} está deshabilitado.")
+        elif estado in ("enabled", "static"):
+            codigoRet2, salida2, _=ejecutar_comando_check(["systemctl", "is-active", servicio])
+            if salida2.strip()=="active":
+                resultado_fail(f"{servicio} está ACTIVO y corriendo.")
+            else:
+                resultado_warn(f"{servicio} está habilitado pero no corriendo.")
+        elif "could not be found" in estado or codigoRet!=0:
+            resultado_ok(f"{servicio} no está instalado en el sistema.")
+        else:
+            resultado_warn(f"{servicio} tiene estado desconocido: '{estado}'.")
+
+
+    codigoRet, salida, _=ejecutar_comando_check(["ss", "-tulnp"])
+
+    if codigoRet==0:
+        lineasPuertos=[
+            l for l in salida.splitlines()
+            if l.strip() and "State" not in l
+        ]
+
+    numeroPuertos=len(lineasPuertos)
     if numeroPuertos <=5:
         resultado_ok(f"Solo {numeroPuertos} puerto(s) en escucha.")
     elif numeroPuertos <=10:
@@ -416,18 +459,20 @@ def verificar_paso8():
 
         for linea in salida.splitlines():
             if "users:" in linea:
-                columnas=linea.split(" ")
-                infoProc=columnas[-1]
-                procesosActivos.append(infoProc)
+                inicio=linea.find("((")
+                fin=linea.find("))")
+                if inicio!=-1 and fin!=-1:
+                    infoProc=linea[inicio +2:fin]
+                    nombreProc=infoProc.split(",")[0].strip('"')
+                    procesosActivos.add(nombreProc)
         
         if procesosActivos:
-            resultado_ok(f"Servicios de red activos: {', '.join(procesosActivos)}")
+            resultado_ok(f"Servicios de red activos: {', '.join(sorted(procesosActivos))}")
             if len(procesosActivos)>3:
-                resultado_fail(f"{len(procesosActivos)} servicios de red distintos. Exceso detectado.")
+                resultado_warn(f"{len(procesosActivos)} servicios de red distintos." 
+                               "Verificar que todos corresponden a la función del servidor.")
         else:
             resultado_ok("No se detectaron servicios de red.")
-    else:
-        resultado_warn("No se pudo ejecutar ss.")
 
 
 def verificar_paso9():
@@ -492,12 +537,12 @@ def verificar_paso10():
     print("=" * 100)
     contenidoCronAllow=leer_fichero(CRON_ALLOW_FILE)
 
-    if contenidoCronAllow:
+    if contenidoCronAllow is not None:
         resultado_ok(f"{CRON_ALLOW_FILE} existe.")
 
         usuariosAutorizados=[
             l.strip() for l in contenidoCronAllow.split("\n")
-            if "#" not in l
+            if l.strip() and not l.strip().startswith("#")
         ]
 
         if usuariosAutorizados:
@@ -506,31 +551,40 @@ def verificar_paso10():
             resultado_warn("cron.allow existe pero está vacío.")
 
     else:
-        resultado_fail(f"{CRON_ALLOW_FILE} no existe.")
+        resultado_fail(f"{CRON_ALLOW_FILE} no existe. Cualquier usuario puede crear cronjobs")
 
     if os.path.exists(CRON_DENY_FILE):
-        resultado_warn(f"{CRON_DENY_FILE} existe.")
+        if contenidoCronAllow is not None:
+            resultado_warn(f"{CRON_DENY_FILE} existe pero es irrelevante (cron.allow) tiene prioridad).")
+        else:
+            resultado_warn(f"Solo existe {CRON_DENY_FILE}. Se recomienda usar cron.allow en su lugar.")
     else:
-        resultado_ok(f"No existe {CRON_DENY_FILE}.")
+        if contenidoCronAllow is not None:
+            resultado_ok(f"{CRON_DENY_FILE} no existe (correcto, cron.allow controla el acceso).")
 
     if os.path.exists(CRON_ALLOW_FILE):
-        permisos=os.stat(CRON_ALLOW_FILE).st_mode
-        if permisos==640 or permisos==600:
-            resultado_ok("Permisos de cron.allow correctos.")
+        statInfo=os.stat(CRON_ALLOW_FILE)
+        permisos=oct(statInfo.st_mode)[-3:]
+        if permisos in ("640", "600"):
+            resultado_ok(f"Permisos de cron.allow correctos: {permisos}")
         else:
-            resultado_warn("Permisos de cron.allow incorrectos.")
+            resultado_warn(f"Permisos de cron.allow: {permisos}. Recomendado: 640")
     
     contenidoAtAllow=leer_fichero(AT_ALLOW_FILE)
 
     if contenidoAtAllow:
         resultado_ok(f"{AT_ALLOW_FILE} existe")
+    else:
+        resultado_warn(f"{AT_ALLOW_FILE} no existe. Se recomienda restringir 'at' también.")
     
     for directorio in DIRECTORIOS_CRON:
         if os.path.isdir(directorio):
-            if os.stat(directorio).st_mode=="700"
+            statInfo=os.stat(directorio)
+            permisos=oct(statInfo.st_mode)[-3:]
+            if permisos=="700":
                 resultado_ok(f"{directorio} tiene permisos restrictivos (700)")
             else:
-                resultado_warn(f"{directorio} no tiene permisos 700.")
+                resultado_warn(f"{directorio} tiene permisos {permisos}. Recomendado: 700")
 
 
 
@@ -542,50 +596,63 @@ def verificar_paso11():
 
     contenidoShadow=leer_fichero(SHADOW_FILE)
 
-    cuentasVacias=[]
-
-    for linea in contenidoShadow.split("\n"):
+    if contenidoShadow is not None:
+        cuentasVacias=[]
+        for linea in contenidoShadow.splitlines():
+            if not linea.strip():
+                continue
         campos=linea.split(":")
-        usuario=campos
-        hashContrasena=campos[2]
-
-        if hashContrasena=="":
-            cuentasVacias.append(usuario)
+        if len(campos)>=2:
+            usuario=campos[0]
+            hashContrasena=campos[1]
+            if hashContrasena=="":
+                cuentasVacias.append(usuario)
 
         if cuentasVacias:
             resultado_fail(f"Cuentas con contraseña vacía: {', '.join(cuentasVacias)}")
         else:
             resultado_ok("No hay cuentas con contraseña vacía.")
+    else:
+        resultado_fail(f"No se pudo leer {SHADOW_FILE}.")
+        return
+    
+    codigoRet, salida, _=ejecutar_comando_check(["passwd", "-S", "root"])
+    
+    if codigoRet==0:
+        campos=salida.split()
+        if len(campos)>=2:
+            estadoRoot=campos[1]
+            if estadoRoot=="L":
+                resultado_ok("Cuenta root bloqueada. Acceso únicamente mediante sudo.")
+            elif estadoRoot=="P":
+                resultado_warn("Cuenta root tiene contraseña activa." \
+                "Se recomienda bloquearla si se usa sudo.")
+            elif estadoRoot=="NP":
+                resultado_fail("Cuenta root sin contraseña.")
+    
+    
         
-        codigoRet, salida, _=ejecutar_comando_check(["passwd","-S","root"])
-        if codigoRet==0:
-            estadoRoot=salida.split()
-            if len(estadoRoot)>=2:
-                if estadoRoot[1]=="L":
-                    resultado_ok("Cuenta root bloqueada (acceso solo mediante sudo).")
-                elif estadoRoot[1]=="P":
-                    resultado_warn("Cuenta root tiene contraseña activa. Se recomienda bloquearla si se usa sudo.")
-                else:
-                    resultado_fail("Cuenta root sin contraseña.")
-        
-        contenidoPasswd=leer_fichero(PASSWD_FILE)
+    contenidoPasswd=leer_fichero(PASSWD_FILE)
+    if contenidoPasswd is not None:
         cuentasConShell=[]
-
+        
         for linea in contenidoShadow.splitlines():
             if not linea.strip():
                 continue
 
             campos=linea.split(":")
-            usuario=campos
-            uid=int(campos[3])
-            shell=campos[4]
+            if len(campos)>=7:
+                usuario=campos
+                uid=int(campos[3])
+                shell=campos[4]
 
-            if uid<1000:
-                if shell!="/usr/sbin/nologin":
-                    cuentasConShell.append(f"{usuario} ({shell})")
+                if uid>0 and uid<1000:
+                    if "nologin" not in shell and "/false" not in shell and "sync" not in shell:
+                        cuentasConShell.append(f"{usuario} ({shell})")
                 
         if cuentasConShell:
-            resultado_fail(f"Cuenta(s) de servicio con shell interactiva(s): {', '.join(cuentasConShell)}")
+            resultado_fail(f"Cuenta(s) de servicio con shell interactiva(s): "
+                           f"{', '.join(cuentasConShell)}")
         else:
             resultado_ok("Ninguna cuenta de servicio tiene shell interactiva.")
 
