@@ -259,8 +259,14 @@ def verificar_paso4():
         if len(lineasActualizables)==0:
             resultado_ok("Todos los paquetes están actualizados.")
         else:
-            resultado_fail(f"Hay {len(lineasActualizables)} paquete(s) con actualizaciones pendientes.")
-
+            paquetesSeguridad=[
+                l for l in lineasActualizables if "security" in l.lower()
+            ]
+            if paquetesSeguridad:
+                resultado_fail(f"Hay {len[paquetesSeguridad]} actualización(es) de SEGURIDAD pendiente(s).")
+            else:
+                resultado_warn(f"Hay {len(lineasActualizables)} paquete(s) con actualizaciones pendientes.")
+                
             for linea in lineasActualizables[:5]:
                 print(f"        -> {linea.strip()}")
             if len(lineasActualizables)>5:
