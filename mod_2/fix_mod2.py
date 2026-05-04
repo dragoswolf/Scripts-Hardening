@@ -96,8 +96,8 @@ def paso1_personalizar_motd():
     if os.path.isdir(MOTD_DIR):
         print(f"[INFO]: Deshabilitando scripts dinámicos en {MOTD_DIR}...")
         for fichero in os.listdir(MOTD_DIR):
-            if os.path.isfile(fichero):
-                rutaCompleta=os.path.join(MOTD_DIR, fichero)
+            rutaCompleta=os.path.join(MOTD_DIR, fichero)
+            if os.path.isfile(rutaCompleta):
                 if os.path.isfile(rutaCompleta):
                     statActual=os.stat(rutaCompleta)
                     nuevosPermisos=statActual.st_mode & ~0o111
@@ -108,11 +108,11 @@ def paso1_personalizar_motd():
 
     rutaScriptCustom=os.path.join(MOTD_DIR, "01-banner-custom")
     print(f"[INFO]: Creando script personalizado en {rutaScriptCustom}...")
-    if escribir_fichero(rutaScriptCustom, TEXTO_MOTD_SCRIPT, 0o700):
+    if escribir_fichero(rutaScriptCustom, TEXTO_MOTD_SCRIPT, 0o700, "Paso 1"):
         print(f"[CORRECTO]: Script personalizado creado con permisos de ejecución.")
 
     print(f"[INFO]: Vaciando {MOTD_FILE}...")
-    if escribir_fichero(MOTD_FILE, "", 0o644):
+    if escribir_fichero(MOTD_FILE, "", 0o644, "Paso 1"):
         print(f"[CORRECTO]: {MOTD_FILE} vaciado.")
 
     print()
