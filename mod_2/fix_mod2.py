@@ -330,7 +330,10 @@ def paso6_configurar_unattended():
     if necesitaReinstalar:
         print(f"[AVISO]: {UNATTENDED_CONF_FILE} vacío o sin repositorios de seguridad.")
         print("[INFO]: Reinstalando unattended-upgrades para restaurar configuración...")
-        ejecutar_comando(["rm", "/etc/apt/apt.conf.d/50unattended-upgrades"], "eliminar fichero por defecto", "Paso 6")
+
+        if contenidoUnattended:
+            ejecutar_comando(["rm", "/etc/apt/apt.conf.d/50unattended-upgrades"], "eliminar fichero por defecto", "Paso 6")
+            
         ejecutar_comando(["apt", "install", "--reinstall", "-y", "unattended-upgrades"], "reinstalar unattended-upgrades", "Paso 6")
 
         contenidoUnattended=leer_fichero(UNATTENDED_CONF_FILE, "Paso 6")
