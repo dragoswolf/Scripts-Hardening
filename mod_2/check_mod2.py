@@ -210,8 +210,9 @@ def verificar_paso3():
 
     if codigoRet==0:
         for linea in salida.splitlines():
-            if "to remove" in linea.lower() or "a eliminar" in linea.lower():
-                if "0 to remove" in linea or "0 a eliminar" in linea:
+            lineaMin=linea.lower()
+            if ("to remove" in lineaMin or "a eliminar" in lineaMin or "para eliminar" in lineaMin):
+                if ("0 to remove" in lineaMin or "0 a eliminar" in linea or "0 para eliminar" in lineaMin):
                     resultado_ok("No hay paquetes huérfanos.")
                 else:
                     resultado_fail(f"Hay paquetes huérfanos: {linea.strip()}")
