@@ -320,13 +320,22 @@ def paso6_configurar_unattended():
         print(f"[CORRECTO]: {AUTO_UPGRADES_FILE} configurado (actualizaciones diarias).")
 
     contenidoUnattended =leer_fichero(UNATTENDED_CONF_FILE, "Paso 6")
-    if contenidoUnattended is not None:
+
+
+    if contenidoUnattended is not None or "security" not in contenidoUnattended.lower():
+        print(f"[AVISO]: {UNATTENDED_CONF_FILE} vacío o sin repositorios de seguridad.")
+        print("[INFO]: Reinstalando unattended-upgrades para restaurar configuración...")
+        ejecutar_comando(["apt", "install", "--reinstall", "-y", "unattended-upgrades"], "reinstalar unattended-upgrades", "Paso 6")
+
+        contenidoUnattended=leer_fichero(UNATTENDED_CONF_FILE, "Paso 6")
+
+    if contenidoUnattended is not None and contenidoUnattended.strip():
         lineasNuevas=[]
         yaConfigurado=False
 
         for linea in contenidoUnattended.splitlines():
             lineaLimpia=linea.strip()
-            if "Remove-Unused-Dependencies" in linea:
+            if "Remove-Unused-Dependencies" in linea and "Kernel" not in linea and "New" not in linea:
                 if not yaConfigurado:
                     lineasNuevas.append('Unattended-Upgrade::Remove-Unused-Dependencies "true";')
                     yaConfigurado=True
