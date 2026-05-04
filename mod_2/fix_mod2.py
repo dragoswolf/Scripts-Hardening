@@ -308,7 +308,7 @@ def paso6_configurar_unattended():
         print("[INFO]: unattended-upgrades ya está instalado.")
 
     contenidoAutoUpgrades=(
-        'APT::Periodic:Update-Package-Lists "1";\n'
+        'APT::Periodic::Update-Package-Lists "1";\n'
         'APT::Periodic::Unattended-Upgrade "1";\n'
         'APT::Periodic::Download-Upgradeable-Packages "1";\n'
         'APT::Periodic::AutocleanInterval "7";\n'
@@ -342,13 +342,12 @@ def paso6_configurar_unattended():
         yaConfigurado=False
 
         for linea in contenidoUnattended.splitlines():
-            lineaLimpia=linea.strip()
             if "Remove-Unused-Dependencies" in linea and "Kernel" not in linea and "New" not in linea:
                 if not yaConfigurado:
                     lineasNuevas.append('Unattended-Upgrade::Remove-Unused-Dependencies "true";')
                     yaConfigurado=True
-                else:
-                    lineasNuevas.append(linea)
+            else:
+                lineasNuevas.append(linea)
 
         if not yaConfigurado:
             lineasNuevas.append("")
