@@ -303,11 +303,12 @@ def paso6_configurar_unattended():
     else:
         print("[INFO]: unattended-upgrades ya está instalado.")
 
-    contenidoAutoUpgrades="""APT::Periodic:Update-Package-Lists "1"
-APT::Periodic::Unattended-Upgrade "1"
-APT::Periodic:: Download-Upgradeable-Packages "1"
-APT::Periodic::AutocleanInterval "7"
-"""
+    contenidoAutoUpgrades=(
+        'APT::Periodic:Update-Package-Lists "1";\n'
+        'APT::Periodic::Unattended-Upgrade "1";\n'
+        'APT::Periodic:: Download-Upgradeable-Packages "1";\n'
+        'APT::Periodic::AutocleanInterval "7";\n'
+    )
 
     print("[INFO]: Configurando periodicidad...")
 
