@@ -260,15 +260,16 @@ def paso5_configurar_gpg():
     print("provenientes de repositorios no autenticados.")
     print()
 
-    contenidoGpg="""// Fichero generado por fix_mod2.py
-// Forzar verificación GPG en todos los repositorios
-// No permitir repositorios sin autenticar
-APT::Get::AllowUnauthenticated "false"
-// No permitir repositorios inseguros (sin firma)
-Acquire::AllowInsecureRepositories "false"
-// No permitir downgrade de paquetes
-Acquire:: AllowDowngradeToInsecureRepositories "false"
-"""
+    contenidoGpg=(
+    "// Fichero generado por fix_mod2.py\n"
+    "// Forzar verificación GPG en todos los repositorios\n"
+    "// No permitir repositorios sin autenticar\n"
+    'APT::Get::AllowUnauthenticated "false";\n'
+    "// No permitir repositorios inseguros (sin firma)\n"
+    'Acquire::AllowInsecureRepositories "false";\n'
+    "// No permitir downgrade de paquetes\n"
+    'Acquire:: AllowDowngradeToInsecureRepositories "false";\n'
+)
     print(f"[INFO]: Creando fichero de refuerzo GPG en {GPG_ENFORCE_FILE}...")
     if escribir_fichero(GPG_ENFORCE_FILE, contenidoGpg, 0o644):
         print(f"[CORRECTO]: {GPG_ENFORCE_FILE} creado.")
