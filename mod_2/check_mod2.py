@@ -644,9 +644,9 @@ def verificar_paso11():
 
             campos=linea.split(":")
             if len(campos)>=7:
-                usuario=campos
-                uid=int(campos[3])
-                shell=campos[4]
+                usuario=campos[0]
+                uid=int(campos[2])
+                shell=campos[6]
 
                 if uid>0 and uid<1000:
                     if "nologin" not in shell and "/false" not in shell and "sync" not in shell:
