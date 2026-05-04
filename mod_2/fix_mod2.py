@@ -208,6 +208,10 @@ def paso3_eliminar_paquetes():
     print("[INFO] Verificando dependencias...")
     ejecutar_comando(["apt", "--fix-broken", "install", "-y"], "reparar dependencias", "Paso 3")
 
+    print("[INFO]: Eliminando posibles nuevos paquetes huérfanos...")
+    ejecutar_comando(["apt", "autoremove", "--purge", "-y"], "segundo autoremove", "Paso 3")
+    print("[CORRECTO]: Limpieza de huérfanos completada.")
+
     print()
     print("[CORRECTO]: PASO 3 completado. Paquetes innecesarios eliminados.")
 
@@ -247,7 +251,7 @@ def paso4_actualizar_sistema():
         print("[INFO]: No se requiere reinicio.")
     
     print()
-    print("PASO 4 COMPLETADO. SISTEMA ACTUALIZADO.")
+    print("PASO 4 COMPLETADO. SISTEMA ACTUALIZADO. SE REQUIERE VOLVER A EJECUTAR EL PASO 1")
 
 
 def paso5_configurar_gpg():

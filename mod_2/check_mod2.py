@@ -244,7 +244,8 @@ def verificar_paso4():
     print("[PASO 4]: Kernel y sistema actualizado")
     print("="*100)
 
-    ejecutar_comando_check(["apt", "update"])
+    print("[INFO]: Actualizando lista de paquetes...\n")
+    ejecutar_comando_check(["apt", "update"], mostrarSalida=True)
 
     codigoRet, salida, _=ejecutar_comando_check(["apt", "list", "--upgradable"])
 

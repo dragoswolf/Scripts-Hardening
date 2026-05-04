@@ -333,19 +333,26 @@ def mostrar_resumen(nombreFix="fix_<modulo>.py"):
     
     print()
 
-def ejecutar_comando_check(comando):
+def ejecutar_comando_check(comando, mostrarSalida=False):
     """
     Ejecuta un comando del sistema y devuelve su salida estándar.
     Versión para scripts de verificación que devuelve una tupla.
 
     Args:
         comando (list): Lista con el comando y sus argumentos.
+        mostrarSalida (bool): Si es True, la salida se muestra en la
+                              terminal en tiempo real.
     Return:
         tuple: (codigoRetorno, salidaStdout, salidaStderr)
     """
 
     try:
-        resultado=subprocess.run(comando, capture_output=True, text=True)
-        return(resultado.returncode, resultado.stdout, resultado.stderr)
+        if mostrarSalida:
+            resultado=subprocess.run(comando)
+            return (resultado.returncode, "", "")
+        else:
+            resultado=subprocess.run(comando, capture_output=True, text=True)
+            return (resultado.returncode, resultado.stdout, resultado.stderr)
+
     except FileNotFoundError:
         return (127, "", f"[ERROR]: Comando no encontrado: {comando[0]}")
