@@ -319,6 +319,32 @@ def paso6_configurar_unattended():
     if escribir_fichero(AUTO_UPGRADES_FILE, contenidoAutoUpgrades, 0o644):
         print(f"[CORRECTO]: {AUTO_UPGRADES_FILE} configurado (actualizaciones diarias).")
 
+    contenidoUnattended =leer_fichero(UNATTENDED_CONF_FILE, "Paso 6")
+    if contenidoUnattended is not None:
+        lineasNuevas=[]
+        yaConfigurado=False
+
+        for linea in contenidoUnattended.splitlines():
+            lineaLimpia=linea.strip()
+            if "Remove-Unused-Dependencies" in linea:
+                if not yaConfigurado:
+                    lineasNuevas.append('Unattended-Upgrade::Remove-Unused-Dependencies "true";')
+                    yaConfigurado=True
+                else:
+                    lineasNuevas.append(linea)
+
+        if not yaConfigurado:
+            lineasNuevas.append("")
+            lineasNuevas.append('Unattended-Upgrade::Remove-Unused-Dependencies "true";')
+
+        nuevoContenido="\n".join(lineasNuevas)+"\n"
+        print(f"[INFO]: Habilitando Remove-Unused-Dependencies en {UNATTENDED_CONF_FILE}...")
+        if escribir_fichero(UNATTENDED_CONF_FILE, nuevoContenido, 0o644, "Paso 6"):
+            print("[CORRECTO]: Eliminación automática de dependencias huérfanas habilitada.")
+    else:
+        print(f"[AVISO]: No se pudo leer {UNATTENDED_CONF_FILE}.")
+
+
     for timer in ["apt-daily.timer", "apt-daily-upgrade.timer"]:
         print(f"[INFO]: Habilitando {timer}...")
         ejecutar_comando(["systemctl", "enable", timer], f"habilitar {timer}", "Paso 6")
