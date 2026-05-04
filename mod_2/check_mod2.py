@@ -126,10 +126,10 @@ def verificar_paso1():
     else:
         resultado_warn(f"Directorio {MOTD_DIR} no encontrado.")
 
-    contenidoMotd=leer_fichero(MOTD_DIR, "Paso 1")
+    contenidoMotd=leer_fichero(MOTD_FILE, "Paso 1")
 
     if contenidoMotd is not None:
-        if contenidoMotd.strip() is "":
+        if contenidoMotd.strip() == "":
             resultado_ok("/etc/motd está vacío (correcto).")
         else:
             infoSensible=False
