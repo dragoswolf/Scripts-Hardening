@@ -439,8 +439,8 @@ def paso9_habilitar_ntp():
 
     
     print("[INFO]: Habilitando y arrancando chrony...")
-    ejecutar_comando(["systemctl enable", "chrony"], "habilitar chrony", "Paso 9")
-    ejecutar_comando(["systemctl start", "chrony"], "arrancar chrony", "Paso 9")
+    ejecutar_comando(["systemctl", "enable", "chrony"], "habilitar chrony", "Paso 9")
+    ejecutar_comando(["systemctl", "start", "chrony"], "arrancar chrony", "Paso 9")
     print("[CORRECTO]: Chrony Habilitado y activo.")
 
     print("[INFO]: Configurando zona horaria a Europe/Madrid...")
