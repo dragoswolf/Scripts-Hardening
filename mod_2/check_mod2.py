@@ -457,7 +457,7 @@ def verificar_paso8():
     codigoRet, salida, _ =ejecutar_comando_check(["ss", "-tulnp"])
 
     if codigoRet==0:
-        procesosActivos=[]
+        procesosActivos=set()
 
         for linea in salida.splitlines():
             if "users:" in linea:

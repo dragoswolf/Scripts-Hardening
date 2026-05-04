@@ -310,7 +310,7 @@ def paso6_configurar_unattended():
     contenidoAutoUpgrades=(
         'APT::Periodic:Update-Package-Lists "1";\n'
         'APT::Periodic::Unattended-Upgrade "1";\n'
-        'APT::Periodic:: Download-Upgradeable-Packages "1";\n'
+        'APT::Periodic::Download-Upgradeable-Packages "1";\n'
         'APT::Periodic::AutocleanInterval "7";\n'
     )
 
@@ -438,7 +438,7 @@ def paso8_documentar_servicios():
 #==============================================
 """
     print(f"[INFO]: Creando {SERVICIOS_AUTORIZADOS_FILE}")
-    if escribir_fichero(SERVICIOS_AUTORIZADOS_FILE, contenidoDoc, 0o600):
+    if escribir_fichero(SERVICIOS_AUTORIZADOS_FILE, contenidoDoc, 0o600, "Paso 8"):
         print(f"[CORRECTO]: {SERVICIOS_AUTORIZADOS_FILE} creado.")
 
     print()
