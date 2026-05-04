@@ -447,11 +447,11 @@ def paso9_habilitar_ntp():
     print("[CORRECTO]: Zona horaria: Europe/Madrid.")
 
     print("[INFO] Verificando sincronización NTP...")
-    resultado=subprocess.run(["chronyc", "tracking"], capture_output=True, text=True)
+    salidaChrony=ejecutar_comando(["chronyc", "tracking"], "verificar sincronización NTP", "Paso 9", capturarSalida=True)
 
-    if resultado.returncode==0:
+    if salidaChrony is not None:
         print("[CORRECTO]: Chrony está sincronizando.")
-        for linea in resultado.stdout.splitlines():
+        for linea in salidaChrony.splitlines():
             if "Reference ID" in linea or "System time" in linea or "Frequency" in linea:
                 print(f"    {linea.strip()}")
 
