@@ -86,7 +86,7 @@ def comprobar_root():
 # Estas funciones son comunmente usadas por los scripts de correción
 #=======================================================================================================
 
-def ejecutar_comando(comando, descripcion, paso="General", capturarSalida=False):
+def ejecutar_comando(comando, descripcion, paso="General", capturarSalida=False, mostrarSalida=False):
     """
     Ejecuta un comando del sistema y gestiona posibles errores.
     Los errores se registran tanto en pantalla como en el fichero de log.
@@ -96,35 +96,49 @@ def ejecutar_comando(comando, descripcion, paso="General", capturarSalida=False)
         descripcion (str): Texto descriptivo de lo que hace el comando
         paso (str): Identificador del paso
         capturarSalida (bool): Si es True, captura y devuelve stdout.
+        mostrarSalida (bool): Si es True, la salida del comando se muestra
+                              en la terminal en tiempo real (sin capturar).
+                              Útil para comandos largos donde es necesario
+                              ver el progreso para saber que todo sigue 
+                              en marcha.
 
     Return:
         str o None: La salida del comando si capturarSalida=True, None en otro caso
     """
+
     try:
-        #subprocess.run() ejecuta el comando como un proceso hijo
-        resultado=subprocess.run(
-            comando,                #Comando a ejecutar
-            capture_output=True,    #Capturar stdout y stderr
-            text=True,              #Devolver strings en vez de bytes
-            check=True              #Lanzar excepción si el código de retorno !=0
-        )
-        if capturarSalida:
-            return resultado.stdout #Devolver la salida estándar
-        return None
+        if mostrarSalida:
+            #Modo interactivo: stdout y stderr van directos a la terminal, para ver el progreso en tiempo real
+            resultado=subprocess.run(comando, check=True)
+            return None
+        else:
+            #subprocess.run() ejecuta el comando como un proceso hijo
+            resultado=subprocess.run(
+                comando,                #Comando a ejecutar
+                capture_output=True,    #Capturar stdout y stderr
+                text=True,              #Devolver strings en vez de bytes
+                check=True              #Lanzar excepción si el código de retorno !=0
+            )
+            if capturarSalida:
+                return resultado.stdout #Devolver la salida estándar
+            return None
+        
     except subprocess.CalledProcessError as e:
         #Si el comando falla (código de retorno != 0), registrar el error
+        # En el modo mostrarSalida, stderr ya se mostró en pantalla
+        errorTexto=e.stderr.strip() if e.stderr else "ver salida anterior"
         mensajeError=(f"Fallo al {descripcion}: " 
-                      f"Comando: {' '.join(comando)} | " 
-                      f"Error: {e.stderr.strip()}")
+                        f"Comando: {' '.join(comando)} | " 
+                        f"Error: {errorTexto}")
         registrar_errores(paso, mensajeError)
         return None
     except FileNotFoundError:
         #Si el ejecutable no existe en el sistema.
         mensajeError=(f"Comando no encontrado: {comando[0]}. " 
-                      f"Asegúrate de que está instalado.")
+                        f"Asegúrate de que está instalado.")
         registrar_errores(paso, mensajeError)
         return None
-    
+
 
 def volver_al_menu():
     """

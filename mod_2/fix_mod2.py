@@ -224,15 +224,15 @@ def paso4_actualizar_sistema():
     print()
 
     print("[INFO] Actualizando lista de paquetes...")
-    ejecutar_comando(["apt", "update"], "actualizar lista de paquetes", "Paso 4")
+    ejecutar_comando(["apt", "update"], "actualizar lista de paquetes", "Paso 4", mostrarSalida=True)
     print("[CORRECTO]: Lista actualizada.")
 
     print("[INFO]: Aplicando actualizaciones (apt upgrade)...")
-    ejecutar_comando(["apt", "upgrade", "-y"], "aplicar actualizaciones", "Paso 4")
+    ejecutar_comando(["apt", "upgrade", "-y"], "aplicar actualizaciones", "Paso 4", mostrarSalida=True)
     print("[CORRECTO]: Actualizaciones aplicadas.")
 
     print("[INFO]: Aplicando actualizaciones con dependencias (apt dist-upgrade)...")
-    ejecutar_comando(["apt", "dist-upgrade", "-y"], "aplicar dist-upgrade", "Paso 4")
+    ejecutar_comando(["apt", "dist-upgrade", "-y"], "aplicar dist-upgrade", "Paso 4", mostrarSalida=True)
     print("[CORRECTO]: dist-upgrade completado.")
 
     if os.path.isfile("/var/run/reboot-required"):
