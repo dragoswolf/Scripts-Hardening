@@ -197,7 +197,46 @@ def leer_fichero(ruta, paso="General"):
         #No tenemos permisos para leer el fichero
         registrar_errores   (paso, f"[ERROR]: Sin permisos para leer {ruta}")
         return None
-    
+
+
+def cambiar_permisos(ruta, permisos=None, propietario=None, grupo=None, paso="General"):
+    """
+    Cambia permisos y/o propietario de un fichero o directorio SIN modificar su contenido.
+    Complementa a escrbbir_fichero(), que establece permisos solo al momento de modificar
+
+    Args:
+        ruta (str): Ruta absoluta al fichero o directorio.
+        permisos (int o None): Permisos en octal.
+                               None = no cambia permisos
+        Propietario (int o None): UID del nuevo propietario
+                                  None = No cambia propietario
+        grupo (int o None): GID del nuevo grupo.
+                            None = no cambia grupo
+        paso (str): Identificador del paso para el log.
+
+    Return:
+        bool: True si todas las operaciones solicitadas se completaron
+              False si alguna o más operaciones fallaron    
+    """
+
+    try:
+        if permisos is not None:
+            os.chmod(ruta, permisos)
+        if propietario is not None or grupo is not None:
+            uid=propietario if propietario is not None else -1
+            gid=grupo if grupo is not None else -1
+
+            os.chown(ruta, uid, gid)
+        return True
+    except FileNotFoundError:
+        registrar_errores(paso, f"Fichero no encontrado: {ruta}")
+        return False
+    except PermissionError:
+        registrar_errores(paso, f"Sin permisos para modificar {ruta}")
+        return False
+    except Exception as e:
+        registrar_errores(paso, f"No se pudieron cambiar permisos de {ruta}: e")
+        return False
 
 def pedir_input_doble(mensaje, ocultar=False):
     """
