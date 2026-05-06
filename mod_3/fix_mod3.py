@@ -109,7 +109,7 @@ def paso2_auditar_grupos():
         grupo=input("Nombre del grupo: ")
 
         if usuario and grupo:
-            os.subprocess(f"gpasswd -d {grupo} {usuario}")
+            ejecutar_comando(["gpasswd", "-d",  usuario, grupo])
             print(f"[CORRECTO]: Usuario '{usuario}' eliminando del grupo '{grupo}'.")
     else:
         print("[INFO]: No se realizaron cambios.")
