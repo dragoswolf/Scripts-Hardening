@@ -15,7 +15,7 @@ SHADOW_FILE="/etc/shadow"
 LOGIN_DEFS_FILE="/etc/login.defs"
 SUDOERS_DIR="/etc/sudoers.d"
 SSHD_CONFIG_FILE="/etc/ssh/sshd_config"
-LOG_FILE="/var/log/hardening/modulo2_fix.log"
+LOG_FILE="/var/log/hardening/modulo3_fix.log"
 
 GRUPOS_SENSIBLES=["sudo", "adm", "shadow", "disk", "docker"]
 
