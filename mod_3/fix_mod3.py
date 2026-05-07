@@ -50,7 +50,14 @@ PARAMETROS_LOGIN_DEFS={
     "UMASK": "27"
 }
 
-
+SHELLS_INTERACTIVAS=[
+    "bin/bash", 
+    "/bin/sh", 
+    "/bin/zsh", 
+    "/bin/ksh", 
+    "/bin/csh", 
+    "/bin/fish"
+    ]
 
 
 def paso1_auditar_passwd():
@@ -60,6 +67,7 @@ def paso1_auditar_passwd():
     print("="*100)
     print()
 
+    
     contenido=leer_fichero(PASSWD_FILE, paso="Paso 1")
     if contenido is None:
         print("[ERROR]: No se puede leer /etc/passwd.")
@@ -73,18 +81,18 @@ def paso1_auditar_passwd():
     else:
         print(f"[CORRECTO]: Permisos de {PASSWD_FILE} correctos (644).")
 
-    shellsInteractivas=["bin/bash", "/bin/sh", "/bin/zsh", "/bin/ksh", "/bin/csh", "/bin/fish"]
+
     cuentasServicio=[]
 
-    for linea in contenido.split("\n"):
+    for linea in contenido.strip().splitlines():
         campos=linea.split(":")
 
-        if len(campos) > 1:
-            nombre=campos
-            uid=int(campos[1])
-            shell=campos[2]
+        if len(campos)==7:
+            nombre=campos[0]
+            uid=int(campos[2])
+            shell=campos[6]
             
-            if uid<1000 and shell in shellsInteractivas:
+            if 0<uid<1000 and shell in SHELLS_INTERACTIVAS:
                 cuentasServicio.append((nombre, uid, shell))
 
     if not cuentasServicio:
@@ -92,14 +100,14 @@ def paso1_auditar_passwd():
     else:
         print(f"\n[AVISO]: Se encontraron {len(cuentasServicio)} cuenta(s) de servicio con shell interactiva:")
         for nombre, uid, shell in cuentasServicio:
-            print(f"[CORRECTO]: Shell de '{nombre}' cambiada a /usr/sbin/nologin.")
+            print(f"        - {nombre} (UID={uid}, shell={shell})")
 
         print()
         respuesta=input("¿Cambiar sus shells a /usr/sbin/nologin? (s/n): ").strip().lower()
         if respuesta=="s":
             for nombre, uid, shell in cuentasServicio:
                 ejecutar_comando(["usermod", "-s", "/usr/sbin/nologin", nombre], f"cambiar shell de {nombre}", "Paso 1")
-                print(f"[OK], Shell de '{nombre}' cambiada a /usr/sbin/nologin.")
+                print(f"[CORRECTO]: Shell de '{nombre}' cambiada a /usr/sbin/nologin.")
         else:
             print("[INFO]: No se realizaron cambios.")
 
@@ -116,8 +124,8 @@ def paso2_auditar_grupos():
         rc, salida, _ =ejecutar_comando_check(["getent", "group", grupo])
 
         if rc==0:
-            campos=salida.stdout.split(":")
-            miembros=campos[1]
+            campos=salida.strip().split(":")
+            miembros=campos[3] if len(campos)>3 and campos[3] else "(sin miembros)"
             print(f"{grupo}: {miembros}")
         else:
             print(f"{grupo}: No existe")
@@ -129,7 +137,7 @@ def paso2_auditar_grupos():
 
     respuesta=input("¿Quieres eliminar algún usuario de un grupo? (s/n): ").strip().lower
 
-    if respuesta=="s" or "S":
+    if respuesta=="s":
         usuario=input("Nombre del usuario: ")
         grupo=input("Nombre del grupo: ")
 
@@ -165,13 +173,11 @@ def paso3_configurar_sudo():
             return
         
     print("[INFO]: Creando configuración de hardening para sudo...")
-
     exito=escribir_fichero(rutaHardening, CONTENIDO_SUDO_HARDENING, permisos=440, paso="Paso 3")
 
     if exito:
         print(f"[CORRECTO]: Configuración de hardening creada en {rutaHardening}.")
-
-        ejecutar_comando(["visudo", "-c", "-f", "/etc/sudoers"], "validar configuraciónd de sudoers", "Paso 3")
+        ejecutar_comando(["visudo", "-c"], "validar configuraciónd de sudoers", "Paso 3")
         print("[CORRECTO]: Configuración de sudoers validada.")
     else:
         print("[ERROR]: No se pudo crear el fichero de hardening.")
@@ -179,10 +185,13 @@ def paso3_configurar_sudo():
     print()
     rc, salida, _=ejecutar_comando_check(["grep", "-r", "NOPASSWD", "/etc/sudoers", SUDOERS_DIR])
 
-    if rc!=0:
-        print("[AVISO]: Se encontraron reglas NOPASSWD activas:")
-        print(salida)
-        print("[AVISO]: Revisa si son necesarias.")
+    if salida.strip():
+        lineasActivas=[l for l in salida.strip().splitlines() if not l.strip().startswith("#")]
+        if lineasActivas:
+            print("[AVISO]: Se encontraron reglas NOPASSWD activas:")
+            for linea in lineasActivas:
+                print(f"    {linea}")
+            print("[AVISO]: Revisa si son necesarias.")
     else:
         print("[CORRECTO]: No hay reglas NOPASSWD.")
 
@@ -198,7 +207,7 @@ def paso4_proteger_shadow():
         registrar_errores("Paso 4", f"No se encontró {SHADOW_FILE}.")
         return
     
-    permisos=oct(os.stat(SHADOW_FILE).st_mode)
+    permisos=oct(os.stat(SHADOW_FILE).st_mode)[-3:]
     if permisos not in ["640", "600"]:
         print(f"[INFO]: Corrigiendo permisos de {SHADOW_FILE} de {permisos} a 640...")
         cambiar_permisos(SHADOW_FILE, permisos=0o640, paso="Paso 4")
@@ -217,15 +226,28 @@ def paso4_proteger_shadow():
 
     contenido=leer_fichero(SHADOW_FILE, paso="Paso 4")
 
-    for linea in contenido.splitlines():
-        campos=linea.split(":")
-        nombre=campos
-        hashCampo=campos[5]
+    if contenido:
+        algoritmosDebiles=[]
+        for linea in contenido.strip().splitlines():
+            campos=linea.split(":")
+            if len(campos) >= 2:
+                hashCampo=campos[1]
+                nombre=campos[0]
 
-        if "$1$" in hashCampo or "$5$" in hashCampo:
-            print(f"[AVISO]: Usuario {nombre} usa un algoritmo débil.")
-            print(f"[INFO]: Bloqueando contraseña de {nombre} por seguridad...")
-            ejecutar_comando(["usermod", "-p", "!", nombre], f"bloqueando contraseña de {nombre}", "Paso 4")
+                if hashCampo.startswith("$1$"):
+                    algoritmosDebiles.append(f"{nombre} (MD5)")
+                elif hashCampo.startswith("$5$"):
+                    algoritmosDebiles.append(f"{nombre} (SHA-256)")
+
+        if algoritmosDebiles:
+            print()
+            print("[AVISO]: Usuarios con algoritmos de hash débiles:")
+            for alerta in algoritmosDebiles:
+                print(f"    - {alerta}")
+            print("[AVISO]: Se recomienda forzar el cambio de contraseña: sudo chage -d 0 <usuario>")
+        else:
+            print("[CORRECTO]: Todos los usuarios usan algoritmos de hash seguros.")
+ 
 
 def paso5_configurar_login_defs():
     print()
@@ -244,12 +266,21 @@ def paso5_configurar_login_defs():
     for parametro, valorNuevo in PARAMETROS_LOGIN_DEFS.items():
         encontrado=False
 
-        for i in range(len(lineasModificadas)):
-            if parametro in lineasModificadas[i]:
-                lineasModificadas[i]=f"{parametro}\t\t{valorNuevo}"
-                print(f"[CORRECTO]: {parametro} actualizado a {valorNuevo}.")
-                cambiosRealizados+=1
-                encontrado=True
+        for i, linea in enumerate(lineasModificadas):
+            lineaLimpia=linea.strip()
+
+            if lineaLimpia.startswith(parametro) or lineaLimpia.startswith(f"#{parametro}") or lineaLimpia.startswith(f"# {parametro}"):
+                partes=lineaLimpia.lstrip("# ").split()
+                if len(partes) >=1 and partes[0]==parametro:
+                    valorActual=partes[1] if len(partes) >=2 else "(sin valor)"
+                    if valorActual!= valorNuevo or lineaLimpia.startswith("#"):
+                        lineasModificadas[i]=f"{parametro}\t\t{valorNuevo}"
+                        print(f"[CORRECTO]: {parametro}: {valorActual} -> {valorNuevo}")
+                        cambiosRealizados+=1
+                    else:
+                        print(f"[CORRECTO]: {parametro} ya tiene el valor correcto ({valorActual}).")
+                    encontrado=True
+                    break
 
         if not encontrado:
             lineasModificadas.append(f"{parametro}\t\t{valorNuevo}")
@@ -258,14 +289,16 @@ def paso5_configurar_login_defs():
 
 
     if cambiosRealizados>0:
-        nuevoContenido="\n".join(lineasModificadas)
+        nuevoContenido="\n".join(lineasModificadas)+"\n"
 
         exito=escribir_fichero(LOGIN_DEFS_FILE, nuevoContenido, permisos=0o600, paso="Paso 5")
 
         if exito:
-            print(f"[CORRECTO]: Parámetros actualizados en {LOGIN_DEFS_FILE}.")
+            print(f"\n[CORRECTO]: {cambiosRealizados} parámetro(s) actualizado(s) en {LOGIN_DEFS_FILE}.")
         else:
-            print(f"[ERROR]: No se puede escribir en {LOGIN_DEFS_FILE}.")
+            print(f"\n[ERROR]: No se puede escribir en {LOGIN_DEFS_FILE}.")
+    else:
+        print("[CORRECTO]: Todos los parámetros ya tienen los valores correctos.")
 
     
 def paso6_envejecimiento_contrasenas():

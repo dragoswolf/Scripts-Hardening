@@ -50,18 +50,18 @@ def verificar_paso1():
         resultado_fail(f"No se encontró {PASSWD_FILE}", paso=paso)
         return
     
-    permisos=os.stat(PASSWD_FILE).st_mode
+    permisos=oct(os.stat(PASSWD_FILE).st_mode)[-3:]
     if permisos==644:
-        resultado_ok("Permisos de /etc/passwd correctos.")
+        resultado_ok(f"Permisos de {PASSWD_FILE} correctos ({permisos}).")
     else:
-        resultado_fail("Permisos de /etc/passwd incorrectos.", paso=paso)
+        resultado_fail(f"Permisos de {PASSWD_FILE} incorrectos ({permisos}), deberían ser 644.", paso=paso)
 
 
     infostat=os.stat(PASSWD_FILE)
     if infostat.st_uid==0 and infostat.st_gid==0:
         resultado_ok(f"{PASSWD_FILE} es propiedad de root:root.")
     else:
-        resultado_fail(f"{PASSWD_FILE} no es propiedad de root:root", paso=paso)
+        resultado_fail(f"{PASSWD_FILE} no es propiedad de root:root (UID={infostat.st_uid}, GID={infostat.st_gid})", paso=paso)
 
     
     contenido=leer_fichero(PASSWD_FILE, paso=paso)
@@ -71,14 +71,16 @@ def verificar_paso1():
     cuentasServicioConShell=[]
     
     for linea in contenido.strip().splitlines():
-        if linea:
-            campos=linea.split(":")
-            nombre=campos
-            uid=int(campos[5])
-            shell=campos[6]
+        campos=linea.split(":")
+        if len(campos)!=7:
+            resultado_warn(f"Línea mal formada en passwd: {linea}")
+            continue
+        nombre=campos[0]
+        uid=int(campos[2])
+        shell=campos[6]
 
-            if uid<1000 and shell in SHELLS_INTERACTIVAS:
-                cuentasServicioConShell.append(nombre)
+        if 0<uid<1000 and shell in SHELLS_INTERACTIVAS:
+            cuentasServicioConShell.append(f"{nombre} (UID={uid}, shell={shell})")
 
     if len(cuentasServicioConShell)==0:
         resultado_ok("Ninguna cuenta de servicio tiene shell interactiva.")
@@ -99,24 +101,21 @@ def verificar_paso2():
     for grupo in GRUPOS_SENSIBLES:
         codigoRet, salida, _=ejecutar_comando_check(["getent", "group", grupo])
 
-        if codigoRet!=0:
-            resultado_ok(f"Grupo '{grupo}' no existe en el sistema.")
+        if codigoRet==0:
+            campos=salida.strip().split(":")
+            miembros=campos[3] if len(campos)>3 and campos[3] else "(sin miembros explícitos)"
 
-        campos=salida.split()
-        miembros=campos[1]
-
-        if grupo=="sudo":
-            if miembros=="\n" or miembros=="":
-                resultado_ok("Grupo 'sudo' está vacío.")
+            if grupo=="sudo":
+                resultado_ok(f"Grupo '{grupo}' - miembros: {miembros}")
+            elif grupo in ["shadow","disk", "docker"]:
+                if len(campos) >3 and campos[3]:
+                    resultado_warn(f"Grupo sensible '{grupo}' tiene miembros asignados ({miembros}).")
+                else:
+                    resultado_ok(f"Grupo sensible '{grupo}' sin miembros explícitos.")
             else:
-                resultado_warn(f"Grupo 'sudo' tiene miembros: {miembros}. Riesgo de escalada")
-        elif grupo in ["shadow","disk", "docker"]:
-            if len(miembros)>0:
-                resultado_fail(f"Grupo sensible '{grupo}' tiene miembros asignados.", paso=paso)
-            else:
-                resultado_ok(f"Grupo sensible '{grupo}' seguro.")
+                resultado_ok(f"Grupo '{grupo}' auditado.")
         else:
-            resultado_ok(f"Grupo '{grupo}' auditado.")
+            resultado_ok(f"Grupo '{grupo}' no existe en el sistema.")
 
 
 def verificar_paso3():
@@ -130,8 +129,8 @@ def verificar_paso3():
 
 
     if os.path.isfile(SUDOERS_FILE):
-        permisos=os.stat(SUDOERS_FILE).st_mode
-        if permisos==440 or permisos==400:
+        permisos=oct(os.stat(SUDOERS_FILE).st_mode)[-3:]
+        if permisos in ["440", "400"]:
             resultado_ok(f"Permisos de {SUDOERS_FILE} correctos ({permisos}).")
         else:
             resultado_fail(f"Permisos de {SUDOERS_FILE} incorrectos ({permisos}), deberían ser 440.", paso=paso)
@@ -140,20 +139,20 @@ def verificar_paso3():
 
     codigoRet, salida, _=ejecutar_comando_check(["grep","-r","NOPASSWD",SUDOERS_FILE])
 
-    if codigoRet==0 and salida:
+    if codigoRet==0 and salida.strip():
         for linea in salida.strip().splitlines():
-            if linea and "#" not in linea:
-                resultado_warn(f"Regla NOPASSWD encontrada: {linea}")
+            if not linea.strip().startswith("#"):
+                resultado_warn(f"Regla NOPASSWD encontrada: {linea.strip()}")
     else:
         resultado_ok("No hay reglas NOPASSWD en sudoers.")
 
     if os.path.isdir(SUDOERS_DIR):
         codigoRet, salida, _=ejecutar_comando_check(["grep", "-r","NOPASSWD",SUDOERS_DIR])
 
-        if codigoRet==0 and salida:
+        if codigoRet==0 and salida.strip():
             for linea in salida.strip().splitlines():
-                if linea and "#" not in linea:
-                    resultado_warn(f"Regla NOPASSWD en sudoers.d: {linea}.")
+                if not linea.strip().startswith("#"):
+                    resultado_warn(f"Regla NOPASSWD en sudoers.d: {linea.strip()}.")
             
     rutaHardening=os.path.join("hardening", SUDOERS_DIR)
 
@@ -182,18 +181,18 @@ def verificar_paso4():
         resultado_fail(f"No se encontró {SHADOW_FILE}.", paso=paso)
         return
     
-    permisos=os.stat(SHADOW_FILE).st_mode
-    if permisos==640 or permisos==600:
-        resultado_ok("Permisos de /etc/shadow correctos.")
+    permisos=oct(os.stat(SHADOW_FILE).st_mode)[-3:]
+    if permisos in ["640", "600"]:
+        resultado_ok(f"Permisos de {SHADOW_FILE} correctos ({permisos}).")
     else:
-        resultado_fail("Permisos de /etc/shadow incorrectos.", paso=paso)
+        resultado_fail(f"Permisos de {SHADOW_FILE} incorrectos ({permisos}). Deberían ser 640.", paso=paso)
 
 
     infoStat=os.stat(SHADOW_FILE)
-    if infoStat.st_uid==0 and infoStat.st_gid==0:
+    if infoStat.st_uid==0:
         resultado_ok(f"{SHADOW_FILE} es propiedad segura de root:root.")
     else:
-        resultado_fail(f"{SHADOW_FILE} tiene un propietario/grupo inseguro.", paso=paso)
+        resultado_fail(f"{SHADOW_FILE} no es propiedad de root (UID = {infoStat.st_uid}).", paso=paso)
 
     contenido=leer_fichero(SHADOW_FILE, paso=paso)
     if contenido is None:
@@ -201,21 +200,22 @@ def verificar_paso4():
     
     algoritmosDebiles=[]
     for linea in contenido.strip().splitlines():
-        if linea:
-            campos=linea.split(":")
-            nombre=campos
-            hashCampo=campos[4]
+        campos=linea.split(":")
+        if len(campos)<2:
+            continue
+        hashCampo=campos[1]
+        nombre=campos[0]
 
-            if "$1$" in hashCampo:
-                algoritmosDebiles.append(f"{nombre} usa MD5.")
-            elif "$5$" in hashCampo:
-                algoritmosDebiles.append(f"{nombre} usa SHA-256")
+        if hashCampo.startswith("$1$"):
+            algoritmosDebiles.append(f"{nombre} usa MD5.")
+        elif hashCampo.startswith("$5$"):
+            algoritmosDebiles.append(f"{nombre} usa SHA-256.")
 
     if len(algoritmosDebiles)==0:
         resultado_ok("Ningún usuario usa algoritmos de hash débiles.")
     else:
-        for usuario in algoritmosDebiles:
-            resultado_fail(f"Usuario {usuario} utiliza un algoritmo débil.", paso=paso)
+        for alerta in algoritmosDebiles:
+            resultado_fail(alerta, paso=paso)
 
 
 
@@ -234,14 +234,14 @@ def verificar_paso5():
         return
     
     valores={}
-    for linea in contenido.strip().splitlines():
+    for linea in contenido.splitlines():
         lineaLimpia=linea.strip()
-        if linea and not linea.startswith("#"):
+        if lineaLimpia.startswith("#") or not lineaLimpia:
             continue
 
-        partes=lineaLimpia.split(" ")
+        partes=lineaLimpia.split()
         if len(partes)>=2:
-            valores[partes]=partes[5]
+            valores[partes[0]]=partes[1]
 
     if "PASS_MAX_DAYS" in valores:
         valorMax=int(valores["PASS_MAX_DAYS"])
