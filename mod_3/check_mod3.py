@@ -7,7 +7,8 @@ import stat
 sys.path.insert(0, os.path.join(os.path.dirname(__file__),".."))
 from utils import (configurar_logging, registrar_errores, comprobar_root,
                    volver_al_menu, leer_fichero, ejecutar_comando_check,
-                   resultado_fail, resultado_ok, resultado_warn, mostrar_resumen)
+                   resultado_fail, resultado_ok, resultado_warn, mostrar_resumen,
+                   contadores)
 
 
 
@@ -312,4 +313,249 @@ def verificar_paso6():
     paso="Paso 6"
 
     contenido=leer_fichero(PASSWD_FILE, paso=paso)
+    if contenido is None:
+        return
+    
+    usuariosHumanos=[]
+    for linea in contenido.strip().splitlines():
+        campos=linea.split(":")
+        if len(campos)==7:
+            uid=int(campos[2])
+            if 1000<= uid < 65534:
+                usuariosHumanos.append(campos[0])
+
+    if not usuariosHumanos:
+        resultado_warn("No se encontraron usuarios humanos (UID >= 1000).")
+        return
+    
+    for usuario in usuariosHumanos:
+        codigoRet, salida, _=ejecutar_comando_check(["chage","-l", usuario])
+        if codigoRet!=0:
+            resultado_fail(f"No se pudo consultare chage para {usuario}.", paso=paso)
+            continue
+
+        maxDias=None
+        minDias=None
+        warnDias=None
+
+        for linea in salida.splitlines():
+            if "Maximum number of days" in linea:
+                valor=linea.split(":").strip()
+                try:
+                    maxDias=int(valor)
+                except ValueError:
+                    maxDias=None
+            elif "Minimum number of days" in linea:
+                valor=linea.split(":").strip()
+                try:
+                    minDias=int(valor)
+                except ValueError:
+                    minDias=None
+            elif "Number of days of warning" in linea:
+                valor=linea.split(":").strip()
+                try:
+                    warnDias=int(valor)
+                except ValueError:
+                    warnDias=None
+
+        if maxDias is not None:
+            if maxDias<=PASS_MAX_DAYS_RECOMENDADO and maxDias>0:
+                resultado_ok(f"{usuario}: PASS_MAX_DAYS = {maxDias}.")
+            elif maxDias==99999 or maxDias<=0:
+                resultado_fail(f"{usuario}: contraseña nunca expira (MAX_DAYS={maxDias}).", paso=paso)
+            else:
+                resultado_warn(f"{usuario}: PASS_MAX_DAYS={maxDias} (recomendado <= {PASS_MAX_DAYS_RECOMENDADO}).")
+
+
+def verificar_paso7():
+    print()
+    print("="*100)
+    print("[PASO 7]: Auditar cuentas sin contraseña deshabilitadas.")
+    print("="*100)
+    print()
+
+    paso="Paso 7"
+
+    contenido=leer_fichero(SHADOW_FILE, paso=paso)
+    if contenido is None:
+        return
+    
+    cuentasSinPasswd=[]
+
+    for linea in contenido.strip().splitlines():
+        campos=linea.split(":")
+        hashPass=campos[2]
+
+        if hashPass=="":
+            cuentasSinPasswd.append(campos)
+
+    if len(cuentasSinPasswd)==0:
+        resultado_ok("No hay cuentas con contraseña vacía.")
+    else:
+        for cuenta in cuentasSinPasswd:
+            resultado_fail(f"Cuenta sin contraseña: {cuenta}", paso=paso)
+
+    contenidoSsh=leer_fichero(SSHD_CONFIG_FILE, paso=paso)
+    if contenidoSsh is not None:
+        encontrado=False
+
+        for linea in contenidoSsh.strip().splitlines():
+            if "PermitEmptyPasswords" in linea and "#" not in linea:
+                encontrado=True
+                partes=linea.split(" ")
+
+                if partes[2].lower()=="no":
+                    resultado_ok("SSH: PermitEmptyPasswords = no.")
+                else:
+                    resultado_fail("SSH: PermitEmptyPasswords no está en 'no'.", paso=paso)
+                break
+
+        if not encontrado:
+            resultado_warn("SSH: PermitEmptyPasswords no está definido (por defecto es 'no').")
+
+    
+def verificar_paso8():
+    print()
+    print("="*100)
+    print("[PASO 8]: Auditar usuarios no-root con UID 0.")
+    print("="*100)
+    print()
+
+    paso="Paso 8"
+
+    contenido=leer_fichero(PASSWD_FILE, paso=paso)
+    if contenido is None:
+        return
+    
+    cuentasUid0=[]
+
+    for linea in contenido.strip().splitlines():
+        if linea:
+            campos=linea.split(":")
+            usuario=campos
+            uid=campos[3]
+
+            if "0" in uid:
+                cuentasUid0.append(usuario)
+
+    if len(cuentasUid0)==0:
+        resultado_ok("No hay cuentas con UID 0 en el sistema.")
+    else:
+        for cuenta in cuentasUid0:
+            resultado_fail(f"Cuenta con UID 0 detectada: {cuenta} (posible backdoor).", paso=paso )
+
+
+def verificar_paso9():
+    print()
+    print("="*100)
+    print("[PASO 9]: Auditar bloqueo automático de cuentas inactivas.")
+    print("="*100)
+    print()
+
+    paso="Paso 9"
+
+    codigoRet, salida, _=ejecutar_comando_check(["useradd", "-D"])
+
+    if codigoRet==0:
+        for linea in salida.strip().splitlines():
+            clave=linea.split("=")
+            valor=linea.split("=")[3]
+
+            if clave=="INACTIVE":
+                diasInactivo=int(valor)
+
+                if diasInactivo <= 30:
+                    resultado_ok(f"INACTIVE configurado en {diasInactivo} días (seguro).")
+                else:
+                    resultado_fail(f"INACTIVE muy alto: {diasInactivo} días.", paso=paso)
+
+
+def verificar_paso10():
+    print()
+    print("="*100)
+    print("[PASO 10]: Auditar restricción al acceso directo a root.")
+    print("="*100)
+    print()
+
+    paso="Paso 10"
+
+    codigoRet, salida, _=ejecutar_comando_check(["passwd", "-S", "root"])
+
+    if codigoRet==0:
+        partes=salida.split("")
+
+        if len(partes)>=2:
+            estado=partes[1]
+            if estado=="L":
+                resultado_ok("Contraseña de root bloqueada (estado L).")
+            elif estado=="P":
+                resultado_warn("Root tiene contraseña activa (estado P). Se recomienda bloquearla.")
+            else:
+                resultado_warn(f"Estado de root: {estado}.")
+
+    contenidoSsh=leer_fichero(SSHD_CONFIG_FILE, paso=paso)
+    
+    if contenidoSsh is not None:
+        encontrado=False
+
+        for linea in contenidoSsh.strip().splitlines():
+            if linea.startswith("PermitRootLogin"):
+                encontrado=True
+                valor=linea.split("=").strip()
+
+                if valor.lower()=="no":
+                    resultado_ok("SSH: PermitRootLogin = no.")
+                else:
+                    resultado_fail("SSH: PermitRootLogin no está en 'no'.", paso=paso)
+                
+
+    if not encontrado:
+        resultado_warn("SSH: PermitRootLogin no está definido (por defecto permite acceso root).")
+
+    codigoRet, salida, _=ejecutar_comando_check(["getent", "group", "sudo"])
+    
+    if codigoRet==0:
+        campos=salida.split(":")
+        miembros=campos[2]
+
+        if miembros:
+            resultado_ok("Grupo sudo tiene miembros (acceso privilegiado garantizado).")
+        else:
+            resultado_fail("Grupo sudo sin miembros.", paso=paso)
+
+
+def main():
+    comprobar_root()
+    configurar_logging(LOG_FILE)
+
+    print()
+    print("="*100)
+    print("[AUDITORÍA MÓDULO 3]: Seguridad en Usuarios y Grupos.")
+    print("="*100)
+    print()
+
+    print("     Comprobando configuraciones de los pasos 1 al 10...")
+    print()
+
+    verificar_paso1()
+    verificar_paso2()
+    verificar_paso3()
+    verificar_paso4()
+    verificar_paso5()
+    verificar_paso6()
+    verificar_paso7()
+    verificar_paso8()
+    verificar_paso9()
+    verificar_paso10()
+
+    mostrar_resumen("fix_mod3.py")
+
+    if contadores["checksFail"]>0:
+        sys.exit(1)
+    else:
+        sys.exit(0)
+
+
+if __name__=="__main__":
+    main()
 
