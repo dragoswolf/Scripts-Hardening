@@ -155,7 +155,7 @@ def paso3_configurar_sudo():
     print("="*100)
     print()
 
-    rutaHardening=os.path.join("hardening", SUDOERS_DIR)
+    rutaHardening=os.path.join(SUDOERS_DIR, "hardening")
 
     if os.path.isfile(rutaHardening):
         print(f"[INFO]: Ya existe {rutaHardening}.")
