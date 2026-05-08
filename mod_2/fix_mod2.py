@@ -163,7 +163,7 @@ def paso2_configurar_banners():
             print("[CORRECTO]: Directiva 'Banner /etc/issue.net' configurada")
         
         print("[INFO]: Reiniciando servicio SSH...")
-        ejecutar_comando(["systemctl", "restart", "sshd"], "reiniciar SSH", "Paso 2")
+        ejecutar_comando(["systemctl", "restart", "ssh"], "reiniciar SSH", "Paso 2")
         print("[CORRECTO]: SSH reiniciado.")
     else:
         print(f"[ERROR]: No se puede leer {SSHD_CONFIG_FILE}")

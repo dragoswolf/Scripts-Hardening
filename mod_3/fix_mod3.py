@@ -384,7 +384,7 @@ def paso7_cuentas_sin_contrasena():
                 else:
                     lineaSsh[i]="PermitEmptyPasswords=no"
                     escribir_fichero(SSHD_CONFIG_FILE, "\n".join(lineaSsh)+"\n", permisos=0o600, paso="Paso 7")
-                    ejecutar_comando(["systemctl", "reload", "sshd"], "recargar sshd", "Paso 7")
+                    ejecutar_comando(["systemctl", "reload", "ssh"], "recargar ssh", "Paso 7")
                     print("[CORRECTO]: SSH: PermitEmptyPasswords cambiado a no.")
                 break
 
@@ -401,7 +401,7 @@ def paso7_cuentas_sin_contrasena():
         nuevoContenido="\n".join(lineaSsh)+"\n"
 
         escribir_fichero(SSHD_CONFIG_FILE, nuevoContenido, permisos=0o600, paso="Paso 7")
-        ejecutar_comando(["systemctl", "reload", "sshd"], "recargar sshd", "Paso 7")
+        ejecutar_comando(["systemctl", "reload", "ssh"], "recargar sshd", "Paso 7")
         print("[CORRECTO]: SSH: PermitEmptyPasswords = no (configurado).")
 
 
@@ -532,7 +532,7 @@ def paso10_restringir_root():
         
         if modificado:
             escribir_fichero(SSHD_CONFIG_FILE, "\n".join(lineaSsh)+"\n", permisos=0o777, paso="Paso 10")
-            ejecutar_comando(["systemctl", "reload", "sshd"], "recargar sshd", "Paso 10")
+            ejecutar_comando(["systemctl", "reload", "ssh"], "recargar sshd", "Paso 10")
             print("[CORRECTO]: SSH: PermitRootLogin = no (configurado y sshd recargado).")
 
 
