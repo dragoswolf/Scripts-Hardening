@@ -418,7 +418,7 @@ def paso8_bloquear_uid0():
     
     cuentasUid0=[]
 
-    for linea in contenido.strip().splitlines:
+    for linea in contenido.strip().splitlines():
         campos=linea.split(":")
         if len(campos)==7 and campos[2] =="0" and campos[0]!="root":
             cuentasUid0.append(campos[0])
