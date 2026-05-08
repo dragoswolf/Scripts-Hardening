@@ -51,7 +51,7 @@ def verificar_paso1():
         return
     
     permisos=oct(os.stat(PASSWD_FILE).st_mode)[-3:]
-    if permisos==644:
+    if permisos=="644":
         resultado_ok(f"Permisos de {PASSWD_FILE} correctos ({permisos}).")
     else:
         resultado_fail(f"Permisos de {PASSWD_FILE} incorrectos ({permisos}), deberían ser 644.", paso=paso)
@@ -161,11 +161,12 @@ def verificar_paso3():
     else:
         resultado_warn(f"No existe fichero de hardening en {rutaHardening}.")
 
-    codigoRet, _, stderr=ejecutar_comando_check(["visudo"])
-    if codigoRet==0:
-        resultado_ok("Configuración de sudoers es válida.")
-    else:
-        resultado_fail(f"Error en la configuración de sudoers: {stderr}", paso=paso)
+    if os.geteuid()==0:
+        codigoRet, _, stderr=ejecutar_comando_check(["visudo"])
+        if codigoRet==0:
+            resultado_ok("Configuración de sudoers es válida.")
+        else:
+            resultado_fail(f"Error en la configuración de sudoers: {stderr}", paso=paso)
 
 
 def verificar_paso4():
