@@ -162,7 +162,7 @@ def verificar_paso3():
         resultado_warn(f"No existe fichero de hardening en {rutaHardening}.")
 
     if os.geteuid()==0:
-        codigoRet, _, stderr=ejecutar_comando_check(["visudo"])
+        codigoRet, _, stderr=ejecutar_comando_check(["visudo", "-c"])
         if codigoRet==0:
             resultado_ok("Configuración de sudoers es válida.")
         else:
