@@ -176,8 +176,9 @@ def paso3_configurar_sudo():
     exito=escribir_fichero(rutaHardening, CONTENIDO_SUDO_HARDENING, permisos=440, paso="Paso 3")
 
     if exito:
+        cambiar_permisos(rutaHardening, permisos=0o440, propietario=0, grupo=0, paso="Paso 3")
         print(f"[CORRECTO]: Configuración de hardening creada en {rutaHardening}.")
-        ejecutar_comando(["visudo", "-c"], "validar configuraciónd de sudoers", "Paso 3")
+        ejecutar_comando(["visudo", "-c"], "validar configuración de sudoers", "Paso 3")
         print("[CORRECTO]: Configuración de sudoers validada.")
     else:
         print("[ERROR]: No se pudo crear el fichero de hardening.")
