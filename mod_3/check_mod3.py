@@ -21,7 +21,7 @@ SSHD_CONFIG_FILE="/etc/ssh/sshd_config"
 
 LOG_FILE="/var/log/hardening/modulo3_check.log"
 
-GRUPOS_SENSIBLES=["sudo", "adm", "shadow", "disk", "docker"]
+GRUPOS_SENSIBLES=["root", "sudo", "adm", "shadow", "disk", "docker"]
 
 
 PASS_MAX_DAYS_RECOMENDADO=90

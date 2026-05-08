@@ -17,7 +17,7 @@ SUDOERS_DIR="/etc/sudoers.d"
 SSHD_CONFIG_FILE="/etc/ssh/sshd_config"
 LOG_FILE="/var/log/hardening/modulo3_fix.log"
 
-GRUPOS_SENSIBLES=["sudo", "adm", "shadow", "disk", "docker"]
+GRUPOS_SENSIBLES=["root", "sudo", "adm", "shadow", "disk", "docker"]
 
 CONTENIDO_SUDO_HARDENING=(
     "# Configuración de hardening para sudo\n"
@@ -135,7 +135,7 @@ def paso2_auditar_grupos():
     print("         sudo gpasswd -d <usuario> <grupo>")
     print()
 
-    respuesta=input("¿Quieres eliminar algún usuario de un grupo? (s/n): ").strip().lower
+    respuesta=input("¿Quieres eliminar algún usuario de un grupo? (s/n): ").strip().lower()
 
     if respuesta=="s":
         usuario=input("Nombre del usuario: ")
