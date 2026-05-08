@@ -315,19 +315,21 @@ def paso6_envejecimiento_contrasenas():
     
     usuariosHumanos=[]
 
-    for linea in contenido.splitlines():
+    for linea in contenido.strip().splitlines():
         campos=linea.split(":")
+        if len(campos)==7:
+            uid=int(campos[2])
+            if 1000<=uid<=65534:
+                usuariosHumanos.append(campos[0])
 
-        identificador=int(campos[4])
-
-        if identificador<1000:
-            usuariosHumanos.append(campos)
 
     if not usuariosHumanos:
         print("[INFO]: No se encontraron usuarios.")
         return
     
     print(f"[INFO]: Se aplicará la política a {len(usuariosHumanos)} usuario(s):")
+    print(f"    PASS_MAX_DAYS=90, PASS_MIN_DAYS=7, PASS_WARN_AGE=14")
+    print()
 
     for usuario in usuariosHumanos:
         ejecutar_comando(["chage", "-m", "90", "-M", "7", "-W", "14", usuario], f"aplicar política de contraseñas a {usuario}", paso="Paso 6")
@@ -351,14 +353,17 @@ def paso7_cuentas_sin_contrasena():
     for linea in contenido.strip().splitlines():
         campos=linea.split(":")
 
-        hashPass=campos[5]
-        if hashPass=="":
-            cuentasSinPassword.append(campos)
+        if len(campos)>=2 and campos[1]=="":
+            cuentasSinPassword.append(campos[0])
 
     if not cuentasSinPassword:
         print("[CORRECTO]: No hay cuentas con contraseña vacía.")
     else:
-        print(f"[AVISO]: Se encontraron cuentas sin contraseña.")
+        print(f"[AVISO]: Se encontraron {len(cuentasSinPassword)} cuentas sin contraseña:")
+        for cuenta in cuentasSinPassword:
+            print(f"    - {cuenta}")
+        print()
+        print("[INFO] Bloqueando cuentas sin contraseña...")
         for cuenta in cuentasSinPassword:
             ejecutar_comando(["passwd", "-l", cuenta], f"bloqueando cuenta {cuenta}", paso="Paso 7")
             print(f"[CORRECTO]: Cuenta '{cuenta}' bloqueada con éxito.")
@@ -369,17 +374,30 @@ def paso7_cuentas_sin_contrasena():
         lineaEncontrada=False
         lineaSsh=contenidoSsh.splitlines()
 
-        for i in range(len(lineaSsh)):
-            if "PermitEmptyPasswords" in lineaSsh[i] and "#" not in lineaSsh[i]:
+        for i, linea in enumerate(lineaSsh):
+            lineaLimpia=linea.strip()
+            if "PermitEmptyPasswords" in lineaLimpia and not lineaLimpia.startswith("#"):
                 lineaEncontrada=True
-                lineaSsh[i]="PermitEmptyPasswords=no"
-                print("[CORRECTO]: SSH: PermitEmptyPasswords cambiado a no.")
+                if "no" in lineaLimpia.lower():
+                    print("[CORRECTO]: SSH: PermitEmptyPasswords=no.")
+                else:
+                    lineaSsh[i]="PermitEmptyPasswords=no"
+                    escribir_fichero(SSHD_CONFIG_FILE, "\n".join(lineaSsh)+"\n", permisos=0o600, paso="Paso 7")
+                    ejecutar_comando(["systemctl", "reload", "sshd"], "recargar sshd", "Paso 7")
+                    print("[CORRECTO]: SSH: PermitEmptyPasswords cambiado a no.")
                 break
 
         if not lineaEncontrada:
-            lineaSsh.append("PermitEmptyPasswords=no")
+            encontradoComentado=False
+            for i, linea in enumerate(lineaSsh):
+                if "PermitEmptyPasswords" in linea and linea.strip().startswith("#"):
+                    lineaSsh[i]="PermitEmptyPasswords no"
+                    encontradoComentado=True
+                    break
+            if not encontradoComentado:
+                lineaSsh.append("PermitEmptyPasswords no")
 
-        nuevoContenido="\n".join(lineaSsh)
+        nuevoContenido="\n".join(lineaSsh)+"\n"
 
         escribir_fichero(SSHD_CONFIG_FILE, nuevoContenido, permisos=0o600, paso="Paso 7")
         ejecutar_comando(["systemctl", "reload", "sshd"], "recargar sshd", "Paso 7")
@@ -399,22 +417,15 @@ def paso8_bloquear_uid0():
     
     cuentasUid0=[]
 
-    lineas=contenido.strip().splitlines()
-
-    for linea in lineas:
-        if linea:
-            campos=linea.split(":")
-            usuario=campos
-            uid=campos[5]
-
-            if "0" in uid:
-                cuentasUid0.append(usuario)
+    for linea in contenido.strip().splitlines:
+        campos=linea.split(":")
+        if len(campos)==7 and campos[2] =="0" and campos[0]!="root":
+            cuentasUid0.append(campos[0])
 
     if not cuentasUid0:
         print("[CORRECTO]: Solo 'root' tiene UID 0. No hay cuentas sospechosas.")
     else:
         print(f"[AVISO]: Se encontraron {len(cuentasUid0)} cuenta(s) no-root con UID 0:")
-        
         for cuenta in cuentasUid0:
             print(f"        - {cuenta}")
         print()
@@ -435,7 +446,7 @@ def paso9_bloqueo_inactivas():
 
     print("[INFO]: Configurando INACTIVE=30 para nuevas cuentas...")
 
-    ejecutar_comando(["useradd", "-D", "-e", "30"], "configurar INACTIVE=30", "Paso 9")
+    ejecutar_comando(["useradd", "-D", "-f", "30"], "configurar INACTIVE=30", "Paso 9")
 
     print("[CORRECTO]: INACTIVE=30 configurado para nuevas cuentas.")
     print()
@@ -449,16 +460,16 @@ def paso9_bloqueo_inactivas():
     for linea in contenido.strip().splitlines():
         campos=linea.split(":")
         
-        if len(campos)>=3:
+        if len(campos)==7:
             uid=int(campos[2])
-            if uid<1000:
-                usuariosAfectados.append(campos)
+            if 1000<=uid<65534:
+                usuariosAfectados.append(campos[0])
 
     if usuariosAfectados:
         print(f"[INFO]: Aplicando INACTIVE=30 a {len(usuariosAfectados)} usuario(s)...")
 
         for usuario in usuariosAfectados:
-            ejecutar_comando(["chage", "-E", "30", usuario], f"configurar inactividad para {usuario}", "Paso 9")
+            ejecutar_comando(["chage", "-I", "30", usuario], f"configurar inactividad para {usuario}", "Paso 9")
             print(f"[CORRECTO]: INACTIVE=30 aplicado a: {usuario}")
 
 def paso10_restringir_root():
@@ -470,11 +481,16 @@ def paso10_restringir_root():
 
     rc, salida, _=ejecutar_comando_check(["getent", "group", "sudo"])
     if rc==0:
-        if "sudo" in salida:
-            print("[CORRECTO]: El grupo sudo existe y está listo.")
-        else:
-            print("[AVISO]: No se puede bloquear root sin tener acceso sudo alternativo.")
+        campos=salida.strip().split(":")
+        miembros=campos[3] if len(campos) > 3 and campos[3] else ""
+        if not miembros:
+            print("[ALERTA]: El grupo sudo no tiene miembros.")
+            print("[ALERTA]: NO se puede bloquear root sin tener acceso sudo alternativo.")
+            print("[ALERTA]: Añada primero un usuario al grupo sudo: sudo usermod -aG sudo <usuario>")
             return
+        else:
+            print(f"[CORRECTO]: Grupo sudo tiene miembros: {miembros}")
+
     else:
         print("[ERROR]: No se pudo verificar el grupo sudo.")
         return
@@ -483,14 +499,13 @@ def paso10_restringir_root():
 
     rcRoot, salidaRoot, _=ejecutar_comando_check(["passwd", "-S", "root"])
     if rcRoot==0:
-        estado=salidaRoot.strip().split()
-
+        estado=salidaRoot.strip().split()[1]
         if estado=="L":
             print("[CORRECTO]: Contraseña de root ya está bloqueada.")
         else:
             respuesta=input("¿Bloquear la contraseña de root? (s/n): ").strip().lower()
             if respuesta=="s":
-                ejecutar_comando(["passwd", "-d", "root"], "bloquear contraseña de root", "Paso 10")
+                ejecutar_comando(["passwd", "-l", "root"], "bloquear contraseña de root", "Paso 10")
                 print("[CORRECTO]: Contraseña de root bloqueada.")
     
     print()
@@ -499,11 +514,25 @@ def paso10_restringir_root():
 
     if contenidoSsh is not None:
         lineaSsh=contenidoSsh.splitlines()
-        lineaSsh.append("PermitRootLogin no")
+        modificado=False
 
-        escribir_fichero(SSHD_CONFIG_FILE, "\n".join(lineaSsh)+"\n", permisos=0o777, paso="Paso 10")
-        ejecutar_comando(["systemctl", "reload", "sshd"], "recargar sshd", "Paso 10")
-        print("[CORRECTO]: SSH: PermitRootLogin = no (configurado y sshd recargado).")
+        for i, linea in enumerate(lineaSsh):
+            lineaLimpia=linea.strip()
+            if "PermitRootLogin" in lineaLimpia:
+                if lineaLimpia.startswith("#") or "no" not in lineaLimpia.lower().split():
+                    lineaSsh[i]= "PermitRootLogin no"
+                    modificado=True
+                else:
+                    print("[CORRECTO]: SSH: PermitRootLogin ya está en 'no'.")
+                break
+        else:
+            lineaSsh.append("PermitRootLogin no")
+            modificado=True
+        
+        if modificado:
+            escribir_fichero(SSHD_CONFIG_FILE, "\n".join(lineaSsh)+"\n", permisos=0o777, paso="Paso 10")
+            ejecutar_comando(["systemctl", "reload", "sshd"], "recargar sshd", "Paso 10")
+            print("[CORRECTO]: SSH: PermitRootLogin = no (configurado y sshd recargado).")
 
 
 def mostar_menu():

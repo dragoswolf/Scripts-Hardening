@@ -340,19 +340,19 @@ def verificar_paso6():
 
         for linea in salida.splitlines():
             if "Maximum number of days" in linea:
-                valor=linea.split(":").strip()
+                valor=linea.split(":")[-1].strip()
                 try:
                     maxDias=int(valor)
                 except ValueError:
                     maxDias=None
             elif "Minimum number of days" in linea:
-                valor=linea.split(":").strip()
+                valor=linea.split(":")[-1].strip()
                 try:
                     minDias=int(valor)
                 except ValueError:
                     minDias=None
             elif "Number of days of warning" in linea:
-                valor=linea.split(":").strip()
+                valor=linea.split(":")[-1].strip()
                 try:
                     warnDias=int(valor)
                 except ValueError:
@@ -384,10 +384,8 @@ def verificar_paso7():
 
     for linea in contenido.strip().splitlines():
         campos=linea.split(":")
-        hashPass=campos[2]
-
-        if hashPass=="":
-            cuentasSinPasswd.append(campos)
+        if len(campos) >=2 and campos[1]=="":
+            cuentasSinPasswd.append(campos[0])
 
     if len(cuentasSinPasswd)==0:
         resultado_ok("No hay cuentas con contraseña vacía.")
@@ -399,12 +397,13 @@ def verificar_paso7():
     if contenidoSsh is not None:
         encontrado=False
 
-        for linea in contenidoSsh.strip().splitlines():
-            if "PermitEmptyPasswords" in linea and "#" not in linea:
+        for linea in contenidoSsh.splitlines():
+            lineaLimpia=linea.strip()
+            if lineaLimpia.startswith("#"):
+                continue
+            if "PermitEmptyPasswords" in lineaLimpia:
                 encontrado=True
-                partes=linea.split(" ")
-
-                if partes[2].lower()=="no":
+                if "no" in lineaLimpia.lower():
                     resultado_ok("SSH: PermitEmptyPasswords = no.")
                 else:
                     resultado_fail("SSH: PermitEmptyPasswords no está en 'no'.", paso=paso)
@@ -430,19 +429,18 @@ def verificar_paso8():
     cuentasUid0=[]
 
     for linea in contenido.strip().splitlines():
-        if linea:
-            campos=linea.split(":")
-            usuario=campos
-            uid=campos[3]
+        campos=linea.split(":")
+        if len(campos)==7 and campos[2] =="0":
+            cuentasUid0.append(campos[0])
 
-            if "0" in uid:
-                cuentasUid0.append(usuario)
-
-    if len(cuentasUid0)==0:
-        resultado_ok("No hay cuentas con UID 0 en el sistema.")
-    else:
+    if cuentasUid0==["root"]:
+        resultado_ok("Solo 'root' tiene UID 0.")
+    elif "root" in cuentasUid0:
+        cuentasUid0.remove("root")
         for cuenta in cuentasUid0:
             resultado_fail(f"Cuenta con UID 0 detectada: {cuenta} (posible backdoor).", paso=paso )
+    else:
+        resultado_fail("No se encontró la cuenta root con UID 0.", paso=paso)
 
 
 def verificar_paso9():
@@ -457,17 +455,23 @@ def verificar_paso9():
     codigoRet, salida, _=ejecutar_comando_check(["useradd", "-D"])
 
     if codigoRet==0:
-        for linea in salida.strip().splitlines():
-            clave=linea.split("=")
-            valor=linea.split("=")[3]
-
-            if clave=="INACTIVE":
-                diasInactivo=int(valor)
-
-                if diasInactivo <= 30:
-                    resultado_ok(f"INACTIVE configurado en {diasInactivo} días (seguro).")
+        for linea in salida.splitlines():
+            if "INACTIVE" in linea:
+                valor=linea.split("=")[-1].strip()
+                if valor=="-1":
+                    resultado_fail("INACTIVE = -1 (cuentas nunca se bloquean por inactividad).", paso=paso)
                 else:
-                    resultado_fail(f"INACTIVE muy alto: {diasInactivo} días.", paso=paso)
+                    try:
+                        diasInactivo=int(valor)
+                        if 0<diasInactivo<=30:
+                            resultado_ok(f"INACTIVE = {diasInactivo} días (cuentas se bloquean tras inactividad).")
+                        elif diasInactivo>30:
+                            resultado_warn(f"INACTIVE = {diasInactivo} días (recomendado <= 30)")
+                        else:
+                            resultado_fail(f"INACTIVE = {valor} (valor no válido).", paso=paso)
+                    except ValueError:
+                        resultado_warn(f"INACTIVE = {valor} (no se pudo interpretar el valor).")
+                break
 
 
 def verificar_paso10():
@@ -482,8 +486,7 @@ def verificar_paso10():
     codigoRet, salida, _=ejecutar_comando_check(["passwd", "-S", "root"])
 
     if codigoRet==0:
-        partes=salida.split("")
-
+        partes=salida.strip().split()
         if len(partes)>=2:
             estado=partes[1]
             if estado=="L":
@@ -498,30 +501,34 @@ def verificar_paso10():
     if contenidoSsh is not None:
         encontrado=False
 
-        for linea in contenidoSsh.strip().splitlines():
-            if linea.startswith("PermitRootLogin"):
+        for linea in contenidoSsh.splitlines():
+            lineaLimpia=linea.strip()
+            if linea.startswith("#"):
+                continue
+            if "PermitRootLogin" in lineaLimpia:
                 encontrado=True
-                valor=linea.split("=").strip()
-
-                if valor.lower()=="no":
+                
+                if "no" in lineaLimpia.lower().split():
                     resultado_ok("SSH: PermitRootLogin = no.")
+                elif "prohibit-password" in lineaLimpia.lower():
+                    resultado_warn("SSH: PermitRootLogin = prohibit-password (mejor que 'yes', pero se recomienda 'no').")
                 else:
-                    resultado_fail("SSH: PermitRootLogin no está en 'no'.", paso=paso)
+                    resultado_fail("SSH: PermitRootLogin no está en 'no'", paso=paso)
+                break
                 
 
     if not encontrado:
-        resultado_warn("SSH: PermitRootLogin no está definido (por defecto permite acceso root).")
+        resultado_warn("SSH: PermitRootLogin no está definido (por defecto permite login).")
 
     codigoRet, salida, _=ejecutar_comando_check(["getent", "group", "sudo"])
     
     if codigoRet==0:
-        campos=salida.split(":")
-        miembros=campos[2]
-
+        campos=salida.strip().split(":")
+        miembros=campos[3] if len(campos) >3 and campos[3] else ""
         if miembros:
-            resultado_ok("Grupo sudo tiene miembros (acceso privilegiado garantizado).")
+            resultado_ok(f"Grupo sudo tiene miembros: {miembros} (acceso privilegiado garantizado).")
         else:
-            resultado_fail("Grupo sudo sin miembros.", paso=paso)
+            resultado_fail("Grupo sudo sin miembros. Si 'root' está bloqueado, no hay acceso privilegiado.", paso=paso)
 
 
 def main():
