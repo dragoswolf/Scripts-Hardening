@@ -168,7 +168,7 @@ def paso3_configurar_sudo():
         
         respuesta=input("¿Sobreescribir con la configuración recomendada? (s/n)").strip().lower()
 
-        if respuesta=="s":
+        if respuesta!="s":
             print("[INFO]: No se realizaron cambios")
             return
         
