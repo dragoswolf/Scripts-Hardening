@@ -15,6 +15,7 @@ PAM_COMMON_PASSWORD="/etc/pam.d/common-password"
 PAM_COMMON_SESSION="/etc/pam.d/common-session"
 PAM_COMMON_ACCOUNT="/etc/pam.d/common-account"
 PAM_LOGIN="/etc/pam.d/login"
+PAM_FAILLOCK="/usr/lib/x86_64-linux-gnu/security/pam_faillock.so"
 
 PWQUALITY_CONF="/etc/security/pwquality.conf"
 FAILLOCK_CONF="/etc/security/faillock.conf"
@@ -47,24 +48,30 @@ def paso1_eliminar_nullok():
             registrar_errores(paso, f"No se pudo leer {fichero}.")
             continue
 
-        lineas=contenido.strip().splitlines()
+        lineas=contenido.splitlines()
         modificado=False
         nuevasLineas=[]
 
         for linea in lineas:
             if "pam_unix.so" in linea and "nullok" in linea:
                 lineaOriginal=linea
-                partes=linea.split("nullok")
-                lineas=partes
+                linea=linea.replace(" nullok", "")
+                linea=linea.replace("nullok ", "")
+                linea=linea.replace("nullok", "")
 
                 print(f"[INFO]: {fichero}:")
                 print(f"    Antes: {lineaOriginal.strip()}")
                 print(f"    Después: {lineas.strip()}")
+
                 modificado=True
                 nullokEncontrado=True
+            nuevasLineas.append(linea)
 
         if modificado:
-            nuevoContenido="".join(lineas)
+            nuevoContenido="\n".join(nuevasLineas)
+
+            if not nuevoContenido.endswith("\n"):
+                nuevoContenido+="\n"
 
             if escribir_fichero(fichero, nuevoContenido, permisos=0o644, paso=paso):
                 print(f"[CORRECTO]: {fichero} actualizado.")
@@ -100,27 +107,43 @@ def paso2_configurar_pwquality():
     print("[INFO]: Configurando parámetros de calidad de contraseñas...")
 
     configuracion="""#=================================================================
-    # pwquality.conf - Política de calidad de contraseñas
-    #=================================================================
-    # Configurado por fix_mod4.py
-    #=================================================================
+# pwquality.conf - Política de calidad de contraseñas
+#=================================================================
+# Configurado por fix_mod4.py
+#=================================================================
 
-    # Longitud mínima de la contraseña (recomendado: 12-14 para PYMEs)
-    minlen = 12
+# Longitud mínima de la contraseña (recomendado: 12-14 para PYMEs)
+minlen = 12
 
-    # Créditos de caracteres
-    dcredit=1
-    ucredit=1
-    lcredit=1
-    ocredit=1
-    maxrepeat=3
-    difok=5
-    usercheck=1
-    maxclassrepeat=4
-    minclass=3
-    dictcheck=1
-    retry=3
-    """
+# Créditos de caracteres (valores negativos = mínimo obligatorio)
+# -1 significa "al menos 1 carácter de este tipo"
+dcredit = -1    # Mínimo 1 dígito (0-9)
+ucredit = -1    # Mínimo 1 mayúscula (A-Z)
+lcredit = -1    # Mínimo 1 minúscula (a-z)
+ocredit = -1    # Mínimo 1 carácter especial (!@#$...)
+
+# Máximo de caracteres consecutivos repetidos permitidos
+maxrepeat=3
+
+# Mínimo de caracteres diferentes respecto a la anterior contraseña
+difok=5
+
+# No permitir que la contraseña contenga el nombre de usuario
+usercheck=1
+
+# Máximo de caracteres consecutivos de la misma clase
+maxclassrepeat=4
+
+# Complejidad: rechazar contraseñas que no tengan al menos 3 clases
+# de caracteres diferentes (mayúsculas, minúsculas, dígitos, especiales)
+minclass=3
+
+# Rechazar contraseñas de diccionarios (cracklib)
+dictcheck=1
+
+# Número de reintentos antes de devolver error
+retry=3
+"""
 
     if escribir_fichero(PWQUALITY_CONF, configuracion, permisos=0o644, paso=paso):
         print("[CORRECTO]: /etc/security/pwquality.conf configurado.")
@@ -134,20 +157,22 @@ def paso2_configurar_pwquality():
         return
     
     if "pam_pwquality.so" in contenido:
-        lineas=contenido.strip().splitlineas()
+        lineas=contenido.splitlines()
         nuevasLineas=[]
         modificado=False
 
         for linea in lineas:
-            if "pam_pwquality.so" in linea and not linea.startswith("#"):
+            if "pam_pwquality.so" in linea and not linea.strip().startswith("#"):
                 if "retry=" not in linea:
-                    linea=linea.strip() +"retry=3"
+                    linea=linea.rstrip() +" retry=3"
                     modificado=True
 
             nuevasLineas.append(linea)
 
         if modificado:
-            nuevoContenido="".join(nuevasLineas)
+            nuevoContenido="\n".join(nuevasLineas)
+            if not nuevoContenido.endswith("\n"):
+                nuevoContenido+="\n"
 
             escribir_fichero(PAM_COMMON_PASSWORD, nuevoContenido, permisos=0o644, paso=paso)
             print("[CORRECTO]: pam_pwquality.so actualizado con retry=3.")
@@ -155,6 +180,17 @@ def paso2_configurar_pwquality():
             print("[CORRECTO]: pam_pwqaulity.so ya configurado en common-password.")
     else:
         print("[AVISO]: pam_pwquality.so no está en common-password.")
+        print("         Esto se configura automáticamente al instalar")
+        print("         lipbam-pwquality. Verifica la instalación.")
+    
+
+    print()
+    print("[INFO]: Resumen de la política de contraseñas:")
+    print("         - Longitud mínima: 12 caracteres")
+    print("         - Al menos 1 dígito, 1 mayúscula, 1 minúscula, 1 especial")
+    print("         - Máximo 3 caracteres consecutivos repetidos")
+    print("         - Mínimo 5 caracteres diferentes respecto a la anterior")
+    print("         - Verificación contra diccionario activada")
 
 
 def paso3_configurar_faillock():
@@ -166,10 +202,10 @@ def paso3_configurar_faillock():
 
     paso="Paso 3"    
 
-    if not os.path.isfile("/usr/lib/x86_64-linux-gnu/security/pam_faillock.so"):
+    if not os.path.isfile(PAM_FAILLOCK):
         rc, salida,_=ejecutar_comando_check(["find", "/usr/lib", "name", "pam_faillock.so"])
 
-        if salida.strip():
+        if not salida.strip():
             print("[AVISO]: pam_faillock.so no encontrado en el sistema.")
             print("[INFO]: Intentando instalar libpam-modules...")
             ejecutar_comando(["apt-get", "install", "y", "libpam-modules"], "instalar libpam-modules", paso, mostrarSalida=True)
@@ -183,19 +219,36 @@ def paso3_configurar_faillock():
     print("[INFO]: Configurando parámetros de bloqueo de cuentas...")
 
     configuracion="""#=================================================================
-    # faillock.conf - bloqueo de cuentas tras intentos fallidos
-    #=================================================================
-    # COnfigurado por fix_mod4
-    #=================================================================
+# faillock.conf - bloqueo de cuentas tras intentos fallidos
+#=================================================================
+# Configurado por fix_mod4
+#=================================================================
 
-    dir = /var/run/faillock
-    deny=1
-    unlock_time=0
-    fail_interval=900
-    even_deny_root=True
-    silent=false
-    audit=True
-    """
+# Directorio donde se almacenan los registros de fallos por usuario
+dir = /var/run/faillock
+
+# Número de intentos fallidos antes de bloquear la cuenta
+deny=5
+
+# Tiempo en segundos para desbloquear automáticamente
+unlock_time=600
+
+# Ventana de tiempo en segundos para contar intentos
+# SI los 5 intentos fallidos ocurren dentro de estos 15 minutos, se bloquea
+fail_interval=900
+
+# También bloquea la cuenta root tras intentos fallidos
+# NOTA: Si se bloquea root, se puede desbloquear desde consola física
+# o esprando unlock_time segundos
+even_deny_root=True
+
+# Auditar los intentos fallidos incluso de usuarios existentes
+# Esto dificulta la enumeración de usuarios
+silent=false
+
+# Tipo de auditoría
+audit=True
+"""
 
     if escribir_fichero(FAILLOCK_CONF, configuracion, permisos=0o644, paso=paso):
         print("[CORRECTO]: /etc/security/faillock.conf configurado.")
@@ -211,23 +264,30 @@ def paso3_configurar_faillock():
     if "pam_faillock.so" not in contenido:
         print("[INFO]: Añadiendo pam_faillock.so a common-auth...")
 
-        lineas=contenido.strip().splitlines()
+        lineas=contenido.splitlines()
         nuevasLineas=[]
         insertado=False
 
         for linea in lineas:
-            if "pam_pwquality.so" in linea and linea.startswith("#") and not insertado:
+            if "pam_pwquality.so" in linea and not linea.strip().startswith("#") and not insertado:
+                nuevasLineas.append("auth   required                        "
+                                    "pam_faillock.so preauth")
+                
                 nuevasLineas.append(linea)
-                nuevasLineas.append("auth required pam_faillock.so preauth")
-                nuevasLineas.append("auth [default=die] pam_faillock.so authfail")
-                nuevasLineas.append("auth sufficient pam_faillock.so authsucc")
+
+                nuevasLineas.append("auth   [default=die]                       "
+                                    "pam_faillock.so authfail")
+                nuevasLineas.append("auth   sufficient                      "
+                                    "pam_faillock.so authsucc")
 
                 insertado=True
             else:
                 nuevasLineas.append(linea)
 
         if insertado:
-            nuevoContenido="".join(nuevasLineas)
+            nuevoContenido="\n".join(nuevasLineas)
+            if not nuevoContenido.endswith("\n"):
+                nuevoContenido+="\n"
 
             if escribir_fichero(PAM_COMMON_AUTH, nuevoContenido, permisos=0o644, paso=paso):
                 ejecutar_comando(["systemctrl", "reload", "pam.d"], "recargar pam", paso=paso)
@@ -240,28 +300,23 @@ def paso3_configurar_faillock():
 
     contenidoAccount=leer_fichero(PAM_COMMON_ACCOUNT, paso=paso)
     if contenidoAccount is not None:
-        if not "pam_faillock.son" in contenidoAccount:
+        if "pam_faillock.son" not in contenidoAccount:
             print("[INFO]: Añadiendo pam_faillock.so a common-account...")
 
-            lineas=contenidoAccount.strip().splitlines()
+            lineas=contenidoAccount.splitlines()
             insertado=False
+            nuevasLineas=[]
 
             for linea in lineas:
-                if "pam_pwquality.so" in linea and "#" not in linea:
-                    if "retry=" not in linea:
-                        campos=linea.split(" ")
-                        campos[1]="retry=3"
-                        linea="".join(campos)
-                        modificado=True
+                if "pam_pwquality.so" in linea and not linea.strip().startswith("#") and not insertado:
+                    nuevasLineas.append("account required                        "
+                                        "pam_faillock.so")
+                    insertado=True
+                nuevasLineas.append(linea)
 
-                    else:
-                        linea=linea.replace("retry=", "retry=3, retry=")
-                        modificado=True
-        
-        nuevasLineas.append(linea)
 
-        if modificado:
-            nuevoContenido="".join(nuevasLineas)
+        if insertado:
+            nuevoContenido="\n".join(nuevasLineas)
 
             if not nuevoContenido.endswith("\n"):
                 nuevoContenido+="\n"

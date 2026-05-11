@@ -3,6 +3,7 @@
 
 import os
 import sys
+import re
 
 sys.path.inser(0, os.path.join(os.path.dirname(__file__),".."))
 from utils import (configurar_logging, registrar_errores, comprobar_root,
@@ -50,8 +51,8 @@ def verificar_paso1():
             continue
 
         nullokEncontrado=False
-        for linea in contenido.strip().splitlines():
-            if (not linea.startswith("#") and "pam_unix.so" in linea and "nullok"in linea):
+        for linea in contenido.splitlines():
+            if (not linea.strip().startswith("#") and "pam_unix.so" in linea and "nullok"in linea):
                 nullokEncontrado=True
                 break
 
@@ -71,18 +72,20 @@ def verificar_paso2():
     paso="Paso 2"
 
     rc,_,_=ejecutar_comando_check(["dpkg", "-s", "libpam_pwquality"])
-    if rc!=0:
+    if rc==0:
         resultado_ok("libpam-pwquality instalado.")
     else:
         resultado_fail("libpam_pwquality no está instalado.", paso)
+        return
 
     contenido=leer_fichero(PAM_COMMON_PASSWORD, paso=paso)
     if contenido is not None:
         pwqPresente=False
-        lineas=contenido.strip().splitlines()
+        lineas=contenido.splitlines()
         for linea in lineas:
-            if "pam_pwquality" in linea and linea.startswith("#"):
+            if "pam_pwquality.so" in linea and not linea.strip().startswith("#"):
                 pwqPresente=True
+                break
         if pwqPresente:
             resultado_ok("pam_pwquality.so presente en common-password")
         else:
@@ -95,33 +98,38 @@ def verificar_paso2():
     
     parametros={
         "minlen":{"esperado": 12, "comparar": ">="},
-        "dcredit":{"esperado": 1, "comparar": "<="},
-        "ucredit":{"esperado": 1, "comparar": "<="},
-        "lcredit":{"esperado": 1, "comparar": "<="},
-        "ocredit":{"esperado": 1, "comparar": "<="},
+        "dcredit":{"esperado": -1, "comparar": "<="},
+        "ucredit":{"esperado": -1, "comparar": "<="},
+        "lcredit":{"esperado": -1, "comparar": "<="},
+        "ocredit":{"esperado": -1, "comparar": "<="},
         "maxrepeat":{"esperado": 3, "comparar": "<="},
         "difok":{"esperado": 5, "comparar": ">="}
     }
 
     for param, config in parametros.items():
-        partes=contenidoPwq.split(param+"=")
-        valor_bruto=partes[4]
-        valor_limpo=valor_bruto.strip().splitlines()
-        valor=int(valor_limpo)
-        esperado=config["esperado"]
-        comparar=config["comparar"]
+        match=re.search(
+            rf"^\s*{param}\s*=\s*(-?\d+)",
+            contenidoPwq,
+            re.MULTILINE
+        )
 
-        cumple=False
-        if comparar==">=" and valor>=esperado:
-            cumple=True
-        elif comparar=="<=" and valor <= esperado:
-            cumple=True
-        
-        if cumple:
-            resultado_ok(f"pwquality: {param} = {valor}")
+        if match:
+            valor=int(match.group(1))
+            esperado=config["esperado"]
+            comparar=config["comparar"]
+
+            cumple=False
+            if comparar==">=" and valor>=esperado:
+                cumple=True
+            elif comparar=="<=" and valor <= esperado:
+                cumple=True
+            
+            if cumple:
+                resultado_ok(f"pwquality: {param} = {valor}")
+            else:
+                resultado_fail(f"pwquality: {param} = {valor} (esperado{comparar} {esperado})", paso)
         else:
-            resultado_fail(f"pwquality: {param} = {valor} (esperado{comparar} {esperado})", paso)
-
+            resultado_fail(f"pwquality: {param} no configurado", paso)
 
 def verificar_paso3():
     print()
@@ -137,10 +145,10 @@ def verificar_paso3():
         tienePreauth=False
         tieneAuthFail=False
 
-        lineas=contenido.strip().splitlines()
+        lineas=contenido.splitlines()
 
         for linea in lineas:
-            if "#" not in linea:
+            if linea.strip().startswith("#"):
                 continue
 
             if "pam_faillock.so" in linea:
@@ -165,11 +173,12 @@ def verificar_paso3():
     contenidoAccount=leer_fichero(PAM_COMMON_ACCOUNT, paso=paso)
     if contenidoAccount is not None:
         faillockAccount=False
-        lineas=contenido.strip().splitlines()
+        lineas=contenidoAccount.splitlines()
 
         for linea in lineas:
-            if "#" not in linea and "pam_faillock.so" in linea:
+            if (not linea.strip().startswith("#") and "pam_faillock.so" in linea):
                 faillockAccount=True
+                break
     
         if faillockAccount:
             resultado_ok("pam_faillock.so presente en common-taccount")
@@ -182,32 +191,32 @@ def verificar_paso3():
         resultado_fail(f"{FAILLOCK_CONF} no existe o no se puede leer.", paso)
         return
     
-    partesDeny=contenidoConf.strip().split("deny=")
+    match= re.search(r"^\s*deny\s*=\s*(\d+)", contenidoConf, re.MULTILINE)
 
-    if partesDeny:
-        valorDenySucio=partesDeny[1]
-        valor=int(valorDenySucio.strip().split("\n"))
+    if match:
+        valor=int(match.group(1))
 
-        if valor>=5:
+        if valor<=5:
             resultado_ok(f"faillock: deny = {valor}")
         else:
             resultado_fail(f"faillock: deny={valor} (debería ser >=5)", paso)
     else:
         resultado_fail("faillock: deny no configurado", paso)
 
-    partesUnlock=contenidoConf.strip().split("unlock_time=")
-    if partesUnlock:
-        valorUnlockSucio=partesUnlock[1]
-        valor=int(valorUnlockSucio.strip().split("\n"))
+    
+    match =re.search(r"^\s*unlock_time\s*=\s*(\d+)", contenidoConf, re.MULTILINE)
 
-        if valor<=600:
-            resultado_ok(f"faillock: unlock_time = {valor} segundos")
+    if match:
+        valor=int(match.group(1))
+        if valor>=600:
+            resultado_ok(f"faillock: unlock_time = {valor} segundos"
+                         f"({valor // 60} min)")
         else:
-            resultado_warn(f"faillock: unlock_time= {valor} segundos (recomendado <=600)")
+            resultado_warn(f"faillock: unlock_time= {valor} segundos (recomendado >=600)")
     else:
         resultado_fail("faillock: unlock_time no configurado", paso)
 
-    if not "even_deny_root" in contenidoConf:
+    if re.search(r"^\s*even_deny_root", contenidoConf, re.MULTILINE):
         resultado_ok("faillock: even_deny_root activado")
     else:
         resultado_warn("faillock: even_deny_root no activado")
