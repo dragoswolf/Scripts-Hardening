@@ -452,3 +452,61 @@ def paso6_configurar_limits():
                 print("[CORRECTO]pam_limits.so añadido a common-session.")
         else:
             print("[CORRECTO]: pam_limits.so ya presente en common-session.")
+
+
+
+def mostar_menu():
+    print()
+    print("="*100)
+    print("Hardening: Pluggable Authentication Modules (PAM)")
+    print("="*100)
+    print()
+    print(" Pasos disponibles:")
+    print("     1. Rechazar contraseñas vacías")
+    print("     2. Configurar complejidad de contraseñas")
+    print("     3. Configurar bloqueos tras intentos fallidos")
+    print("     4. Configurar historial de contraseñas")
+    print("     5. Configurar permisos por defecto")
+    print("     6. Configurar límites de recursos")
+    print()
+    print("     q. Salir")
+    print()
+
+
+def main():
+
+    comprobar_root()
+    configurar_logging(LOG_FILE)
+
+    while True:
+        mostar_menu()
+        opcion=input("Selecciona una opción: ").strip().lower()
+
+        match opcion:
+            case "1":
+                paso1_eliminar_nullok()
+                volver_al_menu()
+            case "2":
+                paso2_configurar_pwquality()
+                volver_al_menu()
+            case "3":
+                paso3_configurar_faillock()
+                volver_al_menu()
+            case "4":
+                paso4_configurar_remember()
+                volver_al_menu()
+            case "5":
+                paso5_configurar_umask()
+                volver_al_menu()
+            case "6":
+                paso6_configurar_limits()
+                volver_al_menu()
+            case "q":
+                print("\n[INFO]: Saliendo del script.")
+                sys.exit(0)
+            case _:
+                print("[ERROR]: Opción no válida. Inténtelo de nuevo.")
+
+
+if __name__=="__main__":
+    main()
