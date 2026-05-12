@@ -61,7 +61,7 @@ def paso1_eliminar_nullok():
 
                 print(f"[INFO]: {fichero}:")
                 print(f"    Antes: {lineaOriginal.strip()}")
-                print(f"    Después: {lineas.strip()}")
+                print(f"    Después: {linea.strip()}")
 
                 modificado=True
                 nullokEncontrado=True
@@ -444,7 +444,7 @@ def paso5_configurar_umask():
     if contenidoLogin is not None:
         if re.search(r"^UMASK\s+022", contenidoLogin, re.MULTILINE):
             contenidoLogin=re.sub(
-                r"^(UMASK\s+)022"
+                r"^(UMASK\s+)022",
                 f"\\g<1>{UMASK_DESEADO}",
                 contenidoLogin,
                 flags=re.MULTILINE
