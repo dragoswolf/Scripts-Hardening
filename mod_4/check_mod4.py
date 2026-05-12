@@ -309,7 +309,7 @@ def verificar_paso5():
         if match:
             valor=match.group(1)
 
-            if valor in ["027", "077", "0027", "0077"]:
+            if valor in ["027", "077", "0027", "0077", "27", "77"]:
                 resultado_ok(f"Umask = {valor} en login.defs (Seguro).")
             elif valor=="022":
                 resultado_fail(f"Umask = {valor} en {LOGIN_FILE}, debería ser 027", paso)
@@ -376,7 +376,7 @@ def verificar_paso6():
     else:
         resultado_warn("Límite hard de core no configurado.")
 
-    matchNoFile=re.search(r"^\*s+hard\s+nofile\s+(\d+)", contenidoLimits, re.MULTILINE)
+    matchNoFile=re.search(r"^\*\s+hard\s+nofile\s+(\d+)", contenidoLimits, re.MULTILINE)
 
     if matchNoFile:
         valor=int(matchNoFile.group(1))
