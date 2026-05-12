@@ -336,26 +336,24 @@ def paso4_configurar_remember():
 
     paso="Paso 4"
 
-
-
     contenido=leer_fichero(PAM_COMMON_PASSWORD, paso=paso)
     if contenido is None:
         registrar_errores("Paso 4", f"No se pudo leer {PAM_COMMON_PASSWORD}.")
         return
     
-    lineas = contenido.strip().splitlines()
+    lineas = contenido.splitlines()
     nuevasLineas=[]
     modificado=False
 
     for linea in lineas:
-        if "pam_unix.so" in linea and not linea.startswith("#"):
+        if "pam_unix.so" in linea and not linea.strip().startswith("#"):
             if "remember=" in linea:
                 linea=re.sub(r"remember=\d+",
                              f"remember={REMEMBER_VALUE}", linea)
                 print(f"[INFO]: Actualizado remember={REMEMBER_VALUE} en pam_unix.so")
                 modificado=True
             else:
-                linea=linea.strip() + f" remember={REMEMBER_VALUE}"
+                linea=linea.rstrip() + f" remember={REMEMBER_VALUE}"
                 print(f"[INFO]: Añadido remember={REMEMBER_VALUE} en pam_unix.so")
                 modificado=True
         nuevasLineas.append(linea)
@@ -382,8 +380,8 @@ def paso4_configurar_remember():
             cambiar_permisos(OPASSWD_FILE, propietario=0, grupo=0, paso=paso)
             print(f"[CORRECTO]: {OPASSWD_FILE} creado con permisos 600")
     else:
-        permisos=oct(os.stat(OPASSWD_FILE).st_mode)
-        if permisos!=600:
+        permisos=oct(os.stat(OPASSWD_FILE).st_mode)[-3:]
+        if permisos!="600":
             cambiar_permisos(OPASSWD_FILE, permisos=0o600, paso=paso)
             print(f"[CORRECTO]: Permisos de {OPASSWD_FILE} corregidos a 600.")
         else:
@@ -405,27 +403,33 @@ def paso5_configurar_umask():
         registrar_errores("Paso 5", f"No se pudo leer {PAM_COMMON_SESSION}.")
         return
     
-    lineas=contenido.strip().splitlines()
+    lineas=contenido.splitlines()
     nuevasLineas=[]
     umaskEncontrado=False
     modificado=False
 
     for linea in lineas:
-        if "pam_umaks.so" in linea and not linea.startswith("#"):
+        if "pam_umaks.so" in linea and not linea.strip().startswith("#"):
             umaskEncontrado=True
 
-            if f"umask={UMASK_DESEADO}" not in linea:
-                if "umask" in linea:
-                    linea=linea.replace("umask=", f"umask={UMASK_DESEADO}")
+            if f"umask={UMASK_DESEADO}" not in linea and f"umask=0{UMASK_DESEADO}" not in linea:
+                if "umask=" in linea:
+                    linea=re.sub(r"umask=\d+", f"umask={UMASK_DESEADO}", linea)
                 else:
-                    linea=linea.strip() + f"umask={UMASK_DESEADO}"
+                    linea=linea.rstrip() + f" umask={UMASK_DESEADO}"
                 
                 modificado=True
                 print(f"[INFO]: Actualizado umask a {UMASK_DESEADO} en pam_umask.so.")
         nuevasLineas.append(linea)
+    
+    if not umaskEncontrado:
+        nuevasLineas.append(f"session option                        "
+                            f"pam_umask.so umask={UMASK_DESEADO}")
 
     if modificado:
-        nuevoContenido="".join(nuevasLineas)
+        nuevoContenido="\n".join(nuevasLineas)
+        if not nuevoContenido.endswith("\n"):
+            nuevoContenido+="\n"
 
         if escribir_fichero(PAM_COMMON_SESSION, nuevoContenido, permisos=0o644, paso=paso):
             ejecutar_comando_check(["systemctl", "reload", "umask.service"])
@@ -433,14 +437,30 @@ def paso5_configurar_umask():
         else:
             registrar_errores("Paso 5", "No se pudo actualizar common-session")
     
+    else:
+        print(f"[CORRECTO]: umask ya está configurado a {UMASK_DESEADO} en common-session.")
+
     contenidoLogin=leer_fichero(LOGIN_FILE, paso=paso)
     if contenidoLogin is not None:
-        partes=contenidoLogin.split("umask")
-
-        if "022" in partes[2]:
-            contenidoLogin=partes+f"umask {UMASK_DESEADO}"
+        if re.search(r"^UMASK\s+022", contenidoLogin, re.MULTILINE):
+            contenidoLogin=re.sub(
+                r"^(UMASK\s+)022"
+                f"\\g<1>{UMASK_DESEADO}",
+                contenidoLogin,
+                flags=re.MULTILINE
+            )
             escribir_fichero(LOGIN_FILE, contenidoLogin, permisos=0o644, paso=paso)
-            print(f"[CORRECTO]: umask actualizado en {LOGIN_FILE}.")
+            print("[CORRECTO]: UMASK actualizado a 027 en /etc/login.defs.")
+        elif re.search(r"^UMASK\s+027", contenidoLogin, re.MULTILINE):
+            print(f"[CORRECTO]: UMASK ya es 027 en {LOGIN_FILE}.")
+        else:
+            print("[AVISO]: No se encontró directiva UMASK en /etc/login.defs")
+
+    print()
+    print("[INFO]: Con umask 027:")
+    print("     - Ficheros nuevos: rw-r----- (640)")
+    print("     - Directorios nuevos: rwxr-x--- (750)")
+    print("     - 'Otros' no tienen ningún acceso")
 
 
 def paso6_configurar_limits():
@@ -459,34 +479,45 @@ def paso6_configurar_limits():
         print("[INFO]: Para modificarlos, edita /etc/security/limits.conf")
         return
     
-    bloqueoLimites="""#=================================================================
-    #Límite de procesos
-    *           soft    nproc           128
-    *           hard    nproc           256
+    bloqueoLimites="""    #==============================================================================
+# Límites de seguridad - Hardening TFG
+#==============================================================================
+# Estos límites protegen el servidor contra abuso de recursos.
+# Formato: <dominio> <tipo> <recurso> <valor>
+# Tipos: soft (advertencia, el usuario puede ampliar) / hard (límite absoluto)
+#==============================================================================
+# --- Límite de procesos (prevención de fork bombs) ---
+# Un usuario normal no debería necesitar más de 256 procesos simultáneos
+*           soft    nproc           128
+*           hard    nproc           256
 
-    #Límite ficheros abiertos
-    *           soft    nofile          1024
-    *           hard    nofile          4096
+# --- Límite ficheros abiertos ---
+# Previene que un usuario agote los descriptores de fichero del sistema
+*           soft    nofile          1024
+*           hard    nofile          4096
 
-    #Límite de tamaño de ficheros core (volcado de memoria)
-    *           soft    core            0
-    *           hard    core            0
+# --- Límite de tamaño de ficheros core (volcado de memoria) ---
+# Deshabilitar core dumps previene la fuga de información sensible
+# que podría estar en la memoria del proceso
+*           soft    core            0
+*           hard    core            0
 
-    #Límite de memoria bloqueada (previene abuso de RAM)
-    *           soft    memlock         65536
-    *           hard    memlock         65536
+# --- Límite de memoria bloqueada (previene abuso de RAM) ---
+# Cantidad máxima de memoria que un proceso puede bloquear en la RAM (KB)
+*           soft    memlock         65536
+*           hard    memlock         65536
 
-    #Excepción para root (necesita más recursos para administrar)
-    root        soft    nproc           unlimited
-    root        hard    nproc           unlimited
-    root        soft    nofile          65536
-    root        hard    nofile          65536
+# --- Excepción para root (necesita más recursos para administrar) ---
+root        soft    nproc           unlimited
+root        hard    nproc           unlimited
+root        soft    nofile          65536
+root        hard    nofile          65536
 
-    #=================================================================
-    """
+#==============================================================================
+"""
 
     if contenidoActual:
-        nuevoContenido=contenidoActual.strip("\n")+"\n"+ bloqueoLimites
+        nuevoContenido=contenidoActual.rstrip("\n")+"\n"+ bloqueoLimites
     else:
         nuevoContenido=bloqueoLimites
 
@@ -507,6 +538,15 @@ def paso6_configurar_limits():
                 print("[CORRECTO]pam_limits.so añadido a common-session.")
         else:
             print("[CORRECTO]: pam_limits.so ya presente en common-session.")
+
+    print()
+    print("[INFO]: Resumen de límites configurados:")
+    print("     - Procesos por usuario: máximo 256 (prevención fork bomb)")
+    print("     - Ficheros abiertos: máximo 4096")
+    print("     - Core dumps: deshabilitados")
+    print("     - Memoria bloqueada: máximo 64 MB")
+    print("     - Root: sin límite de procesos ni ficheros.")
+
 
 
 
