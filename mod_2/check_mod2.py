@@ -263,7 +263,7 @@ def verificar_paso4():
                 l for l in lineasActualizables if "security" in l.lower()
             ]
             if paquetesSeguridad:
-                resultado_fail(f"Hay {len[paquetesSeguridad]} actualización(es) de SEGURIDAD pendiente(s).")
+                resultado_fail(f"Hay {len(paquetesSeguridad)} actualización(es) de SEGURIDAD pendiente(s).")
             else:
                 resultado_warn(f"Hay {len(lineasActualizables)} paquete(s) con actualizaciones pendientes.")
                 
