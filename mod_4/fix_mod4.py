@@ -518,27 +518,11 @@ root        hard    nofile          65536
 """
 
     if contenidoActual:
-        marcaInicio="# Límites de seguridad - Hardening TFG"
-        marcaFin="#=============================================================================="
-        if marcaInicio in contenidoActual:
-            lineas=contenidoActual.splitlines()
-            nuevasLineas=[]
-            dentroDeBloqueHardening=False
-            bloqueTerminado=False
-
-            for linea in lineas:
-                if marcaInicio in linea and not bloqueTerminado:
-                    dentroDeBloqueHardening=True
-                    if nuevasLineas and nuevasLineas[-1].strip()=="":
-                        nuevasLineas.pop()
-                    continue
-                if dentroDeBloqueHardening:
-                    if (marcaFin in linea and linea.strip().startswith("#") and "Límites" not in linea):
-                        dentroDeBloqueHardening=False
-                        bloqueTerminado=True
-                    continue
-                nuevasLineas.append(linea)
-            contenidoActual="\n".join(nuevasLineas)
+        marcaHardening="# Límites de seguridad - Hardening TFG"
+        marcaEndOfFile="# End of file"
+        if marcaHardening in contenidoActual:
+            indice=contenidoActual.index(marcaEndOfFile)
+            contenidoActual=contenidoActual[:indice+len(marcaEndOfFile)]
             print("[INFO]: Bloque de hardening anterior eliminado.")
         nuevoContenido=contenidoActual.rstrip("\n")+"\n"+ bloqueoLimites
     else:
