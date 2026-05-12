@@ -451,7 +451,7 @@ def paso5_configurar_umask():
             )
             escribir_fichero(LOGIN_FILE, contenidoLogin, permisos=0o644, paso=paso)
             print("[CORRECTO]: UMASK actualizado a 027 en /etc/login.defs.")
-        elif re.search(r"^UMASK\s+027", contenidoLogin, re.MULTILINE):
+        elif re.search(r"^UMASK\s+0?27$", contenidoLogin, re.MULTILINE):
             print(f"[CORRECTO]: UMASK ya es 027 en {LOGIN_FILE}.")
         else:
             print("[AVISO]: No se encontró directiva UMASK en /etc/login.defs")
