@@ -269,7 +269,7 @@ audit=True
         insertado=False
 
         for linea in lineas:
-            if "pam_pwquality.so" in linea and not linea.strip().startswith("#") and not insertado:
+            if "pam_unix.so" in linea and not linea.strip().startswith("#") and not insertado:
                 nuevasLineas.append("auth   required                        "
                                     "pam_faillock.so preauth")
                 

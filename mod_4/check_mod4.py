@@ -181,7 +181,7 @@ def verificar_paso3():
                 break
     
         if faillockAccount:
-            resultado_ok("pam_faillock.so presente en common-taccount")
+            resultado_ok("pam_faillock.so presente en common-account")
         else:
             resultado_fail("pam_faillock.so no encontrado en common-account.", paso)
     
@@ -199,7 +199,7 @@ def verificar_paso3():
         if valor<=5:
             resultado_ok(f"faillock: deny = {valor}")
         else:
-            resultado_fail(f"faillock: deny={valor} (debería ser >=5)", paso)
+            resultado_fail(f"faillock: deny={valor} (debería ser <=5)", paso)
     else:
         resultado_fail("faillock: deny no configurado", paso)
 
