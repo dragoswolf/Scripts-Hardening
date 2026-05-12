@@ -479,7 +479,8 @@ def paso6_configurar_limits():
         print("[INFO]: Para modificarlos, edita /etc/security/limits.conf")
         return
     
-    bloqueoLimites="""    #==============================================================================
+    bloqueoLimites="""
+#==============================================================================
 # Límites de seguridad - Hardening TFG
 #==============================================================================
 # Estos límites protegen el servidor contra abuso de recursos.
@@ -487,9 +488,9 @@ def paso6_configurar_limits():
 # Tipos: soft (advertencia, el usuario puede ampliar) / hard (límite absoluto)
 #==============================================================================
 # --- Límite de procesos (prevención de fork bombs) ---
-# Un usuario normal no debería necesitar más de 256 procesos simultáneos
-*           soft    nproc           128
-*           hard    nproc           256
+# Valores compatibles con entorno gráfico (300+ procesos)
+*           soft    nproc           1024
+*           hard    nproc           4096
 
 # --- Límite ficheros abiertos ---
 # Previene que un usuario agote los descriptores de fichero del sistema
@@ -517,6 +518,28 @@ root        hard    nofile          65536
 """
 
     if contenidoActual:
+        marcaInicio="# Límites de seguridad - Hardening TFG"
+        marcaFin="#=============================================================================="
+        if marcaInicio in contenidoActual:
+            lineas=contenidoActual.splitlines()
+            nuevasLineas=[]
+            dentroDeBloqueHardening=False
+            bloqueTerminado=False
+
+            for linea in lineas:
+                if marcaInicio in linea and not bloqueTerminado:
+                    dentroDeBloqueHardening=True
+                    if nuevasLineas and nuevasLineas[-1].strip()=="":
+                        nuevasLineas.pop()
+                    continue
+                if dentroDeBloqueHardening:
+                    if (marcaFin in linea and linea.strip().startswith("#") and "Límites" not in linea):
+                        dentroDeBloqueHardening=False
+                        bloqueTerminado=True
+                    continue
+                nuevasLineas.append(linea)
+            contenidoActual="\n".join(nuevasLineas)
+            print("[INFO]: Bloque de hardening anterior eliminado.")
         nuevoContenido=contenidoActual.rstrip("\n")+"\n"+ bloqueoLimites
     else:
         nuevoContenido=bloqueoLimites
