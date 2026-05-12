@@ -530,7 +530,7 @@ def verificar_paso9():
         if codigoRet==0:
             fuentesActivas=[
                 l for l in salida.splitlines()
-                if l.strip() and (l.strip().startswith("*") or l.strip().startswith("*"))
+                if l.strip() and any(l.strip().startswith(p) for p in ("^*", "^+", "*", "+"))
             ]
         if fuentesActivas:
             resultado_ok(f"{len(fuentesActivas)} fuente(s) NTP activa(s).")
