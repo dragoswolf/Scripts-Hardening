@@ -20,8 +20,8 @@ PAM_FAILLOCK="/usr/lib/x86_64-linux-gnu/security/pam_faillock.so"
 PWQUALITY_CONF="/etc/security/pwquality.conf"
 FAILLOCK_CONF="/etc/security/faillock.conf"
 LIMITS_CONF="/etc/security/limits.conf"
-
 OPASSWD_FILE="/etc/security/opasswd"
+
 UMASK_DESEADO="777"
 REMEMBER_VALUE=5
 LOGIN_FILE="/etc/login.defs"
@@ -78,7 +78,7 @@ def paso1_eliminar_nullok():
             else:
                 registrar_errores(paso, f"No se pudo escribir en {fichero}.")
         else:
-            print(f"[CORRECTO]: Nullok no presente.")
+            print(f"[CORRECTO]: {fichero}: Nullok no presente.")
     
     if not nullokEncontrado:
         print()
@@ -88,7 +88,7 @@ def paso1_eliminar_nullok():
 def paso2_configurar_pwquality():
     print()
     print("="*100)
-    print("[PASO 1]: Configurar la complejidad de contraseñas.")
+    print("[PASO 2]: Configurar la complejidad de contraseñas.")
     print("="*100)
     print()
 
@@ -177,11 +177,11 @@ retry=3
             escribir_fichero(PAM_COMMON_PASSWORD, nuevoContenido, permisos=0o644, paso=paso)
             print("[CORRECTO]: pam_pwquality.so actualizado con retry=3.")
         else:
-            print("[CORRECTO]: pam_pwqaulity.so ya configurado en common-password.")
+            print("[CORRECTO]: pam_pwquality.so ya configurado en common-password.")
     else:
         print("[AVISO]: pam_pwquality.so no está en common-password.")
         print("         Esto se configura automáticamente al instalar")
-        print("         lipbam-pwquality. Verifica la instalación.")
+        print("         libpam-pwquality. Verifica la instalación.")
     
 
     print()
@@ -203,12 +203,12 @@ def paso3_configurar_faillock():
     paso="Paso 3"    
 
     if not os.path.isfile(PAM_FAILLOCK):
-        rc, salida,_=ejecutar_comando_check(["find", "/usr/lib", "name", "pam_faillock.so"])
+        rc, salida,_=ejecutar_comando_check(["find", "/usr/lib", "-name", "pam_faillock.so"])
 
         if not salida.strip():
             print("[AVISO]: pam_faillock.so no encontrado en el sistema.")
             print("[INFO]: Intentando instalar libpam-modules...")
-            ejecutar_comando(["apt-get", "install", "y", "libpam-modules"], "instalar libpam-modules", paso, mostrarSalida=True)
+            ejecutar_comando(["apt-get", "install", "-y", "libpam-modules"], "instalar libpam-modules", paso, mostrarSalida=True)
 
         else:
             print(f"[CORRECTO]: pam_faillock.so encontrado en {salida.strip()}.")
@@ -290,7 +290,6 @@ audit=True
                 nuevoContenido+="\n"
 
             if escribir_fichero(PAM_COMMON_AUTH, nuevoContenido, permisos=0o644, paso=paso):
-                ejecutar_comando(["systemctrl", "reload", "pam.d"], "recargar pam", paso=paso)
                 print("[CORRECTO]: 'pam_faillock.so' añadido a common-auth.")
             else:
                 registrar_errores(paso, "No se pudo actualizar common-auth.")
@@ -300,7 +299,7 @@ audit=True
 
     contenidoAccount=leer_fichero(PAM_COMMON_ACCOUNT, paso=paso)
     if contenidoAccount is not None:
-        if "pam_faillock.son" not in contenidoAccount:
+        if "pam_faillock.so" not in contenidoAccount:
             print("[INFO]: Añadiendo pam_faillock.so a common-account...")
 
             lineas=contenidoAccount.splitlines()
@@ -308,23 +307,23 @@ audit=True
             nuevasLineas=[]
 
             for linea in lineas:
-                if "pam_pwquality.so" in linea and not linea.strip().startswith("#") and not insertado:
+                if "pam_unix.so" in linea and not linea.strip().startswith("#") and not insertado:
                     nuevasLineas.append("account required                        "
                                         "pam_faillock.so")
                     insertado=True
                 nuevasLineas.append(linea)
 
 
-        if insertado:
-            nuevoContenido="\n".join(nuevasLineas)
+            if insertado:
+                nuevoContenido="\n".join(nuevasLineas)
 
-            if not nuevoContenido.endswith("\n"):
-                nuevoContenido+="\n"
-            
-            if escribir_fichero(PAM_COMMON_PASSWORD, nuevoContenido, permisos=0o644, paso=paso):
-                print("[CORRECTO]: pam_faillock.so añadido a common-account.")
+                if not nuevoContenido.endswith("\n"):
+                    nuevoContenido+="\n"
+                
+                if escribir_fichero(PAM_COMMON_ACCOUNT, nuevoContenido, permisos=0o644, paso=paso):
+                    print("[CORRECTO]: pam_faillock.so añadido a common-account.")
     else:
-        print("[CORRECTO]: pam_pwquality.so ya está configurado en common-password.")
+        print("[CORRECTO]: pam_faillock.so ya está configurado en common-password.")
 
 
 def paso4_configurar_remember():
@@ -368,7 +367,7 @@ def paso4_configurar_remember():
             registrar_errores("Paso 4", "No se pudo actualizar common-password")
 
     else:
-        print("[AVISO]: No se encontró 'pam_unix,so' en common-password.")
+        print("[AVISO]: No se encontró 'pam_unix.so' en common-password.")
         print("         Revisa la configuración PAM manualmente.")
 
     if not os.path.isdir("/etc/security"):
@@ -409,7 +408,7 @@ def paso5_configurar_umask():
     modificado=False
 
     for linea in lineas:
-        if "pam_umaks.so" in linea and not linea.strip().startswith("#"):
+        if "pam_umask.so" in linea and not linea.strip().startswith("#"):
             umaskEncontrado=True
 
             if f"umask={UMASK_DESEADO}" not in linea and f"umask=0{UMASK_DESEADO}" not in linea:
@@ -423,8 +422,10 @@ def paso5_configurar_umask():
         nuevasLineas.append(linea)
     
     if not umaskEncontrado:
-        nuevasLineas.append(f"session option                        "
+        nuevasLineas.append(f"session optional                        "
                             f"pam_umask.so umask={UMASK_DESEADO}")
+        modificado = True
+        print(f"[INFO]: Añadido pam_umask.so con umask={UMASK_DESEADO}")
 
     if modificado:
         nuevoContenido="\n".join(nuevasLineas)
@@ -432,7 +433,6 @@ def paso5_configurar_umask():
             nuevoContenido+="\n"
 
         if escribir_fichero(PAM_COMMON_SESSION, nuevoContenido, permisos=0o644, paso=paso):
-            ejecutar_comando_check(["systemctl", "reload", "umask.service"])
             print("[CORRECTO]: umask configurado en common-session.")
         else:
             registrar_errores("Paso 5", "No se pudo actualizar common-session")
@@ -522,7 +522,7 @@ root        hard    nofile          65536
         nuevoContenido=bloqueoLimites
 
     if escribir_fichero(LIMITS_CONF, nuevoContenido, permisos=0o644, paso=paso):
-        print("[CORRECT]: Límites de recursos configurados en limits.conf.")
+        print("[CORRECTO]: Límites de recursos configurados en limits.conf.")
     else:
         registrar_errores("Paso 6", "No se pudo escribir limits.conf")
         return
@@ -531,11 +531,11 @@ root        hard    nofile          65536
     if contenidoSession is not None:
         if "pam_limits.so" not in contenidoSession:
             print("[INFO]: Añadiendo pam_limits.so a common-session...")
-            nuevoSession=contenidoSession.strip("\n")+"\n"
+            nuevoSession=contenidoSession.rstrip("\n")+"\n"
             nuevoSession+=("session required                            "
                            "pam_limits.so\n")
             if escribir_fichero(PAM_COMMON_SESSION, nuevoSession, permisos=0o644, paso=paso):
-                print("[CORRECTO]pam_limits.so añadido a common-session.")
+                print("[CORRECTO]: pam_limits.so añadido a common-session.")
         else:
             print("[CORRECTO]: pam_limits.so ya presente en common-session.")
 

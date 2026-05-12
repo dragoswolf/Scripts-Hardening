@@ -21,8 +21,8 @@ PAM_LOGIN="/etc/pam.d/login"
 PWQUALITY_CONF="/etc/security/pwquality.conf"
 FAILLOCK_CONF="/etc/security/faillock.conf"
 LIMITS_CONF="/etc/security/limits.conf"
-
 OPASSWD_FILE="/etc/security/opasswd"
+
 UMASK_DESEADO="777"
 REMEMBER_VALUE=5
 LOGIN_FILE="/etc/login.defs"
@@ -71,7 +71,7 @@ def verificar_paso2():
 
     paso="Paso 2"
 
-    rc,_,_=ejecutar_comando_check(["dpkg", "-s", "libpam_pwquality"])
+    rc,_,_=ejecutar_comando_check(["dpkg", "-s", "libpam-pwquality"])
     if rc==0:
         resultado_ok("libpam-pwquality instalado.")
     else:
