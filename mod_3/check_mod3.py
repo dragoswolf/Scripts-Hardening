@@ -6,9 +6,9 @@ import stat
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__),".."))
 from utils import (configurar_logging, registrar_errores, comprobar_root,
-                   volver_al_menu, leer_fichero, ejecutar_comando_check,
-                   resultado_fail, resultado_ok, resultado_warn, mostrar_resumen,
-                   contadores)
+                   leer_fichero, ejecutar_comando_check, resultado_fail, 
+                   resultado_ok, resultado_warn, mostrar_resumen,
+                   contadores, verificar_permisos)
 
 
 
@@ -50,19 +50,7 @@ def verificar_paso1():
         resultado_fail(f"No se encontró {PASSWD_FILE}", paso=paso)
         return
     
-    permisos=oct(os.stat(PASSWD_FILE).st_mode)[-3:]
-    if permisos=="644":
-        resultado_ok(f"Permisos de {PASSWD_FILE} correctos ({permisos}).")
-    else:
-        resultado_fail(f"Permisos de {PASSWD_FILE} incorrectos ({permisos}), deberían ser 644.", paso=paso)
-
-
-    infostat=os.stat(PASSWD_FILE)
-    if infostat.st_uid==0 and infostat.st_gid==0:
-        resultado_ok(f"{PASSWD_FILE} es propiedad de root:root.")
-    else:
-        resultado_fail(f"{PASSWD_FILE} no es propiedad de root:root (UID={infostat.st_uid}, GID={infostat.st_gid})", paso=paso)
-
+    verificar_permisos(PASSWD_FILE, "644", 0, 0, paso=paso)
     
     contenido=leer_fichero(PASSWD_FILE, paso=paso)
     if contenido is None:
@@ -128,14 +116,7 @@ def verificar_paso3():
     paso="Paso 3"
 
 
-    if os.path.isfile(SUDOERS_FILE):
-        permisos=oct(os.stat(SUDOERS_FILE).st_mode)[-3:]
-        if permisos in ["440", "400"]:
-            resultado_ok(f"Permisos de {SUDOERS_FILE} correctos ({permisos}).")
-        else:
-            resultado_fail(f"Permisos de {SUDOERS_FILE} incorrectos ({permisos}), deberían ser 440.", paso=paso)
-    else:
-        resultado_fail(f"No se encontró {SUDOERS_FILE}.", paso=paso)
+    verificar_permisos(SUDOERS_FILE, ["440", "400"], paso=paso)
 
     codigoRet, salida, _=ejecutar_comando_check(["grep","-r","NOPASSWD",SUDOERS_FILE])
 
@@ -182,12 +163,7 @@ def verificar_paso4():
         resultado_fail(f"No se encontró {SHADOW_FILE}.", paso=paso)
         return
     
-    permisos=oct(os.stat(SHADOW_FILE).st_mode)[-3:]
-    if permisos in ["640", "600"]:
-        resultado_ok(f"Permisos de {SHADOW_FILE} correctos ({permisos}).")
-    else:
-        resultado_fail(f"Permisos de {SHADOW_FILE} incorrectos ({permisos}). Deberían ser 640.", paso=paso)
-
+    verificar_permisos(SHADOW_FILE, ["640", "600"], 0, paso=paso)
 
     infoStat=os.stat(SHADOW_FILE)
     if infoStat.st_uid==0:

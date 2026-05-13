@@ -6,10 +6,10 @@ import sys
 import re
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__),".."))
-from utils import (configurar_logging, registrar_errores, comprobar_root,
-                   ejecutar_comando_check, volver_al_menu, leer_fichero,
+from utils import (configurar_logging, comprobar_root,
+                   ejecutar_comando_check, leer_fichero,
                    resultado_fail, resultado_ok, resultado_warn, 
-                   mostrar_resumen, contadores)
+                   mostrar_resumen, contadores, verificar_permisos)
 
 
 PAM_COMMON_AUTH= "/etc/pam.d/common-auth"
@@ -255,15 +255,7 @@ def verificar_paso4():
     else:
         resultado_fail(f"No se pudo leer {PAM_COMMON_PASSWORD}", paso)
 
-    if os.path.isfile(OPASSWD_FILE):
-        permisos=oct(os.stat(OPASSWD_FILE).st_mode)[-3:]
-
-        if permisos=="600":
-            resultado_ok(f"{OPASSWD_FILE} existe con los permisos correctos (600).")
-        else:
-            resultado_fail(f"{OPASSWD_FILE} tiene permisos {permisos} (esperado 600).", paso)
-    else:
-        resultado_fail(f"{OPASSWD_FILE} no encontrado.", paso)
+    verificar_permisos(OPASSWD_FILE, "600", paso=paso)
 
 
 def verificar_paso5():

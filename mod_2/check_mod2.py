@@ -17,7 +17,8 @@ from utils import(
     leer_fichero,
     mostrar_resumen,
     contadores,
-    ejecutar_comando_check
+    ejecutar_comando_check,
+    verificar_permisos
 )
 
 
@@ -561,7 +562,7 @@ def verificar_paso10():
     else:
         resultado_fail(f"{CRON_ALLOW_FILE} no existe. Cualquier usuario puede crear cronjobs")
 
-    if os.path.exists(CRON_DENY_FILE):
+    if os.path.isfile(CRON_DENY_FILE):
         if contenidoCronAllow is not None:
             resultado_warn(f"{CRON_DENY_FILE} existe pero es irrelevante (cron.allow) tiene prioridad).")
         else:
@@ -570,13 +571,8 @@ def verificar_paso10():
         if contenidoCronAllow is not None:
             resultado_ok(f"{CRON_DENY_FILE} no existe (correcto, cron.allow controla el acceso).")
 
-    if os.path.exists(CRON_ALLOW_FILE):
-        statInfo=os.stat(CRON_ALLOW_FILE)
-        permisos=oct(statInfo.st_mode)[-3:]
-        if permisos in ("640", "600"):
-            resultado_ok(f"Permisos de cron.allow correctos: {permisos}")
-        else:
-            resultado_warn(f"Permisos de cron.allow: {permisos}. Recomendado: 640")
+    if os.path.isfile(CRON_ALLOW_FILE):
+        verificar_permisos(CRON_ALLOW_FILE, ["640", "600"], paso= "Paso 10")
     
     contenidoAtAllow=leer_fichero(AT_ALLOW_FILE)
 
@@ -587,13 +583,7 @@ def verificar_paso10():
     
     for directorio in DIRECTORIOS_CRON:
         if os.path.isdir(directorio):
-            statInfo=os.stat(directorio)
-            permisos=oct(statInfo.st_mode)[-3:]
-            if permisos=="700":
-                resultado_ok(f"{directorio} tiene permisos restrictivos (700)")
-            else:
-                resultado_warn(f"{directorio} tiene permisos {permisos}. Recomendado: 700")
-
+          verificar_permisos(directorio, "700", paso="Paso 10", nivel="warn")
 
 
 def verificar_paso11():
