@@ -303,7 +303,7 @@ def verificar_paso10(contenido):
     elif valor.lower()=="no":
         resultado_ok("PrintLastLog = yes")
     else:
-        resultado_fail("PrintLastLog = no (no se muestra la última conexión al usuario)", paso)
+        resultado_fail(f"PrintLastLog = {valor.lower()} (no se muestra la última conexión al usuario)", paso)
 
 
 
