@@ -22,7 +22,7 @@ FAILLOCK_CONF="/etc/security/faillock.conf"
 LIMITS_CONF="/etc/security/limits.conf"
 OPASSWD_FILE="/etc/security/opasswd"
 
-UMASK_DESEADO="777"
+UMASK_DESEADO="027"
 REMEMBER_VALUE=5
 LOGIN_FILE="/etc/login.defs"
 
