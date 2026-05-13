@@ -277,6 +277,95 @@ def pedir_input_doble(mensaje, ocultar=False):
         else:
             #Si no coinciden, se informa al usuario y se repite el proceso
             print("[ERROR]: Las entradas no coinciden. Inténtalo de nuevo.\n")
+
+def verificar_permisos(ruta, permisosEsperados=None, propietarioEsperado=None, grupoEsperado=None,
+                       paso="General", nivel="fail"):
+    
+    """
+    Verifica que un fichero tiene los permisos y propietario(s) correctos.
+    Utiliza resultado_ok y resultado_fail o resultado_warn para reportar
+    cada comprobación, según el nivel indicado.
+
+    Args:
+        ruta (str): Ruta absoluta al fichero.
+        permisosEsperados (str, list o None): Permisos esperados en formato
+                                              octal como string (ej: "600")
+                                              o lista de valores aceptables
+                                              (ej: ["640", "600"]).
+                                              None = no verificar permisos.
+        propietarioEsperado (int o None): UID esperado (ej: 0 para root)
+                                          None = no verificar propietario
+        grupoEsperado (int o None): GID esperado (ej: 0 para root)
+                                    None = no verificar grupo
+        paso (str): Identificador del paso para el log.
+        nivel (str): Nivel de gravedad cuando un check falla:
+                     "fail" (por defecto) = resultado_fail (error grave)
+                     "warn" = resultado_warn (advertencia, recomendación)
+
+    Return:
+        bool: True si todas las comprobaciones son correctas. False si
+              alguna falló.
+    """
+
+    nombre=os.path.basename(ruta)
+    todoCorrecto=True
+
+    #Seleccionar función de reporte según el nivel
+    reportar_fallo=resultado_fail if nivel=="fail" else resultado_warn
+
+    if not os.path.exists(ruta):
+        reportar_fallo(f"{ruta} no existe.", paso) if nivel=="fail" \
+            else resultado_warn(f"{ruta} no existe.")
+        return False
+    
+    infoStat=os.stat(ruta)
+
+    if permisosEsperados is not None:
+        permisosActuales=oct(infoStat.st_mode)[-3:]
+        if isinstance(permisosEsperados, str):
+            listaValidados=[permisosEsperados]
+        else:
+            listaValidados=permisosEsperados
+
+        if permisosActuales in listaValidados:
+            resultado_ok(f"Permisos de {nombre}: {permisosActuales}.")
+        else:
+            esperado=" o ".join(listaValidados)
+            if nivel=="fail":
+                resultado_fail(f"Permisos de {nombre}: {permisosActuales} "
+                               f"(deberían ser {esperado})", paso)
+            else:
+                resultado_warn(f"Permisos de {nombre}: {permisosActuales} "
+                               f"(recomendado: {esperado})")
+            todoCorrecto=False
+
+    if propietarioEsperado is not None:
+        if infoStat.st_uid==propietarioEsperado:
+            resultado_ok(f"{nombre} propietario UID={infoStat.st_uid}")
+        else:
+            if nivel=="fail":
+                resultado_fail(f"{nombre} propietario UID={infoStat.st_uid} "
+                               f"(debería ser {propietarioEsperado})", paso)
+            else:
+                resultado_warn(f"{nombre} propietario UID={infoStat.st_uid} "
+                               f"(recomendado: {propietarioEsperado})")
+            
+            todoCorrecto=False
+
+    if grupoEsperado is not None:
+        if infoStat.st_gid==grupoEsperado:
+            resultado_ok(f"{nombre} grupo GID={infoStat.st_gid}")
+        else:
+            if nivel=="fail":
+                resultado_fail(f"{nombre} grupo GID={infoStat.st_gid} "
+                               f"(debería ser {grupoEsperado})", paso)
+            else:
+                resultado_warn(f"{nombre} grupo GID={infoStat.st_gid} "
+                               f"(recomendado: {grupoEsperado})")
+            
+            todoCorrecto=False
+
+    return todoCorrecto
     
 
 #=======================================================================================================

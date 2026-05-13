@@ -257,20 +257,9 @@ def paso4_login_grace_time():
         recargar_ssh(paso)
 
 
-def paso5_permit_empty_passwords():
-    print()
-    print("="*100)
-    print("[PASO 5]: Deshabilitar PermitEmptyPasswords.")
-    print("="*100)
-    print()
-
-    paso="Paso 5"
-
-    if configurar_directiva_ssh("PermitEmptyPasswords", "no", paso):
-        recargar_ssh(paso)
 
 
-def paso6_client_alive():
+def paso5_client_alive():
     print()
     print("="*100)
     print("[PASO 6]: Configurar ClientAliveInterval y ClientAliveCountMax.")
@@ -292,7 +281,7 @@ def paso6_client_alive():
         recargar_ssh(paso)
 
 
-def paso7_hostbased_auth():
+def paso6_hostbased_auth():
     print()
     print("="*100)
     print("[PASO 7]: Deshabilitar HostbasedAuthentication")
@@ -304,7 +293,7 @@ def paso7_hostbased_auth():
     if configurar_directiva_ssh("HostbasedAuthentication", "no", paso):
         recargar_ssh(paso)
 
-def paso8_ignore_rhosts():
+def paso7_ignore_rhosts():
     print()
     print("="*100)
     print("[PASO 6]: Configurar ClientAliveInterval y ClientAliveCountMax.")
@@ -317,7 +306,7 @@ def paso8_ignore_rhosts():
         recargar_ssh(paso)
 
 
-def paso9_strict_modes():
+def paso8_strict_modes():
     print()
     print("="*100)
     print("[PASO 9]: Habilitar StrictModes")
@@ -330,7 +319,7 @@ def paso9_strict_modes():
         recargar_ssh(paso)
 
 
-def paso10_permit_user_environment():
+def paso9_permit_user_environment():
     print()
     print("="*100)
     print("[PASO 10]: Deshabilitar PermitUserEnvironment")
@@ -343,7 +332,7 @@ def paso10_permit_user_environment():
         recargar_ssh(paso)
 
 
-def paso11_print_last_log():
+def paso10_print_last_log():
     print()
     print("="*100)
     print("[PASO 11]: Habilitar PrintLastLog")
@@ -356,68 +345,76 @@ def paso11_print_last_log():
         recargar_ssh(paso)
 
 
-def paso12_banner_ssh():
-    print()
-    print("="*100)
-    print("[PASO 12]: Configurar banner SSH.")
-    print("="*100)
-    print()
-
-    paso="Paso 12"
-
-    if escribir_fichero(ISSUE_NET, BANNER_SSH, permisos=0o644, paso=paso):
-        print(f"[CORRECTO]: Banner escrito en {ISSUE_NET}.")
-    else:
-        registrar_errores(paso, f"No se pudo escribir en {ISSUE_NET}")
-        return
-    
-    if configurar_directiva_ssh("Banner", ISSUE_NET, paso):
-        recargar_ssh(paso)
-
-    print("[INFO]: Contenido del banner:")
-    print(BANNER_SSH)
-
-
-def paso13_permit_root_login():
-    print()
-    print("="*100)
-    print("[PASO 13]: Restringir acceso root por SSH (PermitRootLogin).")
-    print("="*100)
-    print()
-
-    paso="Paso 13"
-
-    rc, salida, _=ejecutar_comando_check(["getent", "group", "root"])
-    if rc!=0:
-        campos=salida.split(":")
-        miembros=campos[3]
-
-        if "root" not in miembros:
-            print("[ALERTA]: El grupo sudo no tiene miembros.")
-            print("[ALERTA]: No se puede deshabilitar root en SSH sin tener acceso sudo alternativo.")
-            return
-        else:
-            print(f"[CORRECTO]: Grupo sudo tiene miembros: {miembros}")
-    else:
-        print("[ERROR]: No se pudo verificar el grupo sudo.")
-        return
-    
-    print()
-    print("[INFO]: Opciones disponibles:")
-    print("     1. no                   -> root NO puede conectarse por SSH")
-    print("     2. prohibit-password    -> root solo con clave pública")
-    print()
-
-    opcion=input("Selecciona (1/2, o Enter para 'no'): ").strip()
-
-    if opcion==2:
-        valor="prohibit-password"
-    else:
-        valor="no"
-
-    if configurar_directiva_ssh("PermitRootLogin", valor, paso):
-        recargar_ssh(paso)
-
-
 
         
+def mostar_menu():
+    print()
+    print("="*100)
+    print("Hardening: Conexiones SSH (Secure Shell)")
+    print("="*100)
+    print()
+    print(" Pasos disponibles:")
+    print("     1. Cambiar el puerto SSH")
+    print("     2. Restringir acceso por usuarios (AllowUsers)")
+    print("     3. Deshabilitar autenticación GSSAPI")
+    print("     4. Configurar LoginGraceTime (30s)")
+    print("     5. Configurar ClientAliveInterval y ClientAliveCountMax")
+    print("     6. Deshabilitar HostbasedAuthentication")
+    print("     7. Configurar IgnoreRhosts")
+    print("     8. Habilitar StrictModes")
+    print("     9. Deshabilitar PermitUserEnvironment")
+    print("     10. Habilitar PrintLastLog")
+
+    print()
+    print("     q. Salir")
+    print()
+
+def main():
+
+    comprobar_root()
+    configurar_logging(LOG_FILE)
+
+    while True:
+        mostar_menu()
+        opcion=input("Selecciona una opción: ").strip().lower()
+
+        match opcion:
+            case "1":
+                paso1_cambiar_puertos()
+                volver_al_menu()
+            case "2":
+                paso2_allow_users()
+                volver_al_menu()
+            case "3":
+                paso3_deshabilitar_gssapi()
+                volver_al_menu()
+            case "4":
+                paso4_login_grace_time()
+                volver_al_menu()
+            case "5":
+                paso5_client_alive()
+                volver_al_menu()
+            case "6":
+                paso6_hostbased_auth()
+                volver_al_menu()
+            case "7":
+                paso7_ignore_rhosts()
+                volver_al_menu()
+            case "8":
+                paso8_strict_modes()
+                volver_al_menu()
+            case "9":
+                paso9_permit_user_environment()
+                volver_al_menu()
+            case "10":
+                paso10_print_last_log()
+                volver_al_menu()
+            case "q":
+                print("\n[INFO]: Saliendo del script.")
+                sys.exit(0)
+            case _:
+                print("[ERROR]: Opción no válida. Inténtelo de nuevo.")
+
+
+if __name__=="__main__":
+    main()
