@@ -73,7 +73,7 @@ def configurar_directiva_ssh(directiva, valor, paso="General"):
             valorActual=partes[1] if len(partes)>=2 else "(sin valor)"
 
             if limpia.startswith("#") or valorActual!=valor:
-                lineas[i]=f"{directiva}={valor}"
+                lineas[i]=f"{directiva} {valor}"
                 print(f"[INFO]: {directiva}: {valorActual} -> {valor}")
                 modificado=True
             else:
@@ -82,7 +82,7 @@ def configurar_directiva_ssh(directiva, valor, paso="General"):
             break
 
     if not encontrado:
-        lineas.append(f"{directiva}{valor}")
+        lineas.append(f"{directiva} {valor}")
         print(f"[INFO]: {directiva} {valor} añadido al final.")
         modificado=True
 
@@ -179,7 +179,7 @@ def paso1_cambiar_puertos():
         print(f"[CORRECTO]: El puerto ya es {puerto}.")
         return
     
-    rc, salida, _=ejecutar_comando_check(["ss", "-tlnp", f"sport=:{puerto}"])
+    rc, salida, _=ejecutar_comando_check(["ss", "-tlnp", f"sport = :{puerto}"])
 
     if salida.strip().count("\n")>0:
         print(f"[AVISO]: El puerto {puerto} parece estar en uso:")
@@ -216,7 +216,7 @@ def paso2_allow_users():
     for linea in lineas:
         limpia=linea.strip()
         if limpia.startswith("AllowUsers ") and not limpia.startswith("#"):
-            allowActual=limpia.split()[1]
+            allowActual=limpia.split(None, 1)[1]
             break
 
     if allowActual:
@@ -227,18 +227,21 @@ def paso2_allow_users():
     contenidoPasswd=leer_fichero(PASSWD, paso)
     if contenidoPasswd:
         usuariosHumanos=[]
-        lineas=contenidoPasswd.splitlines()
+        lineas=contenidoPasswd.strip().splitlines()
         for linea in lineas:
             campos=linea.split(":")
-            uid=campos[1]
+            if len(campos)==7:
+                uid=int(campos[2])
             
-            if 1000<=uid<65535:
-                usuariosHumanos.append(campos[0])
+                if 1000<=uid<65535:
+                    usuariosHumanos.append(campos[0])
         if usuariosHumanos:
             print(f"\n[INFO]: Usuarios humanos del sistema: {', '.join(usuariosHumanos)}")
 
     print()
     print("[AVISO]: Si no incluyes tu usuario, perderás acceso SSH.")
+    print("[INFO]: Introduce los usuarios separados por espacios.")
+    print("        Ejemplo: usuario1 usuario2 usuario3...")
     print()
 
     usuarios=input("Usuarios permitidos (o Enter para no cambiar): ").strip()
@@ -256,8 +259,9 @@ def paso2_allow_users():
             respuesta=input("¿Continuar de todas formas? (s/n): ").strip().lower()
             if respuesta!="s":
                 print("[INFO]: No se realizaron cambios.")
+                return
 
-    if configurar_directiva_ssh("AllowUsers", "\n".join(usuarios), paso):
+    if configurar_directiva_ssh("AllowUsers", " ".join(listaUsuarios), paso):
         recargar_ssh(paso)
 
 def paso3_deshabilitar_gssapi():
@@ -291,15 +295,14 @@ def paso4_login_grace_time():
 
 
 
-
 def paso5_client_alive():
     print()
     print("="*100)
-    print("[PASO 6]: Configurar ClientAliveInterval y ClientAliveCountMax.")
+    print("[PASO 5]: Configurar ClientAliveInterval y ClientAliveCountMax.")
     print("="*100)
     print()
 
-    paso="Paso 6"
+    paso="Paso 5"
 
     print("[INFO]: Configuración de timeout de sesiones inactivas:")
     print("         - ClientAliveInterval = 300 segundos")
@@ -317,11 +320,11 @@ def paso5_client_alive():
 def paso6_hostbased_auth():
     print()
     print("="*100)
-    print("[PASO 7]: Deshabilitar HostbasedAuthentication")
+    print("[PASO 6]: Deshabilitar HostbasedAuthentication")
     print("="*100)
     print()
 
-    paso="Paso 7"
+    paso="Paso 6"
 
     if configurar_directiva_ssh("HostbasedAuthentication", "no", paso):
         recargar_ssh(paso)
@@ -329,11 +332,11 @@ def paso6_hostbased_auth():
 def paso7_ignore_rhosts():
     print()
     print("="*100)
-    print("[PASO 6]: Configurar ClientAliveInterval y ClientAliveCountMax.")
+    print("[PASO 7]: Configurar ClientAliveInterval y ClientAliveCountMax.")
     print("="*100)
     print()
 
-    paso="Paso 8"
+    paso="Paso 7"
 
     if configurar_directiva_ssh("IgnoreRhosts", "yes", paso):
         recargar_ssh(paso)
@@ -342,11 +345,11 @@ def paso7_ignore_rhosts():
 def paso8_strict_modes():
     print()
     print("="*100)
-    print("[PASO 9]: Habilitar StrictModes")
+    print("[PASO 8]: Habilitar StrictModes")
     print("="*100)
     print()
 
-    paso="Paso 9"
+    paso="Paso 8"
 
     if configurar_directiva_ssh("StrictModes", "yes", paso):
         recargar_ssh(paso)
@@ -355,11 +358,11 @@ def paso8_strict_modes():
 def paso9_permit_user_environment():
     print()
     print("="*100)
-    print("[PASO 10]: Deshabilitar PermitUserEnvironment")
+    print("[PASO 9]: Deshabilitar PermitUserEnvironment")
     print("="*100)
     print()
 
-    paso="Paso 10"
+    paso="Paso 9"
 
     if configurar_directiva_ssh("PermitUserEnvironment", "no", paso):
         recargar_ssh(paso)
@@ -368,11 +371,11 @@ def paso9_permit_user_environment():
 def paso10_print_last_log():
     print()
     print("="*100)
-    print("[PASO 11]: Habilitar PrintLastLog")
+    print("[PASO 10]: Habilitar PrintLastLog")
     print("="*100)
     print()
 
-    paso="Paso 11"
+    paso="Paso 10"
 
     if configurar_directiva_ssh("PrintLastLog", "yes", paso):
         recargar_ssh(paso)

@@ -1,17 +1,44 @@
 #!/usr/bin/env python3
-
-import os
-import sys
-import re
-
+#=========================================================================================================
+# check_mod5.py - Script de verificación para el módulo 5 - SSH (Secure Shell)
+#=========================================================================================================
+# Este script implementa las siguientes medidas de seguridad:
+#
+#   Paso 1: Verificar el puerto SSH
+#   Paso 2: Verificar acceso por usuarios (AllowUsers/DenyUsers)
+#   Paso 3: Verificar autenticación GSSAPI
+#   Paso 4: Verificar LoginGraceTime
+#   Paso 5: Verificar ClientAliveInterval y ClientAliveCountMax
+#   Paso 6: Verificar HostbasedAuthentication
+#   Paso 7: Verificar IgnoreRhosts
+#   Paso 8: Verificar StrictModes
+#   Paso 9: Verificar PermitUserEnvironment
+#   Paso 10: Verificar PrintLastLog
+#
+#
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Los errores se registran en /var/log/hardening/modulo5_check.log
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#=========================================================================================================
 import os
 import sys
 import re
 
 sys.path.inser(0, os.path.join(os.path.dirname(__file__), ".."))
-from utils import (configurar_logging, comprobar_root, volver_al_menu,
-                   leer_fichero, mostrar_resumen, resultado_fail, 
-                   resultado_ok, resultado_warn, contadores, verificar_permisos)
+from utils import (configurar_logging, 
+                   comprobar_root, 
+                   volver_al_menu,
+                   leer_fichero, 
+                   mostrar_resumen, 
+                   resultado_fail, 
+                   resultado_ok, 
+                   resultado_warn, 
+                   contadores, 
+                   verificar_permisos
+                   )
 
 
 SSHD_CONFIG="/etc/ssh/sshd_config"
@@ -25,8 +52,8 @@ def obtener_directiva_ssh(directiva, contenido):
         if lineaLimpia.startswith("#") or not lineaLimpia:
             continue
 
-        if re.match(rf"^{directiva}", lineaLimpia, re.MULTILINE):
-            partes=lineaLimpia.split()
+        if re.match(rf"^{directiva}\s", lineaLimpia, re.IGNORECASE):
+            partes=lineaLimpia.split(None, 1)
             if len(partes)>=2:
                 return partes[1]
             return None
@@ -93,7 +120,7 @@ def verificar_paso3(contenido):
 
     if valor is None:
         resultado_warn("GSSAPIAuthentication no configurado explícitamente.")
-    elif valor=="no":
+    elif valor.lower()=="no":
         resultado_ok("GSSAPIAuthentication = no")
     else:
         resultado_fail("GSSAPIAuthentication = yes (debería ser 'no').", paso)
@@ -116,17 +143,17 @@ def verificar_paso4(contenido):
         segundos=None
         if valor.endswith("m"):
             try:
-                segundos=int(valor[1])*60
+                segundos=int(valor[:-1])*60
             except ValueError:
                 pass
         elif valor.endswith("s"):
             try:
-                segundos=int(valor[1])
+                segundos=int(valor[:-1])
             except ValueError:
                 pass
         else:
             try:
-                segundos=int(valor[1])
+                segundos=int(valor)
             except ValueError:
                 pass
         
@@ -196,7 +223,7 @@ def verificar_paso6(contenido):
 
     if valor is None:
         resultado_ok("HostbasedAuthentication no configurado (por defecto: no)")
-    elif valor=="no":
+    elif valor.lower()=="no":
         resultado_ok("HostbasedAuthentication = no")
     else:
         resultado_fail("HostbasedAuthentication = yes (autenticación basada en host habilitada)", paso)
@@ -215,7 +242,7 @@ def verificar_paso7(contenido):
 
     if valor is None:
         resultado_ok("IgnoreRhosts no configurado (por defecto: yes)")
-    elif valor=="yes":
+    elif valor.lower()=="yes":
         resultado_ok("IgnoreRhosts = yes")
     else:
         resultado_fail("IgnoreRhosts = no (ficheros .rhosts son aceptados)", paso)
@@ -234,7 +261,7 @@ def verificar_paso8(contenido):
 
     if valor is None:
         resultado_ok("StrictModes no configurado (por defecto: yes)")
-    elif valor=="yes":
+    elif valor.lower()=="yes":
         resultado_ok("StrictModes = yes")
     else:
         resultado_fail("StrictModes = no (no se verifican permisos de ficheros SSH)", paso)
@@ -253,7 +280,7 @@ def verificar_paso9(contenido):
 
     if valor is None:
         resultado_ok("PermitUserEnvironment no configurado (por defecto: no)")
-    elif valor=="no":
+    elif valor.lower()=="no":
         resultado_ok("PermitUserEnvironment = no")
     else:
         resultado_fail("PermitUserEnvironment = yes (los usuarios pueden inyectar variables de entorno)", paso)
@@ -273,7 +300,7 @@ def verificar_paso10(contenido):
 
     if valor is None:
         resultado_ok("PrintLastLog no configurado (por defecto: yes)")
-    elif valor=="no":
+    elif valor.lower()=="no":
         resultado_ok("PrintLastLog = yes")
     else:
         resultado_fail("PrintLastLog = no (no se muestra la última conexión al usuario)", paso)
@@ -321,7 +348,7 @@ def main():
     verificar_paso8(contenido)
     verificar_paso9(contenido)
     verificar_paso10(contenido)
-    verificar_permisos(SSHD_CONFIG, "600", 0, 0)
+    verificar_permisos(SSHD_CONFIG, "600", 0, 0, paso="General")
 
 
 
