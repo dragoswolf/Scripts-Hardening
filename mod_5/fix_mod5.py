@@ -1,37 +1,55 @@
 #!/usr/bin/env python3
+#=========================================================================================================
+# fix_mod5.py - Script de fortificación para el módulo 5 - SSH (Secure Shell)
+#=========================================================================================================
+# Este script implementa las siguientes medidas de seguridad:
+#
+#   Paso 1: Cambiar el puerto SSH
+#   Paso 2: Restringir acceso por usuarios (AllowUsers/DenyUsers)
+#   Paso 3: Deshabilitar autenticación GSSAPI
+#   Paso 4: Configurar LoginGraceTime
+#   Paso 5: Configurar ClientAliveInterval y ClientAliveCountMax
+#   Paso 6: Deshabilitar HostbasedAuthentication
+#   Paso 7: Configurar IgnoreRhosts
+#   Paso 8: Habilitar StrictModes
+#   Paso 9: Deshabilitar PermitUserEnvironment
+#   Paso 10: Habilitar PrintLastLog
+#
+# NOTA: Algunas medidas relacionadas con SSH se configuran en otros
+# módulos, pero tiene más sentido dejarlos en esos otros módulos:
+#   - Banner SSH -> Módulo 2 - Fortificación General (paso 2)
+#   - PermitEmptyPasswords -> Módulo 3 - Seguridad en Usuarios (paso 7)
+#   - PermitRootLogin -> Módulo 3 - Seguridad en usuarios (paso 10)
+#
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Los errores se registran en /var/log/hardening/modulo5_fix.log
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#=========================================================================================================
 
 import os
 import sys
 import re
 
 sys.path.inser(0, os.path.join(os.path.dirname(__file__), ".."))
-from utils import (configurar_logging, registrar_errores, comprobar_root,
-                   ejecutar_comando, ejecutar_comando_check, volver_al_menu,
-                   escribir_fichero, leer_fichero, cambiar_permisos)
+from utils import (configurar_logging, 
+                   registrar_errores, 
+                   comprobar_root,
+                   ejecutar_comando, 
+                   ejecutar_comando_check, 
+                   volver_al_menu,
+                   escribir_fichero, 
+                   leer_fichero, 
+                   )
 
 SSHD_CONFIG="/etc/ssh/sshd_config"
 PASSWD="/etc/passwd"
-ISSUE_NET="/etc/issue.net"
 
 
 LOG_FILE="/var/log/hardening/modulo5_fix.log"
 
-BANNER_SSH="""
-*********************************************************
-*                AVISO - SISTEMA PROTEGIDO              *
-*********************************************************
-*                                                       *
-* El acceso a este sistema está restringido a usuarios  *
-* autorizados. Todas las actividades son monitorizadas  *
-* y registradas.                                        *
-*                                                       *
-* El acceso no autorizado está prohibido y será         *
-* procesado conforme a la legislación vigente.          *
-*                                                       *
-* Si no está autorizado, desconéctese inmediatamente.   *
-*                                                       *
-*********************************************************
-"""
 
 
 # Funciones auxiliares
@@ -49,11 +67,12 @@ def configurar_directiva_ssh(directiva, valor, paso="General"):
     for i, linea in enumerate(lineas):
         limpia=linea.strip()
 
-        if directiva in limpia and not limpia.startswith("#"):
-            partes=limpia.split(directiva)
-            valorActual=partes[1]
 
-            if limpia.startswith("#") or valorActual==valor:
+        if re.match(rf"^#?\s*{directiva}\s", limpia, re.IGNORECASE):
+            partes=limpia.lstrip("# ").split(None, 1)
+            valorActual=partes[1] if len(partes)>=2 else "(sin valor)"
+
+            if limpia.startswith("#") or valorActual!=valor:
                 lineas[i]=f"{directiva}={valor}"
                 print(f"[INFO]: {directiva}: {valorActual} -> {valor}")
                 modificado=True
@@ -85,7 +104,21 @@ def recargar_ssh(paso="General"):
         print(f"[ERROR]: La configuración de SSH no es válida:")
         print(f"         {stderr.strip()}")
         print("[ERROR]: No se ha recargado el servicio.")
-        print("[INFO]: Revisa /etc/ssh/sshd_config y corrige el error.")
+        for lineaError in stderr.strip().splitlines():
+            print(f"        {lineaError}")
+
+            match=re.search(r"line (\d+)", lineaError)
+            if match:
+                numLinea=int(match.group(1))
+                contenido=leer_fichero(SSHD_CONFIG, paso=paso)
+                if contenido:
+                    lineas=contenido.splitlines()
+                    inicio=max(0,numLinea-3)
+                    fin=min(len(lineas), numLinea+2)
+                    print()
+                    for i in range(inicio, fin):
+                        marca=" >>>" if i==numLinea-1 else "    "
+                        print(f"        {marca} {i+1}: {lineas[i]}")
         return False
     
     ejecutar_comando(["systemctl", "reload", "ssh"], "recargar servicio SSH", paso)
