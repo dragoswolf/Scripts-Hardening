@@ -300,7 +300,7 @@ def verificar_paso10(contenido):
 
     if valor is None:
         resultado_ok("PrintLastLog no configurado (por defecto: yes)")
-    elif valor.lower()=="no":
+    elif valor.lower()=="yes":
         resultado_ok("PrintLastLog = yes")
     else:
         resultado_fail(f"PrintLastLog = {valor.lower()} (no se muestra la última conexión al usuario)", paso)
