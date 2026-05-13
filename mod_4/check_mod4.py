@@ -349,7 +349,7 @@ def verificar_paso6():
     if matchNproc:
         valor=int(matchNproc.group(1))
 
-        if valor<=512:
+        if valor<=4096:
             resultado_ok(f"nproc hard = {valor} (Alta disponibilidad de recursos).")
         else:
             resultado_warn(f"nproc hard = {valor} (demasiado restrictivo).")
