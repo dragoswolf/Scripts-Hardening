@@ -44,17 +44,36 @@ from utils import (configurar_logging,
                    leer_fichero, 
                    )
 
+
+#=========================================================================================================
+# CONSTANTES
+#=========================================================================================================
 SSHD_CONFIG="/etc/ssh/sshd_config"
 PASSWD="/etc/passwd"
 
 
 LOG_FILE="/var/log/hardening/modulo5_fix.log"
+#=========================================================================================================
 
 
-
+#=========================================================================================================
 # Funciones auxiliares
-
+#=========================================================================================================
 def configurar_directiva_ssh(directiva, valor, paso="General"):
+    """
+    Modifica o añade una directiva en sshd_config.
+
+    Busca la directiva (activa o comentada). Si la encuentra, la actualiza.
+    Si no la encuentra, la añade al final del fichero.
+
+    Args:
+        directiva (str): Nombre de la directiva SSH
+        valor (str): Valor a establecer
+        paso (str): Identificador del paso para el log
+    
+    Return:
+        bool: True si se configuró correctamente, False en caso de error.
+    """
     contenido=leer_fichero(SSHD_CONFIG, paso=paso)
     if contenido is None:
         registrar_errores(paso, f"No se pudo leer {SSHD_CONFIG}")
@@ -66,9 +85,10 @@ def configurar_directiva_ssh(directiva, valor, paso="General"):
 
     for i, linea in enumerate(lineas):
         limpia=linea.strip()
-
-
+        # Buscar la directiva activa o comentada
+        # Patrón: opcionalmente # al inicio, luego directiva, y espacio
         if re.match(rf"^#?\s*{directiva}\s", limpia, re.IGNORECASE):
+            # Extraer el valor actual
             partes=limpia.lstrip("# ").split(None, 1)
             valorActual=partes[1] if len(partes)>=2 else "(sin valor)"
 
@@ -97,6 +117,20 @@ def configurar_directiva_ssh(directiva, valor, paso="General"):
     return True
 
 def recargar_ssh(paso="General"):
+    """
+    Valida la configuración SSH y recarga el servicio.
+
+    Primero ejecuta 'sshd -t' para verificar que la configuración es válida.
+    Solo si la validación es exitosa, recarga el servicio con systemctl.
+
+    Args:
+        paso (str): Identificador del paso para el log.
+
+    Return:
+        bool: True si se recargó correctamente, False en caso de error.
+    """
+
+    # Se valida la configuración antes de recargar
     rc,_,stderr=ejecutar_comando_check(["sshd", "-t"])
 
     if rc!=0:
@@ -104,15 +138,18 @@ def recargar_ssh(paso="General"):
         print(f"[ERROR]: La configuración de SSH no es válida:")
         print(f"         {stderr.strip()}")
         print("[ERROR]: No se ha recargado el servicio.")
+        # Muestra cada línea de error
         for lineaError in stderr.strip().splitlines():
             print(f"        {lineaError}")
-
+            # Intenta extraer el número de línea para mostrar contexto
+            # Formato típico: "/etc/ssh/sshd_config line 42:..."
             match=re.search(r"line (\d+)", lineaError)
             if match:
                 numLinea=int(match.group(1))
                 contenido=leer_fichero(SSHD_CONFIG, paso=paso)
                 if contenido:
                     lineas=contenido.splitlines()
+                    # Mostrar 2 líneas antes y después para dar contexto
                     inicio=max(0,numLinea-3)
                     fin=min(len(lineas), numLinea+2)
                     print()
@@ -121,15 +158,20 @@ def recargar_ssh(paso="General"):
                         print(f"        {marca} {i+1}: {lineas[i]}")
         return False
     
+    # Recargar el servicio SSH
     ejecutar_comando(["systemctl", "reload", "ssh"], "recargar servicio SSH", paso)
 
     print("[CORRECTO]: Servicio SSH recargado correctamente.")
     return True
-
+#=========================================================================================================
 
 
 # Medidas de seguridad
 def paso1_cambiar_puertos():
+    """
+    Cambia el puerto de escuca de SSH a un puerto no estándar.
+    Pide al usuario el nuevo puerto y valida que esté en rango.
+    """
     print()
     print("="*100)
     print("[PASO 1]: Cambiar el puerto SSH.")
@@ -197,6 +239,9 @@ def paso1_cambiar_puertos():
 
 
 def paso2_allow_users():
+    """
+    Configura AllowUsers para restringir qué usuarios pueden conectarse por SSH
+    """
     print()
     print("="*100)
     print("[PASO 2]: Restringir acceso por usuarios.")
@@ -265,6 +310,9 @@ def paso2_allow_users():
         recargar_ssh(paso)
 
 def paso3_deshabilitar_gssapi():
+    """
+    Deshabilita la autenticación GSSAPI en SSH
+    """
     print()
     print("="*100)
     print("[PASO 3]: Deshabilitar autenticacoón GSSAPI.")
@@ -278,6 +326,9 @@ def paso3_deshabilitar_gssapi():
 
     
 def paso4_login_grace_time():
+    """
+    Configura LoginGraceTime a 30 segundos.
+    """
     print()
     print("="*100)
     print("[PASO 4]: Configurar LoginGraceTime.")
@@ -296,6 +347,9 @@ def paso4_login_grace_time():
 
 
 def paso5_client_alive():
+    """
+    Configura el timeout de sesiones SSH inactivas.
+    """
     print()
     print("="*100)
     print("[PASO 5]: Configurar ClientAliveInterval y ClientAliveCountMax.")
@@ -318,6 +372,9 @@ def paso5_client_alive():
 
 
 def paso6_hostbased_auth():
+    """
+    Deshabilita la autenticación basada en host.
+    """
     print()
     print("="*100)
     print("[PASO 6]: Deshabilitar HostbasedAuthentication")
@@ -330,6 +387,9 @@ def paso6_hostbased_auth():
         recargar_ssh(paso)
 
 def paso7_ignore_rhosts():
+    """
+    Configura SSH para ignorar ficheros .rhosts y .shosts
+    """
     print()
     print("="*100)
     print("[PASO 7]: Configurar ClientAliveInterval y ClientAliveCountMax.")
@@ -343,6 +403,9 @@ def paso7_ignore_rhosts():
 
 
 def paso8_strict_modes():
+    """
+    Habilita StrictModes para verificar permisos de ficheros SSH
+    """
     print()
     print("="*100)
     print("[PASO 8]: Habilitar StrictModes")
@@ -356,6 +419,9 @@ def paso8_strict_modes():
 
 
 def paso9_permit_user_environment():
+    """
+    Deshabilita la capacidad de los usuarios de establecer variables de entorno a través de SSH
+    """
     print()
     print("="*100)
     print("[PASO 9]: Deshabilitar PermitUserEnvironment")
@@ -369,6 +435,9 @@ def paso9_permit_user_environment():
 
 
 def paso10_print_last_log():
+    """
+    Habilita PrintLastLog para mostrar la última conexión al hacer login.
+    """
     print()
     print("="*100)
     print("[PASO 10]: Habilitar PrintLastLog")

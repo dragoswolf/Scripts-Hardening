@@ -1,5 +1,29 @@
-#!/usr/bin/env pytho3
+#!/usr/bin/env python3
 
+#============================================================================================================
+# check_mod2.py - Script de verificación: Hardening General del SO
+#============================================================================================================
+# Este script verifica que las siguientes medidas de seguridad están correctamente configuradas:
+#   Paso 1: MOTD personalizado (sin información sensible)
+#   Paso 2: Banners de inicio de sessión
+#   Paso 3: Paquetes innecesarios u huérfanos eliminados
+#   Paso 4: Kernel y sistema actualizados
+#   Paso 5: Integridad de paquetes (GPG)
+#   Paso 6: Actualizaciones automáticas de seguridad
+#   Paso 7: Servicios innecesarios deshabilitados
+#   Paso 8: Principio de un servicio por sistema
+#   Paso 9: NTP/Chronyd habilitado
+#   Paso 10: Cronjobs restringidos a usuarios autorizados
+#   Paso 11: Contraseñas por defecto cambiadas
+#
+# Este script no modifica nada en el sistema. Solo lee y comprueba
+#
+# IMPORTANTE: Debe ejecutarse como root (sudo) para poder leer todos los ficheros de configuración
+#             necesarios.
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#============================================================================================================
 
 
 import os
@@ -21,23 +45,36 @@ from utils import(
     verificar_permisos
 )
 
+#============================================================================================================
+# CONSTANTES
+#============================================================================================================
 
+# Fichero de log para este módulo
 LOG_FILE="/var/log/hardening/check_mod2.log"
 
+# Directorio de scripts dinámicos del MOTD
 MOTD_DIR="/etc/update-motd.d"
+# Fichero estático del MOTD
 MOTD_FILE="/etc/motd"
+
+# Banners de inicio de sesión
 ISSUE_FILE="/etc/issue"
 ISSUE_NET_FILE="/etc/issue.net"
 SSHD_CONFIG_FILE="/etc/ssh/sshd_config"
 
+# Configuración de APT para verificación GPG
 APT_CONF_DIR="/etc/apt/apt.conf.d"
+
+# Configuración de unattended-upgrades
 UNATTENDED_CONF_FILE="/etc/apt/apt.conf.d/50unattended-upgrades"
 AUTO_UPGRADES_FILE="/etc/apt/apt.conf.d/20auto-upgrades"
 
+# Paquetes típicamente no necesarios
 PAQUETES_INNECESARIOS=[
     "telnet", "rsh-client", "talk", "nis", "whoopsie", "apport"
 ]
 
+# Servicios típicamente no necesarios
 SERVICIOS_INNECESARIOS=[
     "cups.service",
     "avahi-daemon.service",
@@ -46,14 +83,11 @@ SERVICIOS_INNECESARIOS=[
     "accounts-daemon.service"
 ]
 
-SERVICIOS_AUTORIZADOS_FILE="/etc/servicios-autorizados.txt"
-
-
 # Ficheros de control de cron
 CRON_ALLOW_FILE="/etc/cron.allow"
 CRON_DENY_FILE="/etc/cron.deny"
 AT_ALLOW_FILE="/etc/at.allow"
-AT_DENY_FILE="/etc/at.deny"
+
 
 #Directorios de cron del sistema
 DIRECTORIOS_CRON=[
@@ -64,20 +98,21 @@ DIRECTORIOS_CRON=[
     "/etc/cron.monthly"
 ]
 
+# Ficheros de Shadow para contraseñas
 SHADOW_FILE="/etc/shadow"
 PASSWD_FILE="/etc/passwd"
 
-
+# Palabras clave que indican información sensible en banners
 PALABRAS_SENSIBLES=[
     "Ubuntu",
-    "\\n",
-    "\\l",
-    "\\r",
-    "\\v",
-    "\\m"
+    "\\n",  # Secuencia que muestra el hostname
+    "\\l",  # Secuencia que muestra la terminal
+    "\\r",  # Secuencia que muestra la versión del kernel
+    "\\v",  # Secuencia que muestra la versión del SO
+    "\\m"   # Secuencia que muestra la arquitectura
 ]
 
-
+# Scripts por defecto de Ubuntu a comprobar
 SCRIPTS_DEFECTO=[
     "00-header",
     "10-help-text",
@@ -93,11 +128,20 @@ SCRIPTS_DEFECTO=[
 
 
 def verificar_paso1():
+    """
+    Verifica que el MOTD está personalizado y no revela información sensible.
+    Comprueba:
+        1. Que los scripts dinámicos por defecto de Ubuntu están deshabilitados
+        2. Que existe un banner personalizado
+        3. Que /etc/motd no contiene información del sistema
+    """
     print()
     print("="*100)
     print("[PASO 1]: MOTD personalizado")
     print("="*100)
 
+    # Los scripts en /etc/update-motd.d/ generan el MOTD. Los que vienen
+    # por defecto revelan información sensible.
     if os.path.isdir(MOTD_DIR):
         scriptsActivos=[]
 
@@ -146,6 +190,10 @@ def verificar_paso1():
 
 
 def verificar_paso2():
+    """
+    Verifica que los banners de /etc/issue y /etc/issue.net no revelan información del sistema
+    y que SSH está configurado para mostrar el banner.
+    """
     print()
     print("="*100)
     print("[PASO 2]: Banners de inicio de sesión")
@@ -202,6 +250,9 @@ def verificar_paso2():
 
 
 def verificar_paso3():
+    """
+    Verifica que no hay paquetes huérfanos ni paquetes comúnmente innecesarios en un servidor.
+    """
     print()
     print("="*100)
     print("[PASO 3]: Paquetes innecesarios y/o huérfanos.")
@@ -241,6 +292,10 @@ def verificar_paso3():
 
 
 def verificar_paso4():
+    """
+    Verifica que el kernel y el sistema están actualizados y que no hay reinicios
+    pendientes.
+    """
     print()
     print("="*100)
     print("[PASO 4]: Kernel y sistema actualizado")
@@ -286,6 +341,10 @@ def verificar_paso4():
         resultado_ok(f"Kernel actual: {salida.strip()}")
 
 def verificar_paso5():
+    """
+    Verifica que APT está configurado para rechazar paquetes sin firma GPG y que debsums
+    está instalado para verificar integridad.
+    """
     print()
     print("=" * 100)
     print("PASO 5: Verificación de integridad de paquetes (GPG)")
@@ -345,6 +404,10 @@ def verificar_paso5():
 
 
 def verificar_paso6():
+    """
+    Verifica que unattended-upgrades está instalado, configurado y que los timers de APT
+    están activos.
+    """
     print()
     print("=" * 100)
     print("PASO 6: Actualizaciones automáticas de seguridad")
@@ -406,6 +469,10 @@ def verificar_paso6():
             resultado_fail(f"Timer {timer} NO está activo.")
 
 def verificar_paso7():
+    """
+    Verifica que los servicios típicamente innecesarios en un servidor están deshabilitados
+    o no instalados.
+    """
     print()
     print("=" * 100)
     print("PASO 7: Servicios innecesarios deshabilitados.")
@@ -449,6 +516,10 @@ def verificar_paso7():
 
 
 def verificar_paso8():
+    """
+    Verifica el principio de mínimo servicio: audita los servicios en escucha y comprueba si
+    existe documentación de servicios autorizados.
+    """
     print()
     print("=" * 100)
     print("PASO 8: Principio de un servicio por sistema")
@@ -485,6 +556,10 @@ def verificar_paso8():
 
 
 def verificar_paso9():
+    """
+    Verifica que la sincronización de tiempo (NTP) está activa, ya sea con chrony o con 
+    systemd-timesyncd.
+    """
     print()
     print("=" * 100)
     print("PASO 9: NTP/Chronyd habilitado.")
@@ -540,6 +615,10 @@ def verificar_paso9():
 
 
 def verificar_paso10():
+    """
+    Verifica que cron y at están restringidos a usuarios autorizados mediante los ficheros cron.allow
+    y at.allow
+    """
     print()
     print("=" * 100)
     print("PASO 10: Cronjobs restringidos a usuarios autorizados.")
@@ -587,6 +666,10 @@ def verificar_paso10():
 
 
 def verificar_paso11():
+    """
+    Verifica que no hay cuentas con contraseñas vacías, que root está bloqueado (si se usa sudo)
+    y que las cuentas de servicio no tienen shell interactiva.
+    """
     print()
     print("=" * 100)
     print("PASO 11: Contraseñas por defecto cambiadas.")
@@ -659,6 +742,9 @@ def verificar_paso11():
 
 
 def main():
+    """
+    Función principal. Ejecuta todas las verificaciones en orden y muestra el resumen final.
+    """
     comprobar_root()
     configurar_logging(LOG_FILE)
 

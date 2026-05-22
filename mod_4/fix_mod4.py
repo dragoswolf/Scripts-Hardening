@@ -1,5 +1,24 @@
 #!/usr/bin/env python3
 
+#============================================================================================================
+# fix_mod4.py -  Script de hardening: PAM (Pluggable Authentication Modules)
+#============================================================================================================
+# Este script implementa las siguientes medidas de seguridad en Ubuntu Server:
+#
+#   Paso 1: Eliminar nullok (rechazar contraseñas vacías)
+#   Paso 2: Configurar pwquality (complejidad de contraseñas)
+#   Paso 3: Configurar faillock (bloqueo tras intentos fallidos)
+#   Paso 4: Configurar remember (historial de contraseñas)
+#   Paso 5: Configurar umask en PAM (permisos por defecto)
+#   Paso 6: Configurar pam_limits (límites de recursos)
+#
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#============================================================================================================
+
+
 import os
 import sys
 import re
@@ -31,6 +50,10 @@ LOG_FILE="/var/log/hardening/modulo4_fix.log"
 
 
 def paso1_eliminar_nullok():
+    """
+    Elimina la opción 'nullok' de pam_unix.so en los ficheros common-auth, common-password
+    y common-account.
+    """
     print()
     print("="*100)
     print("[PASO 1]: Eliminar nullok (rechazar contraseñas vacías)")
@@ -86,6 +109,9 @@ def paso1_eliminar_nullok():
 
 
 def paso2_configurar_pwquality():
+    """
+    Instala y configura pam_pwquality para exigir contraseñas robustas.
+    """
     print()
     print("="*100)
     print("[PASO 2]: Configurar la complejidad de contraseñas.")
@@ -194,6 +220,9 @@ retry=3
 
 
 def paso3_configurar_faillock():
+    """
+    Configura pam_faillock para bloquear cuentas tras intentos fallidos.
+    """
     print()
     print("="*100)
     print("[PASO 3]: Configurar bloqueos tras intentos fallidos.")
@@ -327,6 +356,10 @@ audit=True
 
 
 def paso4_configurar_remember():
+    """
+    Configura pam_unix.so con remember=5 para que no se puedan reutilizar las últimas
+    5 contraseñas.
+    """
     print()
     print("="*100)
     print("[PASO 4]: Configurar historial de contraseñas")
@@ -388,6 +421,10 @@ def paso4_configurar_remember():
 
 
 def paso5_configurar_umask():
+    """
+    COnfigura el umask a 027 en PAm para que los ficheros y directorios creados por los usuarios
+    no sean legibles por 'otros'
+    """
 
     print()
     print("="*100)
@@ -464,6 +501,10 @@ def paso5_configurar_umask():
 
 
 def paso6_configurar_limits():
+    """
+    Configura límites de recursos en /etc/security/limits.conf para prevenir abuso de recursos
+    y fork bombs
+    """
     print()
     print("="*100)
     print("[PASO 6]: Configurar límites de recursos")

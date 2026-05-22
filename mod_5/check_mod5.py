@@ -40,13 +40,29 @@ from utils import (configurar_logging,
                    verificar_permisos
                    )
 
-
+#=========================================================================================================
+# CONSTANTES
+#=========================================================================================================
 SSHD_CONFIG="/etc/ssh/sshd_config"
 
 LOG_FILE="/var/log/hardening/modulo5_check.log"
+#=========================================================================================================
 
 #Función auxiliar
 def obtener_directiva_ssh(directiva, contenido):
+    """
+    Busca una directiva en el contenido de sshd_config y devuelve su valor.
+
+    Solo busca líneas activas (no comentadas). SI la directiva no se encuentra o está comentada,
+    devuelve None.
+
+    Args:
+        directiva (str): Nombre de la directiva SSH
+        contenido (str): Contenido completo de sshd_config
+
+    Return:
+        str o None: Valor de la directiva, o None si no se encuentra.
+    """
     for linea in contenido.splitlines():
         lineaLimpia=linea.strip()
         if lineaLimpia.startswith("#") or not lineaLimpia:
@@ -62,6 +78,9 @@ def obtener_directiva_ssh(directiva, contenido):
 
 #Medidas de seguridad
 def verificar_paso1(contenido):
+    """
+    Verifica que el puerto SSH no es e estándar (22)
+    """
     print()
     print("="*100)
     print("[PASO 1]: Verificar el puerto SSH.")
@@ -88,6 +107,9 @@ def verificar_paso1(contenido):
 
 
 def verificar_paso2(contenido):
+    """
+    Verifica que AllowUsers está configurado para restringir acceso SSH
+    """
     print()
     print("="*100)
     print("[PASO 2]: Verificar AllowUsers.")
@@ -108,6 +130,9 @@ def verificar_paso2(contenido):
 
 
 def verificar_paso3(contenido):
+    """
+    Verifica que la autenticación GSSAPI está habilitada
+    """
     print()
     print("="*100)
     print("[PASO 3]: Verificar GSSAPI deshabilitado.")
@@ -127,6 +152,9 @@ def verificar_paso3(contenido):
 
 
 def verificar_paso4(contenido):
+    """
+    Verifica que LoginGraceTime tiene un valor bajo (<= 60 segundos)
+    """
     print()
     print("="*100)
     print("[PASO 4]: Verificar LoginGraceTime.")
@@ -169,6 +197,9 @@ def verificar_paso4(contenido):
 
 
 def verificar_paso5(contenido):
+    """
+    Verifica que los timeouts de sesión SSH están configurados.
+    """
     print()
     print("="*100)
     print("[PASO 5]: Verificar ClientAliveInterval y ClientAliveCountMax.")
@@ -211,6 +242,9 @@ def verificar_paso5(contenido):
 
 
 def verificar_paso6(contenido):
+    """
+    Verifica que HostbasedAuthentication está deshabilitado
+    """
     print()
     print("="*100)
     print("[PASO 6]: Verificar HostbasedAuthentication.")
@@ -230,6 +264,9 @@ def verificar_paso6(contenido):
 
 
 def verificar_paso7(contenido):
+    """
+    Verifica que IgnoreRhosts está habilitado
+    """
     print()
     print("="*100)
     print("[PASO 7]: Verificar IgnoreRhosts.")
@@ -249,6 +286,9 @@ def verificar_paso7(contenido):
 
 
 def verificar_paso8(contenido):
+    """
+    Verifica que StrictModes está habilitado.
+    """
     print()
     print("="*100)
     print("[PASO 8]: Verificar StrictModes.")
@@ -268,6 +308,9 @@ def verificar_paso8(contenido):
 
 
 def verificar_paso9(contenido):
+    """
+    Verifica que PermitUserEnvironment está deshabilitado
+    """
     print()
     print("="*100)
     print("[PASO 9]: Verificar PermitUserEnvironment.")
@@ -288,6 +331,9 @@ def verificar_paso9(contenido):
 
 
 def verificar_paso10(contenido):
+    """
+    Verifica que PrintLastLog está habilitado
+    """
     print()
     print("="*100)
     print("[PASO 10]: Verificar PrintLastLog.")

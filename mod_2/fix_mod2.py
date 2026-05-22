@@ -1,4 +1,28 @@
 #!/usr/bin/env python3
+#============================================================================================================
+# fix_mod2.py -  Script de hardening: Hardening General del SO
+#============================================================================================================
+# Este script implementa las siguientes medidas de seguridad en Ubuntu Server:
+#
+#   Paso 1: Personalizar MOTD para eliminar información sensible
+#   Paso 2: Configurar banners de inicio de sesión
+#   Paso 3: Eliminar paquetes innecesarios u huérfanos
+#   Paso 4: Actualizar kernel y sistema
+#   Paso 5: Configurar verificación de integridad de paquetes (GPG)
+#   Paso 6: Configurar actualizaciones automáticas de seguridad
+#   Paso 7: Detener y deshabilitar servicios innecesarios
+#   Paso 8: Documentar servicios autorizados (un servicio por sistema)
+#   Paso 9: Habilitar NTP/Chronyd
+#   Paso 10: Restringir cronjobs a usuarios autorizados
+#   Paso 11: Cambiar contraseñas por defecto y bloquear cuentas inseguras
+#
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#============================================================================================================
+
+
 
 import os
 import sys
@@ -10,23 +34,35 @@ from utils import (configurar_logging, registrar_errores, comprobar_root,
                    ejecutar_comando, volver_al_menu, escribir_fichero, leer_fichero)
 
 
+#============================================================================================================
+# CONSTANTES
+#============================================================================================================
+# Fichero de log para este módulo
 LOG_FILE="/var/log/hardening/fix_mod2.log"
 
+# Directorio de scripts dinámicos del MOTD
 MOTD_DIR="/etc/update-motd.d"
+
+# Fichero estático del MOTD
 MOTD_FILE="/etc/motd"
+
+# Banners de inicio de sesión
 ISSUE_FILE="/etc/issue"
 ISSUE_NET_FILE="/etc/issue.net"
 SSHD_CONFIG_FILE="/etc/ssh/sshd_config"
 
+# Configuración de APT
 APT_CONF_DIR="/etc/apt/apt.conf.d"
 UNATTENDED_CONF_FILE="/etc/apt/apt.conf.d/50unattended-upgrades"
 AUTO_UPGRADES_FILE="/etc/apt/apt.conf.d/20auto-upgrades"
 GPG_ENFORCE_FILE="/etc/apt/apt.conf.d/99-force-gpg-verify"
 
+# Paquetes innecesarios típicamente instalados
 PAQUETES_INNECESARIOS=[
     "telnet", "rsh-client", "talk", "nis", "whoopsie", "apport"
 ]
 
+# Servicios innecesarios típicamente existentes
 SERVICIOS_INNECESARIOS=[
     "cups.service",
     "avahi-daemon.service",
@@ -35,10 +71,10 @@ SERVICIOS_INNECESARIOS=[
     "accounts-daemon.service"
 ]
 
+# Documentación de servicios autorizados.
 SERVICIOS_AUTORIZADOS_FILE="/etc/servicios-autorizados.txt"
 
-#banner para el MOTD
-
+# Banner para el MOTD
 TEXTO_MOTD_SCRIPT="""#!/bin/bash
 # =============================================================================
 # Banner MOTD personalizado — Hardening Ubuntu Server
@@ -56,7 +92,7 @@ echo "*                                                                     *"
 echo "***********************************************************************"
 """
 
-#banner legal para issue/issue.net
+# Banner legal para issue/issue.net
 TEXTO_BANNER="""*******************************************************************
 *  ATENCION: Sistema restringido. Solo personal autorizado.       *
 *  Todo acceso queda registrado. El uso no autorizado sera        *
@@ -79,10 +115,20 @@ DIRECTORIOS_CRON=[
     "/etc/cron.monthly"
 ]
 
+# Ficheros de contraseñas
 SHADOW_FILE="/etc/shadow"
 PASSWD_FILE="/etc/passwd"
 
 def paso1_personalizar_motd():
+    """
+    Personaliza el MOTD para eliminar información sensible del sistema.
+    Deshabilita los scripts dinámicos por defecto y crea un banner legal.
+
+    Proceso:
+        1. Quitar permisos de ejecución a todos los scripts por defecto
+        2. Crear un script personalizado con aviso legal
+        3. Vaciar /etc/motd estático
+    """
     print()
     print("="*100)
     print("[PASO 1]: Personalizar MOTD (Message of the Day)")
@@ -122,6 +168,16 @@ def paso1_personalizar_motd():
 
 
 def paso2_configurar_banners():
+    """
+    Configura los banners de /etc/issue y /etc/issue.net para eliminar información sensible y añadir
+    un aviso legal. Configura SSH para mostrar el banner en conexiones remotas.
+
+    Proceso:
+        1. Sobreescribir /etc/issue con banner legal
+        2. Sobreescribir /etc/issue.net con banner legal
+        3. Configurar la directiva Banner en ssh_config
+        3. Reiniciar SSH
+    """
     print()
     print("="*100)
     print("[PASO 2]: Configurar banners de inicio de sesión")
@@ -176,6 +232,14 @@ def paso2_configurar_banners():
 
 
 def paso3_eliminar_paquetes():
+    """
+    Elimina paquetes huérfanos y paquetes comúnmente innecesarios en un servidor.
+
+    Proceso:
+        1. Ejecutar apt autoremove --purge para huérfanos
+        2. Eliminar paquetes específicos de la lista
+        3. Limpiar caché de APT
+    """
     print()
     print("="*100)
     print("[PASO 3]: Eliminar paquetes innecesarios u huérfanos")
@@ -217,6 +281,16 @@ def paso3_eliminar_paquetes():
 
 
 def paso4_actualizar_sistema():
+    """
+    Actualiza la lista de paquetes y aplica todas las actualizaciones disponibles,
+    incluyendo las del kernel.
+
+    Proceso:
+        1. Actualizar indices de repositorios
+        2. Aplicar actualizaciones
+        3. Aplicar actualizaciones con cambios de dependencias
+        4. Comprobar si se requiere reinicio
+    """
 
     print()
     print("="*100)
@@ -255,6 +329,14 @@ def paso4_actualizar_sistema():
 
 
 def paso5_configurar_gpg():
+    """
+    Configura APT para rechazar paquetes sin firma GPG válida e instala debsums para verificar
+    la integridad de los paquetes instalados.
+
+    Proces:
+        1. Crea fichero de refuerzo GPG en apt.conf.d
+        2. Instala debsums
+    """
     print()
     print("="*100)
     print("[PASO 5]: Verificación de integridad de paquetes (GPG)")
@@ -289,6 +371,14 @@ def paso5_configurar_gpg():
 
 
 def paso6_configurar_unattended():
+    """
+    Instala y configura unattended-upgrades para aplicar parches de seguridad de forma automática y diaria.
+
+    Proceso:
+        1. Instalar unattended-upgrades (si no está)
+        2. Configurar 20auto-upgrades para ejecución diaria
+        3. Habilitar timers de APT
+    """
     print()
     print("="*100)
     print("[PASO 6]: Verificación de integridad de paquetes (GPG)")
@@ -373,6 +463,15 @@ def paso6_configurar_unattended():
 
 
 def paso7_deshabilitar_servicios():
+    """
+    Detiene y deshabilita servicios que típicamente no son necesarios en un servidor.
+    Ofrece la opción de enmascararlos.
+
+    Proceso:
+        1. Detiene cada servicio innecesario
+        2. Los deshabilita para que no se inicien durante el arranque
+        3. Enmascararlos para máxima protección
+    """
     print()
     print("="*100)
     print("[PASO 7]: Detener y deshabilitar servicios innecesarios.")
@@ -413,7 +512,15 @@ def paso7_deshabilitar_servicios():
 
 
 def paso8_documentar_servicios():
+    """
+    Crea un fichero de documentación con los servicios de red actualmente activos
+    para futuras auditorías. Implementa el principio de un servicio por sistema
+    documentando la función del servidor.
 
+    Proceso:
+        1. Obtener la lista de servicios de red activos
+        2. Crear /etc/servicios-autorizados.txt con la lista
+    """
     print()
     print("="*100)
     print("[PASO 8]: Documentar servicios autorizados (un servicio por sistema)")
@@ -464,6 +571,15 @@ def paso8_documentar_servicios():
 
 
 def paso9_habilitar_ntp():
+    """
+    Instala y configura chrony para sincronización NTP, asegurando que el reloj del sistema sea preciso
+    para logs, TLS u otros servicios que se puedan instalar en el futuro.
+
+    Proceso:
+        1. Instalar chrony
+        2. Habilitar y arrancar el servicio
+        3. Configurar zona horaria
+    """
     print()
     print("="*100)
     print("[PASO 9]: Habilitar NTP/Chronyd")
@@ -509,6 +625,17 @@ def paso9_habilitar_ntp():
 
 
 def paso10_restringir_cron():
+    """
+    Restringe el acceso a cron y at a solo los usuarios autorizados mediante los ficheros
+    cron.allow y at.allow
+
+    Proceso:
+        1. Crear /etc/cron.allow con solo root
+        2. Eliminar /etc/cron.deny (si existe)
+        3. Crear /etc/at.allow con solo root
+        4. Eliminar /etc/at.deny (si existe)
+        5. proteger directorios de cron del sistema.
+    """
     print()
     print("="*100)
     print("[PASO 10]: Restringir cronjobs a usuarios autorizados")
@@ -550,6 +677,15 @@ def paso10_restringir_cron():
 
 
 def paso11_asegurar_contrasenas():
+    """
+    Busca y corrige cuentas con contraseñas vacías, bloquea la cuenta root (si se usa sudo) y
+    asegura que las cuentas de servicio no tengan shell interactiva.
+
+    Proceso:
+        1. Detectar cuentas con contraseña vacía y bloquarlas
+        2. Bloquar la cuenta root
+        3. Cambiar la shell de cuentas de servicio con shell interactiva
+    """
     print()
     print("="*100)
     print("[PASO 11]: Cambiar contraseñas por defecto y bloquear cuentas")
@@ -622,6 +758,9 @@ def paso11_asegurar_contrasenas():
 
 
 def mostrar_menu():
+    """
+    Muestra el menú principal del script.
+    """
     print()
     print("="*100)
     print("MÓDULO 2: Hardening General del Sistema Operativo - Ubuntu Server 24.04")

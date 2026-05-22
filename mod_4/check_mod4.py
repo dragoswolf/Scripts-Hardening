@@ -1,5 +1,24 @@
 #!/usr/bin/env python3
 
+#============================================================================================================
+# Check_mod4.py -  Script de hardening: Auditar PAM (Pluggable Authentication Modules)
+#============================================================================================================
+# Este script implementa las siguientes medidas de seguridad en Ubuntu Server:
+#
+#   Paso 1: Auditar ausencia de nullok
+#   Paso 2: Auditar configuración de pwquality
+#   Paso 3: Auditar configuración de faillock
+#   Paso 4: Auditar el historial de contraseñas
+#   Paso 5: Auditar umask en PAM
+#   Paso 6: Auditar límites de recursos
+#
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#============================================================================================================
+
+
 
 import os
 import sys
@@ -11,13 +30,18 @@ from utils import (configurar_logging, comprobar_root,
                    resultado_fail, resultado_ok, resultado_warn, 
                    mostrar_resumen, contadores, verificar_permisos)
 
+#============================================================================================================
+# CONSTANTES
+#============================================================================================================
 
+# Ficheros de configuración de PAM
 PAM_COMMON_AUTH= "/etc/pam.d/common-auth"
 PAM_COMMON_PASSWORD="/etc/pam.d/common-password"
 PAM_COMMON_SESSION="/etc/pam.d/common-session"
 PAM_COMMON_ACCOUNT="/etc/pam.d/common-account"
 PAM_LOGIN="/etc/pam.d/login"
 
+# Ficheros de configuración de varios módulos PAM
 PWQUALITY_CONF="/etc/security/pwquality.conf"
 FAILLOCK_CONF="/etc/security/faillock.conf"
 LIMITS_CONF="/etc/security/limits.conf"
@@ -27,12 +51,17 @@ UMASK_DESEADO="777"
 REMEMBER_VALUE=5
 LOGIN_FILE="/etc/login.defs"
 
-
+# Fichero de configuración de log
 LOG_FILE="/var/log/hardening/modulo4_check.log"
+
+#============================================================================================================
 
 
 
 def verificar_paso1():
+    """
+    Verrifica que ningún fichero PAM common-* tenga la opción nullok en pam_unix.so
+    """
     print()
     print("="*100)
     print("[PASO 1]: Verificar ausencia de nullok")
@@ -63,6 +92,9 @@ def verificar_paso1():
 
 
 def verificar_paso2():
+    """
+    Verifica que pwquality está instalado y configurado correctamente.
+    """
     print()
     print("="*100)
     print("[PASO 2]: Verificar configuración de pwquality")
@@ -132,6 +164,10 @@ def verificar_paso2():
             resultado_fail(f"pwquality: {param} no configurado", paso)
 
 def verificar_paso3():
+    """
+    Verifica que faillock está correctamente configurado para bloquear cuentas tras intentos
+    fallidos.
+    """
     print()
     print("="*100)
     print("[PASO 3]: Verificar configuración de faillock.")
@@ -223,6 +259,10 @@ def verificar_paso3():
 
 
 def verificar_paso4():
+    """
+    Verifica que pam_unix.so tiene remember configurado y que /etc/security/opasswd existe
+    con permisos correctos
+    """
     print()
     print("="*100)
     print("[PASO 4]: Verificar historial de contraseñas.")
@@ -259,6 +299,9 @@ def verificar_paso4():
 
 
 def verificar_paso5():
+    """
+    Verifica que el umask está configurado a 027 (o más restrictivo) tanto en PAM como en login.defs
+    """
     print()
     print("="*100)
     print("[PASO 5]: Verificar umask en PAM.")
@@ -314,6 +357,9 @@ def verificar_paso5():
 
 
 def verificar_paso6():
+    """
+    Verifica que los límites de recursos están configurados correctamente.
+    """
     print()
     print("="*100)
     print("[PASO 6]: Verificar límites de recursos.")

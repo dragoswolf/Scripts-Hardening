@@ -1,5 +1,29 @@
 #!/usr/bin/env python3
 
+#============================================================================================================
+# fix_mod3.py -  Script de hardening: Usuarios y Grupos
+#============================================================================================================
+# Este script implementa las siguientes medidas de seguridad en Ubuntu Server:
+#
+#   Paso 1: Auditar /etc/passwd (usuarios del sistema)
+#   Paso 2: Auditar grupos y pertenencia
+#   Paso 3: Configuración segura de sudo
+#   Paso 4: Proteger /etc/shadow
+#   Paso 5: Configurar /etc/login.defs
+#   Paso 6: Aplicar envejecimiento a usuarios existentes
+#   Paso 7: Deshabilitar cuentas sin contraseña
+#   Paso 8: Bloquear usuarios no-root con UID 0
+#   Paso 9: Bloqueo automático de cuentas inactivas.
+#   Paso 10: Restringir acceso root directo
+#
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#============================================================================================================
+
+
+
 import os
 import sys
 
@@ -8,7 +32,9 @@ from utils import (configurar_logging, registrar_errores, comprobar_root,
                    ejecutar_comando, volver_al_menu, escribir_fichero, leer_fichero, cambiar_permisos,
                    ejecutar_comando_check)
 
-
+#============================================================================================================
+# CONSTANTES
+#============================================================================================================
 
 PASSWD_FILE="/etc/passwd"
 SHADOW_FILE="/etc/shadow"
@@ -61,6 +87,10 @@ SHELLS_INTERACTIVAS=[
 
 
 def paso1_auditar_passwd():
+    """
+    Audita /etc/passwd y ofrece cambiar la shell de las cuentas de servicio que tengan
+    shell interactiva a /usr/sbin/nologin
+    """
     print()
     print("="*100)
     print("[PASO 1]: Auditar /etc/passwd")
@@ -114,6 +144,10 @@ def paso1_auditar_passwd():
 
 
 def paso2_auditar_grupos():
+    """
+    Muestra los miembros de los grupos sensibles y permite eliminar usuarios de grupos
+    a los que no deberían pertencer.
+    """
     print()
     print("="*100)
     print("[PASO 2]: Auditar grupos y pertenencia")
@@ -149,6 +183,10 @@ def paso2_auditar_grupos():
 
 
 def paso3_configurar_sudo():
+    """
+    Crea un fichero de configuración de hardening para sudo en /etc/sudoers.d/hardening
+    con las directivas de seguridad recomendadas.
+    """
     print()
     print("="*100)
     print("[PASO 3]: Configurar sudo")
@@ -198,6 +236,9 @@ def paso3_configurar_sudo():
 
 
 def paso4_proteger_shadow():
+    """
+    Establece los permisos y propietario correctos de /etc/shadow
+    """
     print()
     print("="*100)
     print("[PASO 4]: Proteger Shadow")
@@ -251,6 +292,9 @@ def paso4_proteger_shadow():
  
 
 def paso5_configurar_login_defs():
+    """
+    Configura los parámetros de política de contraseñas en /etc/login.defs
+    """
     print()
     print("="*100)
     print("[PASO 4]: Proteger Shadow")
@@ -303,6 +347,10 @@ def paso5_configurar_login_defs():
 
     
 def paso6_envejecimiento_contrasenas():
+    """
+    Aplica la política de envejecimiento de contraseñas a todos los usuarios humanos 
+    existentes (UID >= 1000)
+    """
     print()
     print("="*100)
     print("[PASO 6]: Envejecimiento de contraseñas en usuarios existentes.")
@@ -339,6 +387,9 @@ def paso6_envejecimiento_contrasenas():
 
 
 def paso7_cuentas_sin_contrasena():
+    """
+    Busca y bloquea cuentas con contraseña vacía. También verifica PermitEmptyPasswords en SSH
+    """
     print()
     print("="*100)
     print("[PASO 7]: Deshabilitar cuentas sin contraseña.")
@@ -406,6 +457,9 @@ def paso7_cuentas_sin_contrasena():
 
 
 def paso8_bloquear_uid0():
+    """
+    Busca y bloquea cuentas que no sean root pero tengan UID 0
+    """
     print()
     print("="*100)
     print("[PASO 8]: Buscar y bloquear cuentas no-root con UID 0.")
@@ -439,6 +493,10 @@ def paso8_bloquear_uid0():
 
     
 def paso9_bloqueo_inactivas():
+    """
+    Configura el bloqueo automático de cuentas tras un período de inactividad
+    (contraseña expirada sin cambiar)
+    """
     print()
     print("="*100)
     print("[PASO 9]: Bloqueo automático de cuentas inactivas.")
@@ -474,6 +532,11 @@ def paso9_bloqueo_inactivas():
             print(f"[CORRECTO]: INACTIVE=30 aplicado a: {usuario}")
 
 def paso10_restringir_root():
+    """
+    Restringe el acceso directo como root:
+    1. Bloquea la contraseña de root
+    2. Configura SSH para prohibir login como root
+    """
     print()
     print("="*100)
     print("[PASO 10]: Restringir acceso root directo.")

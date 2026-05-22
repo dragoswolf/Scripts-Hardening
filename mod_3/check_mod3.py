@@ -1,5 +1,29 @@
 #!/usr/bin/env python3
 
+#============================================================================================================
+# check_mod3.py -  Script de hardening: Auditar Usuarios y Grupos
+#============================================================================================================
+# Este script implementa las siguientes medidas de seguridad en Ubuntu Server:
+#
+#   Paso 1: Auditar /etc/passwd (usuarios del sistema)
+#   Paso 2: Auditar grupos y pertenencia
+#   Paso 3: Auditar configuración segura de sudo
+#   Paso 4: Auditar la protección de /etc/shadow
+#   Paso 5: Auditar configuración /etc/login.defs
+#   Paso 6: Auditar envejecimiento a usuarios existentes
+#   Paso 7: Auditar cuentas sin contraseña
+#   Paso 8: Auditar usuarios no-root con UID 0
+#   Paso 9: Auditar automático de cuentas inactivas.
+#   Paso 10: Auditar acceso root directo
+#
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#============================================================================================================
+
+
+
 import os
 import sys
 import stat
@@ -11,7 +35,9 @@ from utils import (configurar_logging, registrar_errores, comprobar_root,
                    contadores, verificar_permisos)
 
 
-
+#============================================================================================================
+# CONSTANTES
+#============================================================================================================
 PASSWD_FILE="/etc/passwd"
 SHADOW_FILE="/etc/shadow"
 LOGIN_DEFS_FILE="/etc/login.defs"
@@ -37,8 +63,16 @@ SHELLS_INTERACTIVAS=[
     "bin/fish"
 ]
 
+#============================================================================================================
+
 
 def verificar_paso1():
+    """
+    Verifica la integridad y seguridad de /etc/passwd:
+        1. Que el fichero existe y tiene los permisos correctos (644)
+        2. Que no hay cuentas de servicio con shell interactiva
+        3. Que cada línea tiene exactamente 7 campos
+    """
     print()
     print("="*100)
     print("[PASO 1]: Auditar /etc/passwd")
@@ -78,6 +112,11 @@ def verificar_paso1():
 
 
 def verificar_paso2():
+    """
+    Verifica la pertenencia a grupos sensibles:
+        1. Que el grupo sudo solo tiene los usuarios mínimos necesarios
+        2. Que los grupos sensibles están documentados
+    """
     print()
     print("="*100)
     print("[PASO 2]: Auditoría de grupos y pertenencia")
@@ -107,6 +146,12 @@ def verificar_paso2():
 
 
 def verificar_paso3():
+    """
+    Verifica la configuración de seguridad de sudo:
+        1. Que el fichero sudoers tiene los permisos correctos
+        2. Que no hay reglas NOPASSWD innecesarias
+        3. Que existe un fichero de hardening en sudoers.d
+    """
     print()
     print("="*100)
     print("[PASO 3]: Auditar configuración de sudo.")
@@ -151,6 +196,12 @@ def verificar_paso3():
 
 
 def verificar_paso4():
+    """
+    Verifica la protección del fichero /etc/shadow
+        1. Comprueba permisos correctos (640 o 600)
+        2. Comprueba que tiene el propietario correcto (root:shadow o root:root)
+        3. Comprueba que usa un algoritmo de hash seguro (yescrypt o SHA-512)
+    """
     print()
     print("="*100)
     print("[PASO 4]: Auditar protección de /etc/shadow.")
@@ -197,6 +248,15 @@ def verificar_paso4():
 
 
 def verificar_paso5():
+    """
+    Verifica los parámetros de política de contraseñas y rangos UID/GID
+    en /etc/login.defs:
+        1. PASS_MAX_DAYS <= 90
+        2. PASS_MIN_DAYS >= 7
+        3. PASS_WARN_AGE >= 14
+        4. ENCRYPT_METHOD = yescrypt
+        5. Rangos UID/GID correctos
+    """
     print()
     print("="*100)
     print("[PASO 5]: Auditar políticas de contraseñas y UID/GID en /etc/login.defs.")
@@ -281,6 +341,10 @@ def verificar_paso5():
 
 
 def verificar_paso6():
+    """
+    Verifica que los usuarios humanos existentes tienen la política de envejecimiento
+    de contraseñas aplicada correctamente.
+    """
     print()
     print("="*100)
     print("[PASO 6]: Auditar envejecimiento de contraseñas en usuarios existentes.")
@@ -345,6 +409,9 @@ def verificar_paso6():
 
 
 def verificar_paso7():
+    """
+    Verifica que no hay cuentas con contraseña vacía.
+    """
     print()
     print("="*100)
     print("[PASO 7]: Auditar cuentas sin contraseña deshabilitadas.")
@@ -391,6 +458,9 @@ def verificar_paso7():
 
     
 def verificar_paso8():
+    """
+    Verifica que solo root tiene UID 0.
+    """
     print()
     print("="*100)
     print("[PASO 8]: Auditar usuarios no-root con UID 0.")
@@ -421,6 +491,10 @@ def verificar_paso8():
 
 
 def verificar_paso9():
+    """
+    Verifica que el período de inactividad está configurado para bloquear cuentas
+    automáticamente tras la expiración de la contraseña.
+    """
     print()
     print("="*100)
     print("[PASO 9]: Auditar bloqueo automático de cuentas inactivas.")
@@ -452,6 +526,11 @@ def verificar_paso9():
 
 
 def verificar_paso10():
+    """
+    Verifica que el acceso directo como root está restringido:
+        1. Contraseña de root bloqueada
+        2. SSH: PermitRootLogin = no
+    """
     print()
     print("="*100)
     print("[PASO 10]: Auditar restricción al acceso directo a root.")
