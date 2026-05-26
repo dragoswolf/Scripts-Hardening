@@ -28,6 +28,17 @@ WHITELIST_SUID=[
     "/usr/libexec/polkit-agent-helper-1",
 ]
 
+WHITELIST_SGID=[
+    "/usr/bin/chage",
+    "/usr/bin/crontab",
+    "/usr/bin/expiry",
+    "/usr/bin/ssh-agent",
+    "/usr/bin/wall",
+    "/usr/bin/write",
+    "/usr/sbin/pam_extrausers_chkpwd",
+    "/usr/sbin/unix_chkpwd",
+]
+
 DIRECTORIOS_EXCLUIDOS_WW=[
     "/tmp",
     "/var/tmp",
@@ -40,6 +51,13 @@ DIRECTORIOS_EXCLUIDOS_WW=[
 
 FSTAB="/etc/fstab"
 
+
+FICHEROS_CRITICOS=[
+    "/etc/passwd",
+    "/etc/shadow",
+    "/etc/group",
+    "/etc/gshadow",
+]
 
 
 def paso1_auditar_suid_sgid():
@@ -90,7 +108,7 @@ def paso1_auditar_suid_sgid():
                                             "-not", "-path", "/proc/*", "-not", "-path", "/sys/*"])
     
     sgidEncontrados=[l.strip() for l in salida.splitlines() if l.strip()]
-    sgidSospechosos = [b for b in sgidEncontrados if b not in WHITELIST_SUID]
+    sgidSospechosos = [b for b in sgidEncontrados if b not in WHITELIST_SGID]
 
     print(f"    Binarios SGID encontrados:  {len(sgidEncontrados)}")
     print(f"    En whitelist:               {len(sgidEncontrados)-len(sgidSospechosos)}")
@@ -308,6 +326,130 @@ def paso3_opciones_montaje():
         print()
         print("[CORRECTO]: Todas las opciones de montaje están correctas.")
 
+
+
+def paso4_chattr_ficheros():
+    print()
+    print("="*100)
+    print("[PASO 4]: Proteger ficheros críticos.")
+    print("="*100)
+    print()
+
+    paso="Paso 4"
+
+    print("[INFO]: Estado actual de los ficheros críticos.")
+    print()
+
+    estadoActual={}
+
+    for fichero in FICHEROS_CRITICOS:
+        rc, salida, _=ejecutar_comando_check(["lsattr", "-v", fichero])
+
+        if rc==0 and salida.strip():
+            atributos=salida.split()
+            esInmutable="i" in atributos
+            estadoActual[fichero]=esInmutable
+            nombre=os.path.basename(fichero)
+
+            if esInmutable:
+                print(f" \033[92m[BLOQUEADO]\033[0m  {nombre}")
+            else:
+                print(f" \033[93m[DESBLOQUEADO]\033[0m  {nombre}")
+        else:
+            estadoActual[fichero]=False
+            nombre=os.path.basename
+            print(f"  \033[91m[ERROR]\033[0m    No se pudo leer: {nombre}")
+
+    print()
+    print("¿Qué deseas hacer?")
+    print()
+    print(" 1) Bloquear - Protege contra modificaciones")
+    print(" 2) Desbloquear - Permite gestión de usuarios/grupos")
+    print(" 0) Saltar este paso")
+    print()
+
+    opcion=input("Selecciona una opción [0-2]: ").strip()
+
+    if opcion=="1":
+        print()
+        print("[INFO] Bloqueando ficheros críticos...")
+        for fichero in FICHEROS_CRITICOS:
+            nombre=os.path.basename(fichero)
+            if estadoActual.get(fichero, False):
+                print(f"    [CORRECTO] {nombre} ya está bloqueado.")
+            else:
+                directorioBase=os.path.dirname(fichero)
+                ejecutar_comando(["chattr", "+a", directorioBase], f"bloquear {fichero}", paso)
+                print(f"[CORRECTO]: {nombre} bloqueado.")
+
+        print()
+        print("[CORRECTO]: Ficheros críticos protegidos.")
+        print("[INFO]: Recuerda desbloquear antes de gestionar usuarios o grupos.")
+    
+    elif opcion=="2":
+        print()
+        print("[INFO]: Desbloqueando ficheros críticos...")
+        for fichero in FICHEROS_CRITICOS:
+            nombre=os.path.basename(fichero)
+            if not estadoActual.get(fichero, False):
+                print(f"[CORRECTO]: {nombre} ya está desbloqueado.")
+            else:
+                directorioBase=os.path.dirname(fichero)
+                ejecutar_comando(["chattr", "-R", "-i", directorioBase], f"desbloquear {fichero}", paso)
+                print(f"[CORRECTO]: {nombre} desbloqueado.")
+        print()
+        print("[CORRECTO]: Ficheros desbloqueados. Ya puede gestionar usuarios y grupos.")
+        print("[AVISO]: No olvide volver a bloquearlos cuando termine.")
+    else:
+        print("[INFO]: Paso omitido.")
+
+
+def mostar_menu():
+    print()
+    print("="*100)
+    print("Hardening: Sistema de Ficheros)")
+    print("="*100)
+    print()
+    print(" Pasos disponibles:")
+    print("     1. Auditar binarios SUID/SGID")
+    print("     2. Auditar filesystem")
+    print("     3. Configurar opciones de montaje")
+    print("     4. Bloquear/desbloquear ficheros críticos.")
+    print()
+    print("     q. Salir")
+    print()
+
+def main():
+
+    comprobar_root()
+    configurar_logging(LOG_FILE)
+
+    while True:
+        mostar_menu()
+        opcion=input("Selecciona una opción: ").strip().lower()
+
+        match opcion:
+            case "1":
+                paso1_auditar_suid_sgid
+                volver_al_menu()
+            case "2":
+                paso2_auditoria_filesystem
+                volver_al_menu()
+            case "3":
+                paso3_opciones_montaje
+                volver_al_menu()
+            case "4":
+                paso4_chattr_ficheros
+                volver_al_menu()
+            case "q":
+                print("\n[INFO]: Saliendo del script.")
+                sys.exit(0)
+            case _:
+                print("[ERROR]: Opción no válida. Inténtelo de nuevo.")
+
+
+if __name__=="__main__":
+    main()
 
 
 
