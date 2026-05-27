@@ -285,14 +285,14 @@ def paso3_opciones_montaje():
             if punto=="/tmp":
                 print(f"[INFO]: Añadiendo entrada para {punto} en {FSTAB}...")
                 opciones=",".join(["defaults"] + opcionesRequeridas)
-                nuevaLinea=f"tmpfs {punto} tmpfs {opciones}  0  0"
+                nuevaLinea=f"tmpfs  {punto}  tmpfs  {opciones}  0  0"
                 lineas.append(nuevaLinea)
                 modificado=True
                 print(f"[CORRECTO]: Entrada añadida: {nuevaLinea}")
             elif punto=="/dev/shm":
                 print(f"[INFO]: Añadiendo entrada para {punto} en {FSTAB}...")
                 opciones=",".join(["defaults"]+opcionesRequeridas)
-                nuevaLinea=f"tmpfs {punto} tmpfs {opciones}  0  0"
+                nuevaLinea=f"tmpfs  {punto}  tmpfs  {opciones}  0  0"
                 lineas.append(nuevaLinea)
                 modificado=True
                 print(f"[CORRECTO]: Entrada añadida: {nuevaLinea}")
