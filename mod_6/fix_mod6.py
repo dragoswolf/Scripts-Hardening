@@ -71,7 +71,7 @@ def paso1_auditar_suid_sgid():
 
     print("[INFO]: Buscando binarios con bit SUID...")
 
-    rc, salida, _ = ejecutar_comando_check(["find", "/", "-xdev", "-type", "d", "-perm", "4000",
+    rc, salida, _ = ejecutar_comando_check(["find", "/", "-xdev", "-type", "f", "-perm", "-4000",
                                             "-not", "-path", "/proc/*", "-not", "-path", "/sys/*"])
     
     suidEncontrados=[l.strip() for l in salida.splitlines() if l.strip()]
@@ -85,7 +85,7 @@ def paso1_auditar_suid_sgid():
         print()
         print("[AVISO]: Binarios SUID no reconocidos: ")
 
-        for i, binario in enumerate(suidSospechosos):
+        for i, binario in enumerate(suidSospechosos, 1):
             print(f"    {i}. {binario}")
 
         print()
@@ -94,7 +94,7 @@ def paso1_auditar_suid_sgid():
         if resp=="s":
             for binario in suidSospechosos:
                 print(f"    Eliminando SUID de {binario}....")
-                ejecutar_comando(["chmod", "u+s", binario], f"eliminar SUID de {binario}", paso)
+                ejecutar_comando(["chmod", "u-s", binario], f"eliminar SUID de {binario}", paso)
             
             print("[CORRECTO]: Bits SUID eliminados.")
         else:
@@ -104,7 +104,7 @@ def paso1_auditar_suid_sgid():
 
     print("[INFO]: Buscando binarios con bit SGID...")
 
-    rc, salida, _ = ejecutar_comando_check(["find", "/", "-xdev", "-type", "d", "-perm", "-2000",
+    rc, salida, _ = ejecutar_comando_check(["find", "/", "-xdev", "-type", "f", "-perm", "-2000",
                                             "-not", "-path", "/proc/*", "-not", "-path", "/sys/*"])
     
     sgidEncontrados=[l.strip() for l in salida.splitlines() if l.strip()]
@@ -127,7 +127,7 @@ def paso1_auditar_suid_sgid():
         if resp=="s":
             for binario in sgidSospechosos:
                 print(f"    Eliminando SGID de {binario}....")
-                ejecutar_comando(["chmod", "u+s", binario], f"eliminar SGID de {binario}", paso)
+                ejecutar_comando(["chmod", "g-s", binario], f"eliminar SGID de {binario}", paso)
             
             print("[CORRECTO]: Bits SUID eliminados.")
         else:
@@ -150,10 +150,10 @@ def paso2_auditoria_filesystem():
 
 
     rc, salida, _ = ejecutar_comando_check(["find", "/", "-xdev", "-type", "d", "-perm", 
-                                            "0002", "-perm", "1000", "-not", "-path",
+                                            "-0002", "!", "-perm", "-1000", "-not", "-path",
                                             "/proc/*", "-not", "-path", "/sys/*"])
     
-    dirsSinSticky=[l.strip() for l in salida.strip().splitlines() if l.strip()]
+    dirsSinSticky=[l.strip() for l in salida.splitlines() if l.strip()]
 
     if dirsSinSticky:
         print(f"[AVISO]: {len(dirsSinSticky)} directorio(s) world-writable sin sticky bit:")
@@ -165,7 +165,7 @@ def paso2_auditoria_filesystem():
 
         if resp=="s":
             for d in dirsSinSticky:
-                ejecutar_comando(["chmod", "-t", d], f"añadir sticky bit a {d}", paso)
+                ejecutar_comando(["chmod", "+t", d], f"añadir sticky bit a {d}", paso)
             print("[CORRECTO]: Sticky bit añadido.")
         else:
             print("[INFO]: No se han modificado los directorios.")
@@ -176,12 +176,11 @@ def paso2_auditoria_filesystem():
     print("2b: Ficheros sin propietario válido (huérfanos).")
     print()
 
-    rc, salida, _=ejecutar_comando_check(["find", "/", "-xdev", "type", "f", "-nouser", "-nogroup",
-                                          "-not", "-path", "/proc/*", "-not", "-path",
-                                          "/sys/*"])
+    rc, salida, _=ejecutar_comando_check(["find", "/", "-xdev", "-nouser", "-o", "-nogroup", "-not", 
+                                          "-path", "/proc/*", "-not", "-path", "/sys/*"])
 
 
-    huerfanos=[l.strip() for l in salida.strip().splitlines()]
+    huerfanos=[l.strip() for l in salida.splitlines() if l.strip()]
 
     if huerfanos:
         maxMostrar=20
@@ -202,12 +201,12 @@ def paso2_auditoria_filesystem():
     print("2c: Ficheros world-writable.")
     print()
 
-    rc, salida, _ =ejecutar_comando_check(["find", "/", "-type", "f", "-perm", "0002",
-                                           "-not", "-path", "/proc/*", "-not", "-path",
-                                           "/sys/*"])
+    rc, salida, _ =ejecutar_comando_check(["find", "/", "-xdev", "-type", "f", "-perm",
+                                           "-0002", "-not", "-path", "/proc/*", "-not",
+                                           "-path", "/sys/*"])
     
     wwFicheros=[]
-    for linea in salida.strip().splitlines():
+    for linea in salida.splitlines():
         linea=linea.strip()
         if not linea:
             continue
@@ -234,7 +233,7 @@ def paso2_auditoria_filesystem():
 
         if resp=="s":
             for f in wwFicheros:
-                ejecutar_comando(["chmod", "a+w", f], f"eliminar world-writable de {f}", paso)
+                ejecutar_comando(["chmod", "o-w", f], f"eliminar world-writable de {f}", paso)
             
             print("[CORRECTO]: Permisos restringidos.")
         else:
@@ -257,13 +256,13 @@ def paso3_opciones_montaje():
         "/dev/shm": ["nodev", "nosuid", "noexec"],
     }
 
-    contenido=leer_fichero(FSTAB, paso)
+    contenido=leer_fichero(FSTAB, paso=paso)
 
     if contenido is None:
         registrar_errores(paso, f"No se pudo leer {FSTAB}")
         return
     
-    lineas=contenido.strip().splitlines()
+    lineas=contenido.splitlines()
     modificado=False
 
     for punto, opcionesRequeridas in montajes.items():
@@ -276,7 +275,7 @@ def paso3_opciones_montaje():
             if limpia.startswith("#") or not limpia:
                 continue
             campos=limpia.split()
-            if len(campos)>=4 and campos[0]==punto:
+            if len(campos)>=4 and campos[1]==punto:
                 lineaEncontrada=i
                 break
 
@@ -286,29 +285,29 @@ def paso3_opciones_montaje():
             if punto=="/tmp":
                 print(f"[INFO]: Añadiendo entrada para {punto} en {FSTAB}...")
                 opciones=",".join(["defaults"] + opcionesRequeridas)
-                nuevaLinea=f"tmp {punto} tmp {opciones}"
+                nuevaLinea=f"tmpfs {punto} tmpfs {opciones}  0  0"
                 lineas.append(nuevaLinea)
                 modificado=True
                 print(f"[CORRECTO]: Entrada añadida: {nuevaLinea}")
             elif punto=="/dev/shm":
                 print(f"[INFO]: Añadiendo entrada para {punto} en {FSTAB}...")
                 opciones=",".join(["defaults"]+opcionesRequeridas)
-                nuevaLinea=f"tmp {punto} tmp {opciones}"
+                nuevaLinea=f"tmpfs {punto} tmpfs {opciones}  0  0"
                 linea.append(nuevaLinea)
                 modificado=True
                 print(f"[CORRECTO]: Entrada añadida: {nuevaLinea}")
         else:
             campos=lineas[lineaEncontrada].split()
-            opcionesActuales=campos[2].split(",")
+            opcionesActuales=campos[3].split(",")
             opcionesFaltantes=[o for o in opcionesRequeridas if o not in opcionesActuales]
 
             if opcionesFaltantes:
                 print(f"[AVISO]: Faltan opciones: {', '.join(opcionesFaltantes)}")
                 nuevasOpciones=opcionesActuales+opcionesFaltantes
-                campos[2]=",".join(nuevasOpciones)
-                lineas[lineaEncontrada]="\t".join(campos[2])
+                campos[3]=",".join(nuevasOpciones)
+                lineas[lineaEncontrada]="\t".join(campos)
                 modificado=True
-                print(f"[CORRECTO]: Opciones actualizadas: {campos[2]}")
+                print(f"[CORRECTO]: Opciones actualizadas: {campos[3]}")
             else:
                 print(f"[CORRECTO]: {punto} ya tiene {', '.join(opcionesRequeridas)}")
         
@@ -343,10 +342,10 @@ def paso4_chattr_ficheros():
     estadoActual={}
 
     for fichero in FICHEROS_CRITICOS:
-        rc, salida, _=ejecutar_comando_check(["lsattr", "-v", fichero])
+        rc, salida, _=ejecutar_comando_check(["lsattr", fichero])
 
         if rc==0 and salida.strip():
-            atributos=salida.split()
+            atributos=salida.split()[0]
             esInmutable="i" in atributos
             estadoActual[fichero]=esInmutable
             nombre=os.path.basename(fichero)
@@ -357,7 +356,7 @@ def paso4_chattr_ficheros():
                 print(f" \033[93m[DESBLOQUEADO]\033[0m  {nombre}")
         else:
             estadoActual[fichero]=False
-            nombre=os.path.basename
+            nombre=os.path.basename(fichero)
             print(f"  \033[91m[ERROR]\033[0m    No se pudo leer: {nombre}")
 
     print()
@@ -378,8 +377,7 @@ def paso4_chattr_ficheros():
             if estadoActual.get(fichero, False):
                 print(f"    [CORRECTO] {nombre} ya está bloqueado.")
             else:
-                directorioBase=os.path.dirname(fichero)
-                ejecutar_comando(["chattr", "+a", directorioBase], f"bloquear {fichero}", paso)
+                ejecutar_comando(["chattr", "+i", fichero], f"bloquear {fichero}", paso)
                 print(f"[CORRECTO]: {nombre} bloqueado.")
 
         print()
@@ -394,8 +392,7 @@ def paso4_chattr_ficheros():
             if not estadoActual.get(fichero, False):
                 print(f"[CORRECTO]: {nombre} ya está desbloqueado.")
             else:
-                directorioBase=os.path.dirname(fichero)
-                ejecutar_comando(["chattr", "-R", "-i", directorioBase], f"desbloquear {fichero}", paso)
+                ejecutar_comando(["chattr", "-i", fichero], f"desbloquear {fichero}", paso)
                 print(f"[CORRECTO]: {nombre} desbloqueado.")
         print()
         print("[CORRECTO]: Ficheros desbloqueados. Ya puede gestionar usuarios y grupos.")

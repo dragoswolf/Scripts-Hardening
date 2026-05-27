@@ -70,30 +70,34 @@ def verificar_paso1():
 
     print("[INFO]: Buscando binarios con bit SUID...")
 
-    rc, salida, _ = ejecutar_comando_check(["find", "/", "-xdev", "-type", "d", "-perm", "4000",
+    rc, salida, _ = ejecutar_comando_check(["find", "/", "-xdev", "-type", "f", "-perm", "4000",
                                             "-not", "-path", "/proc/*", "-not", "-path", "/sys/*"])
     
-    suidEncontrados=[l.strip() for l in salida.strip().splitlines() if l.strip()]
+    suidEncontrados=[l.strip() for l in salida.splitlines() if l.strip()]
     suidSospechosos = [b for b in suidEncontrados if b not in WHITELIST_SUID]
 
 
     if suidSospechosos:
         resultado_fail(f"{len(suidSospechosos)} binario(s) SUID fuera de whitelist: "
-                       f"{', '.join(suidSospechosos)}")
+                       f"{', '.join(suidSospechosos[:5])}"
+                       +(f" (y {len(suidSospechosos)-5} más)"
+                         if len(suidSospechosos)>5 else ""), paso)
     else:
         resultado_ok(f"Todos los binarios SUID ({len(suidEncontrados)}) están en la whitelist.")
 
     print("[INFO]: Buscando binarios con bit SGID...")
 
-    rc, salida, _ = ejecutar_comando_check(["find", "/", "-xdev", "-type", "d", "-perm", "-2000",
+    rc, salida, _ = ejecutar_comando_check(["find", "/", "-xdev", "-type", "f", "-perm", "-2000",
                                             "-not", "-path", "/proc/*", "-not", "-path", "/sys/*"])
     
-    sgidEncontrados=[l.strip() for l in salida.strip().splitlines() if l.strip()]
+    sgidEncontrados=[l.strip() for l in salida.splitlines() if l.strip()]
     sgidSospechosos = [b for b in sgidEncontrados if b not in WHITELIST_SGID]
 
     if sgidSospechosos:
         resultado_fail(f"{len(sgidSospechosos)} binario(s) SGID fuera de whitelist: "
-                       f"{', '.join(sgidSospechosos)}")
+                       f"{', '.join(sgidSospechosos[:5])}"
+                       +(f" (y {len(sgidSospechosos)-5} más)"
+                         if len(sgidSospechosos)> 5 else ""), paso)
         
     else:
         resultado_ok(f"Todos los binarios SGID ({len(sgidEncontrados)}) están en la whitelist.")
@@ -108,33 +112,35 @@ def verificar_paso2():
     paso="Paso 2"
 
     rc, salida, _ = ejecutar_comando_check(["find", "/", "-xdev", "-type", "d", "-perm", 
-                                        "0002", "-perm", "1000", "-not", "-path",
-                                        "/proc/*", "-not", "-path", "/sys/*"])
+                                        "-0002", "!", "-perm", "-1000", "-not",
+                                        "-path", "/proc/*", "-not", "-path", "/sys/*"])
     
-    dirsSinSticky=[l.strip() for l in salida.strip().splitlines() if l.strip()]
+    dirsSinSticky=[l.strip() for l in salida.splitlines() if l.strip()]
 
     if dirsSinSticky:
         resultado_fail(f"{len(dirsSinSticky)} directorio(s) world-writable sin sticky bit:"
-                       f"{', '.join(dirsSinSticky)}", paso)
+                       f"{', '.join(dirsSinSticky[:3])}"
+                       +(f" (y {len(dirsSinSticky) - 3} más)"
+                         if len(dirsSinSticky)>3 else ""),
+                        paso)
     else:
         resultado_ok("Todos los directorios world-writable tienen sticky bit.")
 
-    rc, salida, _=ejecutar_comando_check(["find", "/", "-xdev", "type", "f", "-nouser", "-nogroup",
-                                        "-not", "-path", "/proc/*", "-not", "-path",
-                                        "/sys/*"])
-    huerfanos=[l.strip() for l in salida.strip().splitlines()]
+    rc, salida, _=ejecutar_comando_check(["find", "/", "-xdev", "-nouser", "-o", "-nogroup",
+                                          "-not", "-path", "/proc/*", "-not", "-path", "/sys/*"])
+    
+    huerfanos=[l.strip() for l in salida.splitlines() if l.strip()]
 
     if huerfanos:
         resultado_warn(f"{len(huerfanos)} fichero(s) sin propietario válido (revisar manualmente).")
     else:
         resultado_ok("No hay ficheros sin propietario válido.")
 
-        rc, salida, _ =ejecutar_comando_check(["find", "/", "-type", "f", "-perm", "0002",
-                                           "-not", "-path", "/proc/*", "-not", "-path",
-                                           "/sys/*"])
+        rc, salida, _ =ejecutar_comando_check(["find", "/", "-xdev", "-type", "f", "-perm", "-0002",
+                                               "-not", "-path", "/proc/*", "-not", "-path", "/sys/*"])
     
     wwFicheros=[]
-    for linea in salida.strip().splitlines():
+    for linea in salida.splitlines():
         linea=linea.strip()
         if not linea:
             continue
@@ -149,7 +155,9 @@ def verificar_paso2():
 
     if wwFicheros:
         resultado_fail(f"{len(wwFicheros)} fichero(s) world-writable:"
-                       f"{', '.join(wwFicheros)}", paso)
+                       f"{', '.join(wwFicheros[:3])}"
+                       +(f" (y {len(wwFicheros)-3} más)"
+                         if len(wwFicheros) > 3 else ""), paso)
         
     else:
         resultado_ok("No hay ficheros world-writable fuera de directorios temporales.")
@@ -176,7 +184,7 @@ def verificar_paso3():
             resultado_warn(f"{punto} no está montado como punto de montaje separado.")
             continue
 
-        opcionesActuales=salida.strip().splitlines()
+        opcionesActuales=salida.strip().split(",")
         opcionesFaltantes=[o for o in opcionesRequeridas if o not in opcionesActuales]
 
         if opcionesFaltantes:
@@ -209,7 +217,7 @@ def verificar_paso4():
             resultado_warn(f"No se pudo leer atributos de {nombre}")
             continue
 
-        atributos=salida.split()
+        atributos=salida.split()[0] if salida.strip() else ""
 
         if "i" in atributos:
             resultado_ok(f"{nombre} tiene atributo inmutable.")
