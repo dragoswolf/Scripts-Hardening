@@ -427,16 +427,16 @@ def main():
 
         match opcion:
             case "1":
-                paso1_auditar_suid_sgid
+                paso1_auditar_suid_sgid()
                 volver_al_menu()
             case "2":
-                paso2_auditoria_filesystem
+                paso2_auditoria_filesystem()
                 volver_al_menu()
             case "3":
-                paso3_opciones_montaje
+                paso3_opciones_montaje()
                 volver_al_menu()
             case "4":
-                paso4_chattr_ficheros
+                paso4_chattr_ficheros()
                 volver_al_menu()
             case "q":
                 print("\n[INFO]: Saliendo del script.")
