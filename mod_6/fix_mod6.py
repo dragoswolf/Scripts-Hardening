@@ -293,7 +293,7 @@ def paso3_opciones_montaje():
                 print(f"[INFO]: Añadiendo entrada para {punto} en {FSTAB}...")
                 opciones=",".join(["defaults"]+opcionesRequeridas)
                 nuevaLinea=f"tmpfs {punto} tmpfs {opciones}  0  0"
-                linea.append(nuevaLinea)
+                lineas.append(nuevaLinea)
                 modificado=True
                 print(f"[CORRECTO]: Entrada añadida: {nuevaLinea}")
         else:
