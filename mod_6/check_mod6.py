@@ -5,7 +5,7 @@ import os
 import sys
 import stat
 
-sys.path.inser(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from utils import (configurar_logging, comprobar_root, resultado_fail, resultado_ok,
                    resultado_warn, mostrar_resumen, contadores, volver_al_menu, ejecutar_comando_check)
 
