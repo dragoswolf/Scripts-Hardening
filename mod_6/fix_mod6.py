@@ -317,10 +317,17 @@ def paso3_opciones_montaje():
             nuevoContenido+="\n"
         if escribir_fichero(FSTAB, nuevoContenido, paso=paso):
             print()
-            print(f"[INFO]: {FSTAB} actualizado. Remontando particiones...")
-            ejecutar_comando(["mount", "-o", "remount", "/tmp"], "remontar /tmp", paso)
-            ejecutar_comando(["mount", "-o", "remount", "/dev/shm"], "remontar /dev/shm", paso)
-            print("[CORRECTO]: Particiones remontadas con las nuevas opciones.")
+            print(f"[INFO]: {FSTAB} actualizado. Aplicando cambios...")
+            for punto in montajes:
+                rc, _, _= ejecutar_comando_check(["findmnt", "-n", punto])
+
+                if rc==0:
+                    #Ya está montado, remontar
+                    ejecutar_comando(["mount", "-o", "remount", punto], f"remontar {punto}", paso)
+                else:
+                    # No está montado, montar
+                    ejecutar_comando(["mount", punto], f"montar {punto}", paso)
+            print("[CORRECTO]: Puntos de montaje configurados con las nuevas opciones.")
     else:
         print()
         print("[CORRECTO]: Todas las opciones de montaje están correctas.")
