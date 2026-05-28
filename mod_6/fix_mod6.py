@@ -57,6 +57,7 @@ FICHEROS_CRITICOS=[
     "/etc/shadow",
     "/etc/group",
     "/etc/gshadow",
+    "/etc/fstab",
 ]
 
 
