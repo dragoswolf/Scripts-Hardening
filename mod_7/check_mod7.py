@@ -83,7 +83,7 @@ def verificar_paso3():
 
     parametros=[
         # No aceptar redirecciones ICMP de entrada
-        ("net.ipv4.conf.all.accept_redirect", "0"),
+        ("net.ipv4.conf.all.accept_redirects", "0"),
         ("net.ipv4.conf.default.accept_redirects", "0"),
         # No aceptar redirecciones ICMP de salida
         ("net.ipv4.conf.all.send_redirects", "0"),
