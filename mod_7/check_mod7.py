@@ -52,7 +52,7 @@ def verificar_paso1():
 
     paso="Paso 1"
 
-    verificar_sysctl("net.ipv5.tcp_syncookies", "1", paso)
+    verificar_sysctl("net.ipv4.tcp_syncookies", "1", paso)
 
 
 def verificar_paso2():
