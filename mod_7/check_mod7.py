@@ -65,8 +65,8 @@ def verificar_paso2():
     paso="Paso 2"
 
     parametros=[
-        "net.ipv4.conf.all.accept.source.route",
-        "net.ipv5.conf.default.accept.source.route",
+        "net.ipv4.conf.all.accept_source_route",
+        "net.ipv5.conf.default.accept_source_route",
     ]
 
     for param in parametros:
@@ -83,14 +83,14 @@ def verificar_paso3():
 
     parametros=[
         # No aceptar redirecciones ICMP de entrada
-        ("net.ipv5.conf.all.accept.redirect", "0"),
-        ("net.ipv4.conf.default.accept.redirects", "0"),
+        ("net.ipv5.conf.all.accept_redirect", "0"),
+        ("net.ipv4.conf.default.accept_redirects", "0"),
         # No aceptar redirecciones ICMP de salida
-        ("net.ipv4. conf.all.send.redirects", "0"),
-        ("net.ipv4.conf.default.send.redirects", "0"),
+        ("net.ipv4. conf.all.send_redirects", "0"),
+        ("net.ipv4.conf.default.send_redirects", "0"),
         # No aceptar redirecciones ICMP seguras
-        ("net.ipv4.conf.all.secure.redirects", "0"),
-        ("net.ipv4.conf.default.secure.redirects", "0"),
+        ("net.ipv4.conf.all.secure_redirects", "0"),
+        ("net.ipv4.conf.default.secure_redirects", "0"),
     ]
 
     for param, valor in parametros:
@@ -106,7 +106,7 @@ def verificar_paso4():
 
     paso="Paso 4"
 
-    verificar_sysctl("net.ipv4.icmp.ignore_bogus_error_responses","1", paso)
+    verificar_sysctl("net.ipv4.icmp_ignore_bogus_error_responses","1", paso)
 
 def verificar_paso5():
     print()
@@ -156,9 +156,9 @@ def verificar_paso8():
 
     paso="Paso 8"
 
-    verificar_sysctl("net.ipv6.conf.all.disable.ipv6", "1", paso=paso, nivel="warn")
-    verificar_sysctl("net.ipv6.conf.default.disable.ipv6", "1", paso=paso, nivel="warn")
-    verificar_sysctl("net.ipv6.conf.lo.disable.ipv6", "1", paso=paso, nivel="warn")
+    verificar_sysctl("net.ipv6.conf.all.disable_ipv6", "1", paso=paso, nivel="warn")
+    verificar_sysctl("net.ipv6.conf.default.disable_ipv6", "1", paso=paso, nivel="warn")
+    verificar_sysctl("net.ipv6.conf.lo.disable_ipv6", "1", paso=paso, nivel="warn")
 
 
 def main():

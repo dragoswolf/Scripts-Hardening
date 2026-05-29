@@ -71,7 +71,7 @@ def persistir_sysctl(parametro, valor):
         if limpia.startswith("#") or not limpia:
             continue
 
-        if limpia.split().strip() == parametro:
+        if limpia.split("=")[0].strip() == parametro:
             lineas[i]=f"{parametro} = {valor}"
             encontrado=True
             break
@@ -142,8 +142,8 @@ def paso2_source_routing():
     paso="Paso 2"
 
     parametros=[
-        "net.ipv4.conf.all.accept.source.route",
-        "net.ipv5.conf.default.accept.source.route",
+        "net.ipv4.conf.all.accept_source_route",
+        "net.ipv5.conf.default.accept_source_route",
     ]
 
     for param in parametros:
@@ -161,14 +161,14 @@ def paso3_icmp_redirects():
 
     parametros=[
         # No aceptar redirecciones ICMP de entrada
-        ("net.ipv5.conf.all.accept.redirect", "0"),
-        ("net.ipv4.conf.default.accept.redirects", "0"),
+        ("net.ipv5.conf.all.accept_redirect", "0"),
+        ("net.ipv4.conf.default.accept_redirects", "0"),
         # No aceptar redirecciones ICMP de salida
-        ("net.ipv4. conf.all.send.redirects", "0"),
-        ("net.ipv4.conf.default.send.redirects", "0"),
+        ("net.ipv4. conf.all.send_redirects", "0"),
+        ("net.ipv4.conf.default.send_redirects", "0"),
         # No aceptar redirecciones ICMP seguras
-        ("net.ipv4.conf.all.secure.redirects", "0"),
-        ("net.ipv4.conf.default.secure.redirects", "0"),
+        ("net.ipv4.conf.all.secure_redirects", "0"),
+        ("net.ipv4.conf.default.secure_redirects", "0"),
     ]
 
     for param, valor in parametros:
@@ -184,7 +184,7 @@ def paso4_icmp_bogus():
 
     paso="Paso 4"
 
-    aplicar_sysctl("net.ipv4.icmp.ignore_bogus_error_responses","1", paso)
+    aplicar_sysctl("net.ipv4.icmp_ignore_bogus_error_responses","1", paso)
 
 
 def paso5_exec_shield():
@@ -237,10 +237,13 @@ def paso8_desactivar_ipv6():
 
     paso="Paso 8"
 
-    valorActual=obtener_valor_sysctl("net.ipv6.conf.all.disable.ipv6")
+    valorActual=obtener_valor_sysctl("net.ipv6.conf.all.disable_ipv6")
 
     if valorActual=="1":
         print("[CORRECTO]: IPv6 ya está desactivado.")
+        persistir_sysctl("net.ipv6.conf.all.disable_ipv6", "1")
+        persistir_sysctl("net.ipv6.conf.default.disable_ipv6", "1")
+        persistir_sysctl("net.ipv6.conf.lo.disable_ipv6", "1")
         return
 
     print("[INFO]: Verificando si hay servicios escuchando en IPv6...")
@@ -261,7 +264,7 @@ def paso8_desactivar_ipv6():
             campos=srv.split()
             if len(campos)>=4:
                 direccion=campos[3]
-                proceso=campos[4] if len(campos)>=5 else "(desconocido)"
+                proceso=campos[5] if len(campos)>=6 else "(desconocido)"
                 print(f"    - {direccion} {proceso}")
         print()
         print("[AVISO]: Desactivar IPv6 podría afectar a estos servicios.")
@@ -275,9 +278,9 @@ def paso8_desactivar_ipv6():
         print()
 
     print("[INFO]: Desactivando IPv6...")
-    aplicar_sysctl("net.ipv6.conf.all.disable.ipv6", "1", paso=paso)
-    aplicar_sysctl("net.ipv6.conf.default.disable.ipv6", "1", paso=paso)
-    aplicar_sysctl("net.ipv6.conf.lo.disable.ipv6", "1", paso=paso)
+    aplicar_sysctl("net.ipv6.conf.all.disable_ipv6", "1", paso=paso)
+    aplicar_sysctl("net.ipv6.conf.default.disable_ipv6", "1", paso=paso)
+    aplicar_sysctl("net.ipv6.conf.lo.disable_ipv6", "1", paso=paso)
     print()
     print("[CORRECTO]: IPv6 desactivado.")
 
