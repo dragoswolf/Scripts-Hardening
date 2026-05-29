@@ -143,7 +143,7 @@ def paso2_source_routing():
 
     parametros=[
         "net.ipv4.conf.all.accept_source_route",
-        "net.ipv5.conf.default.accept_source_route",
+        "net.ipv4.conf.default.accept_source_route",
     ]
 
     for param in parametros:
@@ -161,10 +161,10 @@ def paso3_icmp_redirects():
 
     parametros=[
         # No aceptar redirecciones ICMP de entrada
-        ("net.ipv5.conf.all.accept_redirect", "0"),
+        ("net.ipv4.conf.all.accept_redirect", "0"),
         ("net.ipv4.conf.default.accept_redirects", "0"),
         # No aceptar redirecciones ICMP de salida
-        ("net.ipv4. conf.all.send_redirects", "0"),
+        ("net.ipv4.conf.all.send_redirects", "0"),
         ("net.ipv4.conf.default.send_redirects", "0"),
         # No aceptar redirecciones ICMP seguras
         ("net.ipv4.conf.all.secure_redirects", "0"),
