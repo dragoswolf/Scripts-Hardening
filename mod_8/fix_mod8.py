@@ -169,17 +169,16 @@ def paso2_enforce_perfiles():
     print()
 
     errores=0
-    for perfil in perfilesComplain:
-        rc, _, stderr= ejecutar_comando_check(["aa-enforce", f"/etc/apparmor.d/{perfil}"])
 
-        if rc==0:
-            print(f"[CORRECTO]: {perfil} -> enforce")
-        else:
-            print(f"[ERROR]: No se pudo cambiar {perfil}:"
-                  f"{stderr.strip()}")
-            registrar_errores(paso, f"No se pudo cambiar {perfil}"
-                              f"a enforce: {stderr.strip()}")
-            errores+=1
+    rc, salida, stderr=ejecutar_comando_check(["bash","-c","aa-enforce /etc/apparmor.d/*"])
+
+    if rc==0:
+        print("[CORRECTO]: Todos los perfiles cambiados a enforce")
+    else:
+        print(f"[ERROR]: {stderr.strip()}")
+        errores+=1
+
+
 
     print()
     if errores==0:
