@@ -38,22 +38,27 @@ def obtener_estado_apparmor():
         "unconfined": 0,
     }
 
-    for linea in salida.strip().splitlines():
+    for linea in salida.splitlines():
         linea=linea.strip().lower()
         
         if "profiles are loaded" in linea:
             try:
-                estado["loaded"] = int(linea.split())
+                estado["loaded"] = int(linea.split()[0])
             except (ValueError, IndexError):
                 pass
         elif "profiles are in enforce mode" in linea:
             try:
-                estado["enforce"]=int(linea.split())
+                estado["enforce"]=int(linea.split()[0])
             except (ValueError, IndexError):
                 pass
         elif "profiles are in complain mode" in linea:
             try:
-                estado["complain"]=int(linea.split())
+                estado["complain"]=int(linea.split()[0])
+            except (ValueError, IndexError):
+                pass
+        elif "processes are unconfined" in linea:
+            try:
+                estado["unconfined"]=int(linea.split()[0])
             except (ValueError, IndexError):
                 pass
     
@@ -73,7 +78,7 @@ def obtener_perfiles_complain():
         return []
     
     perfiles = []
-    for linea in salida.strip().splitlines():
+    for linea in salida.splitlines():
         linea=linea.strip()
         if linea and not linea.isdigit():
             perfiles.append(linea)
@@ -100,7 +105,7 @@ def paso1_instalar_apparmor():
 
     if paquetesFaltantes:
         print(f"[INFO]: Instalando paquetes: {', '.join(paquetesFaltantes)}")
-        ejecutar_comando(["apt-get", "install", "-y", paquetesFaltantes], "instalar paquetes base de AppArmor", paso, mostrarSalida=True)
+        ejecutar_comando(["apt-get", "install", "-y"] + paquetesFaltantes, "instalar paquetes base de AppArmor", paso, mostrarSalida=True)
         print()
     else:
         print(f"[CORRECTO]: Paquetes base instalados: {', '.join(PAQUETES_BASE)}")
@@ -190,7 +195,7 @@ def paso3_perfiles_adicionales():
 
     if paquetesFaltantes:
         print(f"[INFO]: Instalando: {', '.join(paquetesFaltantes)}")
-        ejecutar_comando(["apt-get", "install", "-y", paquetesFaltantes], "instalando perfiles adicionales de AppArmor", paso, mostrarSalida=True)
+        ejecutar_comando(["apt-get", "install", "-y"] + paquetesFaltantes, "instalando perfiles adicionales de AppArmor", paso, mostrarSalida=True)
         print()
     else:
         print(f"[CORRECTO]: Paquetes de perfiles ya instalados: "

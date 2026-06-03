@@ -96,8 +96,8 @@ def verificar_paso2():
 
         rc2, salida2,_=ejecutar_comando_check(["aa-status", "--complaining"])
 
-        if rc==0:
-            for linea in salida2.strip().splitlines():
+        if rc2==0:
+            for linea in salida2.splitlines():
                 linea=linea.strip()
                 if linea and not linea.isdigit():
                     print(f"    - {linea}")
