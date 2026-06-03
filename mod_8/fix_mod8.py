@@ -72,16 +72,26 @@ def obtener_perfiles_complain():
         lista: Lista de nombres de perfiles en modo complain
     """
 
-    rc, salida, _=ejecutar_comando_check(["aa-status", "--complaining"])
+    rc, salida, _=ejecutar_comando_check(["aa-status"])
 
     if rc!=0:
         return []
     
     perfiles = []
+    enSeccionComplain=False
     for linea in salida.splitlines():
-        linea=linea.strip()
-        if linea and not linea.isdigit():
-            perfiles.append(linea)
+        limpia=linea.strip()
+
+        if "profiles are in complain mode" in limpia.lower():
+            enSeccionComplain=True
+            continue
+        if enSeccionComplain:
+            if "profiles are" in limpia.lower() or "processes are" in limpia.lower():
+                break
+            if limpia:
+                nombre=limpia.replace(" (complain)", "").strip()
+                if nombre:
+                    perfiles.append(nombre)
 
     return perfiles
 
