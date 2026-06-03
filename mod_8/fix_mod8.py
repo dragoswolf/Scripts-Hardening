@@ -170,7 +170,7 @@ def paso2_enforce_perfiles():
 
     errores=0
     for perfil in perfilesComplain:
-        rc, _, stderr= ejecutar_comando_check(["aa-enforce", perfil])
+        rc, _, stderr= ejecutar_comando_check(["aa-enforce", f"/etc/apparmor.d/{perfil}"])
 
         if rc==0:
             print(f"[CORRECTO]: {perfil} -> enforce")
