@@ -45,7 +45,7 @@ def verificar_paso1():
         resultado_fail("AppArmor NO habilitado en el kernel", paso)
 
 
-def verificar_paso2():
+def verificar_paso3():
     print()
     print("="*100)
     print("[PASO 2]: Verificar perfiles en modo enforce")
@@ -103,7 +103,7 @@ def verificar_paso2():
                     print(f"    - {linea}")
 
 
-def verificar_paso3():
+def verificar_paso2():
     print()
     print("="*100)
     print("[PASO 3]: Verificar perfiles adicionales de AppArmor")

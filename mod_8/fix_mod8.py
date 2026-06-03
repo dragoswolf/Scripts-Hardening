@@ -147,7 +147,7 @@ def paso1_instalar_apparmor():
         print(f"        En modo complain:   {estado['complain']}")
 
 
-def paso2_enforce_perfiles():
+def paso3_enforce_perfiles():
     print()
     print("="*100)
     print("[PASO 2]: Poner todos los perfiles en modo enforce")
@@ -187,7 +187,7 @@ def paso2_enforce_perfiles():
         print(f"[AVISO]: {errores} perfil(es) no se pudieron cambiar.")
 
 
-def paso3_perfiles_adicionales():
+def paso2_perfiles_adicionales():
     print()
     print("="*100)
     print("[PASO 3]: Instalar perfiles adicionales de AppArmor")
@@ -254,8 +254,8 @@ def mostar_menu():
     print()
     print(" Pasos disponibles:")
     print("     1. Verificar que AppArmor está instalado y activo.")
-    print("     2. Poner todos los perfiles en modo enforce.")
-    print("     3. Instalar perfiles adicionales de AppArmor")
+    print("     2. Instalar perfiles adicionales de AppArmor")
+    print("     3. Poner todos los perfiles en modo enforce.")
     print()
     print("     q. Salir")
     print()
@@ -274,10 +274,10 @@ def main():
                 paso1_instalar_apparmor()
                 volver_al_menu()
             case "2":
-                paso2_enforce_perfiles()
+                paso2_perfiles_adicionales()
                 volver_al_menu()
             case "3":
-                paso3_perfiles_adicionales()
+                paso3_enforce_perfiles()
                 volver_al_menu()
             case "q":
                 print("\n[INFO]: Saliendo del script.")
