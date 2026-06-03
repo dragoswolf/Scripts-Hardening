@@ -69,17 +69,17 @@ def verificar_paso2():
         
         if "profiles are loaded" in linea:
             try:
-                numLoaded = int(linea.split())
+                numLoaded = int(linea.split()[0])
             except (ValueError, IndexError):
                 pass
         elif "profiles are in enforce mode" in linea:
             try:
-                numEnforce=int(linea.split())
+                numEnforce=int(linea.split()[0])
             except (ValueError, IndexError):
                 pass
         elif "profiles are in complain mode" in linea:
             try:
-                numComplain=int(linea.split())
+                numComplain=int(linea.split()[0])
             except (ValueError, IndexError):
                 pass
     
