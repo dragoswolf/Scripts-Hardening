@@ -249,7 +249,7 @@ def paso2_perfiles_adicionales():
 def mostar_menu():
     print()
     print("="*100)
-    print("Hardening: AppArmor (Mandatory Access Control))")
+    print("Hardening: AppArmor (Mandatory Access Control).")
     print("="*100)
     print()
     print(" Pasos disponibles:")
