@@ -189,8 +189,14 @@ def paso3_abrir_puertos():
                 print("[ERROR]: Formato de IP no válido.")
                 continue
 
-            comando=["ufw", "allow", "from", ipOrigen, "to", "any", "port", entrada]
+            if "/" in entrada:
+                puerto, protocolo=entrada.split("/", 1)
+                comando=["ufw", "allow", "from", ipOrigen, "to", "any", "port", puerto, "proto", protocolo]
+            else:
+                comando=["ufw", "allow", "from", ipOrigen, "to", "any", "port", entrada]
+                
             descripcion=f"permitir {entrada} desde {ipOrigen}"
+
         else:
             comando=["ufw", "allow", entrada]
             descripcion=f"permitir {entrada}"
