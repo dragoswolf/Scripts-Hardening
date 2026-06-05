@@ -29,7 +29,7 @@ def obtener_puerto_ssh():
     if contenido is None:
         return "22"
     
-    for linea in contenido.strip().splitlines():
+    for linea in contenido.splitlines():
         limpia=linea.strip()
         if limpia.startswith("Port ") and not limpia.startswith("#"):
             partes=limpia.split()
@@ -50,7 +50,7 @@ def ufw_activo():
     rc, salida, _=ejecutar_comando_check(["ufw", "status"])
     if rc==0 and "active" in salida.lower():
         for linea in salida.splitlines():
-            if "status" in linea.lower() and "inactive" not in linea.lower():
+            if "status:" in linea.lower() and "inactive" not in linea.lower():
                 return True
     return False
 
@@ -185,7 +185,7 @@ def paso3_abrir_puertos():
         ipOrigen=input("¿Restringir a una IP o subred? (dejar vacío para cualquier origen): ").strip()
 
         if ipOrigen:
-            if not re.match(r'^[\d\./]+', ipOrigen):
+            if not re.match(r'^[\d\./]+$', ipOrigen):
                 print("[ERROR]: Formato de IP no válido.")
                 continue
 
@@ -246,7 +246,7 @@ def paso4_eliminar_reglas():
 
         reglas=[]
 
-        for linea in salida.strip().splitlines():
+        for linea in salida.splitlines():
             if linea.strip().startswith("["):
                 reglas.append(linea.strip())
         
@@ -289,15 +289,15 @@ def paso4_eliminar_reglas():
                 print("[INFO]: Regla NO eliminada")
                 continue
 
-            rc, _, stderr=ejecutar_comando_check(["ufw", "--force", "delete", str(numRegla)])
+        rc, _, stderr=ejecutar_comando_check(["ufw", "--force", "delete", str(numRegla)])
 
-            if rc==0:
-                print(f"[CORRECTO]: Regla {numRegla} eliminada.")
-            else:
-                print(f"[ERROR]: No se pudo eliminar: {stderr.strip()}")
-                registrar_errores(paso, f"No se pudo eliminar regla {numRegla}: {stderr.strip()}")
-            
-            print()
+        if rc==0:
+            print(f"[CORRECTO]: Regla {numRegla} eliminada.")
+        else:
+            print(f"[ERROR]: No se pudo eliminar: {stderr.strip()}")
+            registrar_errores(paso, f"No se pudo eliminar regla {numRegla}: {stderr.strip()}")
+        
+        print()
 
 def paso5_activar_logging():
     """
@@ -322,7 +322,7 @@ def paso5_activar_logging():
     
     if rc==0:
         for linea in salida.splitlines():
-            if "logging" in linea.lower():
+            if "logging:" in linea.lower():
                 print(f"    Estado actual: {linea.strip()}")
                 if "on" in linea.lower():
                     loggingActivo=True

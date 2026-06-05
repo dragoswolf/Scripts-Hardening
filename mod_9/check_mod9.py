@@ -31,7 +31,7 @@ def obtener_puerto_ssh():
     if contenido is None:
         return "22"
     
-    for linea in contenido.strip().splitlines():
+    for linea in contenido.splitlines():
         limpia=linea.strip()
         if limpia.startswith("Port ") and not limpia.startswith("#"):
             partes=limpia.split()
@@ -72,13 +72,13 @@ def verificar_paso1():
     politicaInOk=False
     politicaOutOk=False
 
-    for linea in salida.strip().splitlines():
+    for linea in salida.splitlines():
         lineaLower=linea.strip().lower()
 
-        if "status" in lineaLower and "active" in lineaLower and "inactive" not in lineaLower:
+        if "status:" in lineaLower and "active" in lineaLower and "inactive" not in lineaLower:
             activo=True
         
-        if "default" in lineaLower and "incoming" in lineaLower:
+        if "default:" in lineaLower and "incoming" in lineaLower:
             if "deny" in lineaLower or "reject" in lineaLower:
                 politicaInOk=True
         
@@ -133,7 +133,7 @@ def verificar_paso2():
     
     sshPermitido=False
     
-    for linea in salida.strip().splitlines():
+    for linea in salida.splitlines():
         lineaLower=linea.strip().lower()
 
         if("allow" in lineaLower and (f"{puertoSSH}/tcp" in lineaLower or f"{puertoSSH}" in lineaLower)):
@@ -166,10 +166,10 @@ def verificar_paso3():
         return
     
     loggingActivo=False
-    for linea in salida.strip().splitlines():
+    for linea in salida.splitlines():
         lineaLower=linea.strip().lower()
 
-        if "logging" in lineaLower and "on" in lineaLower:
+        if "logging:" in lineaLower and "on" in lineaLower:
             loggingActivo=True
             resultado_ok(f"Logging activo ({linea.strip()})")
             break
@@ -200,9 +200,13 @@ def main():
     verificar_paso3()
 
 
-    mostrar_resumen("fix_mod8.py")
+    mostrar_resumen("fix_mod9.py")
 
     if contadores["checksFail"]>0:
         sys.exit(1)
     else:
         sys.exit(0)
+
+# =============================================================================
+if __name__ == "__main__":
+    main()
