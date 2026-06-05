@@ -47,7 +47,7 @@ GRUPOS_SENSIBLES=["root", "sudo", "adm", "shadow", "disk", "docker"]
 
 CONTENIDO_SUDO_HARDENING=(
     "# Configuración de hardening para sudo\n"
-    "# Generado por fix_mod2.py\n"
+    "# Generado por fix_mod3.py\n"
     "#========================================================\n"
     "\n"
     "# Registrar todos los comandos ejecutados con sudo\n"
