@@ -325,7 +325,7 @@ def paso4_logrotate():
     if yaConfigurado:
         print_correcto("'logrotate' ya está configurado correctamente.")
     else:
-        if escribir_fichero(LOGROTATE_CONF, LOGROTATE_CONTENIDO, paso):
+        if escribir_fichero(LOGROTATE_CONF, LOGROTATE_CONTENIDO, paso=paso):
             print_correcto("Configuración de logrotate actualizada:")
             print(" - Rotación: semanal")
             print(" - Retención: 12 semanas")
