@@ -8,6 +8,8 @@
 import os
 import sys
 import re
+import pwd
+import grp
 
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -241,7 +243,7 @@ def paso2_persistencia_journald():
     # 2d. Reiniciar journald
     print()
     print_info("Reiniciando systemd-journald...")
-    if not ejecutar_comando(["systemctl" "restart", "systemd-journald"], "reiniciar journald", paso):
+    if not ejecutar_comando(["systemctl", "restart", "systemd-journald"], "reiniciar journald", paso):
         return
     else:
         print_correcto("Journald reiniciado con persistencia activa.")
@@ -268,9 +270,9 @@ def paso3_permisos_logs():
             continue
 
         if cambiar_permisos(fichero, 
-                         permisos=config["permisos"],
-                         propietario=config["propietario"],
-                         grupo=config["grupo"],
+                         permisos=int(config["permisos"], 8),
+                         propietario=pwd.getpwnam(config["propietario"]).pw_uid,
+                         grupo=grp.getgrnam(config["grupo"]).gr_gid,
                          paso=paso):
             print_correcto(f"{nombre} asegurado ({config['permisos']} {config['propietario']}:{config['grupo']}).")
     
