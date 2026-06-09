@@ -284,7 +284,7 @@ def cambiar_permisos(ruta, permisos=None, propietario=None, grupo=None, paso="Ge
         registrar_errores(paso, f"Sin permisos para modificar {ruta}")
         return False
     except Exception as e:
-        registrar_errores(paso, f"No se pudieron cambiar permisos de {ruta}: e")
+        registrar_errores(paso, f"No se pudieron cambiar permisos de {ruta}: {e}")
         return False
 
 def pedir_input_doble(mensaje, ocultar=False):

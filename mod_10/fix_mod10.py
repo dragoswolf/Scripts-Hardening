@@ -241,7 +241,7 @@ def paso2_persistencia_journald():
     # 2d. Reiniciar journald
     print()
     print_info("Reiniciando systemd-journald...")
-    if not ejecutar_comando(["systemctl," "restart", "systemd-journald"], "reiniciar journald", paso):
+    if not ejecutar_comando(["systemctl" "restart", "systemd-journald"], "reiniciar journald", paso):
         return
     else:
         print_correcto("Journald reiniciado con persistencia activa.")
@@ -355,7 +355,7 @@ def mostar_menu():
     print("     1. Verificar rsyslog instalado y activado.")
     print("     2. Configurar persistencia de journald.")
     print("     3. Asegurar permisos de ficheros de log.")
-    print("     4. COnfigurar logrotate (retención y compresión).")
+    print("     4. Configurar logrotate (retención y compresión).")
     print()
     print("     q. Salir")
     print()
