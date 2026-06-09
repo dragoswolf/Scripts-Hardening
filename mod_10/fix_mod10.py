@@ -371,16 +371,16 @@ def main():
 
         match opcion:
             case "1":
-                paso1_rsylog
+                paso1_rsylog()
                 volver_al_menu()
             case "2":
-                paso2_persistencia_journald
+                paso2_persistencia_journald()
                 volver_al_menu()
             case "3":
-                paso3_permisos_logs
+                paso3_permisos_logs()
                 volver_al_menu()
             case "4":
-                paso4_logrotate
+                paso4_logrotate()
                 volver_al_menu()
             case "q":
                 print("\n[INFO]: Saliendo del script.")
