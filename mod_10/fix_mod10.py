@@ -235,7 +235,7 @@ def paso2_persistencia_journald():
             if not nuevoContenido.endswith("\n"):
                 nuevoContenido+="\n"
 
-            escribir_fichero(JOURNALD_CONF, nuevoContenido, paso)
+            escribir_fichero(JOURNALD_CONF, nuevoContenido, paso=paso)
             print_correcto("SystemMaxUse=500M configurado.")
     else:
         print_correcto("Tamaño máximo del journal ya configurado.")

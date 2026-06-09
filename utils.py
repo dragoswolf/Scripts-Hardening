@@ -457,7 +457,7 @@ def resultado_fail(mensaje, paso="General"):
     contadores["totalChecks"]+=1
     contadores["checksFail"]+=1
 
-    print(f"    \033[91m[FALLO]:\033[0m {mensaje}")
+    print(f"    \033[91m[ERROR]:\033[0m {mensaje}")
     registrar_errores(paso, mensaje)
 
 def resultado_warn(mensaje):
