@@ -117,7 +117,7 @@ def verificar_paso2():
 
     for linea in contenido.splitlines():
         limpia=linea.strip()
-        if limpia=="Storage-persistent":
+        if limpia=="Storage=persistent":
             storagePersistent=True
         if limpia.startswith("SystemMaxUse=") and not limpia.startswith("#"):
             maxUseConfigurado=True
