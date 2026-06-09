@@ -173,7 +173,7 @@ def paso2_persistencia_journald():
         for linea in contenido.splitlines():
             limpia=linea.strip()
 
-            if limpia.startswith("#Storage=") or limpia.startswith("Storage="):
+            if limpia.startswith("#Storage=") or (limpia.startswith("Storage=") and limpia!="Storage-persistent"):
                 nuevasLineas.append("Storage=persistent")
                 storageModificado=True
             else:
