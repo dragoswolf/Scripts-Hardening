@@ -27,6 +27,53 @@ import getpass
 #=======================================================================================================
 LOG_DIR="/var/log/hardening"
 
+#códigos de colors ANSI
+_RESET="\033[0m"
+_ROJO="\033[91m"
+_VERDE="\033[92m"
+_AMARILLO="\033[93m"
+_AZUL="\033[94m"
+
+
+#=======================================================================================================
+# Funciones de impresión con color
+#=======================================================================================================
+def print_aviso(mensaje):
+    """
+    Imprime un mensaje con etiqueta [AVISO] en amarillo.
+    
+    Args
+        mensaje(str): Mensaje a imprimir.
+    """
+    print(f"{_AMARILLO}[AVISO]{_RESET} {mensaje}")
+
+def print_correcto(mensaje):
+    """
+    Imprime un mensaje con etiqueta [CORRECTO] en verde.
+    
+    Args
+        mensaje(str): Mensaje a imprimir.
+    """
+    print(f"{_VERDE}[CORRECTO]{_RESET} {mensaje}")
+
+def print_error(mensaje):
+    """
+    Imprime un mensaje con etiqueta [ERROR] en rojo.
+    
+    Args
+        mensaje(str): Mensaje a imprimir.
+    """
+    print(f"{_ROJO}[ERROR]{_RESET} {mensaje}")
+
+def print_info(mensaje):
+    """
+    Imprime un mensaje con etiqueta [INFO] en azul
+    
+    Args
+        mensaje(str): Mensaje a imprimir.
+    """
+    print(f"{_AZUL}[INFO]{_RESET} {mensaje}")
+
 #=======================================================================================================
 # Configuración del sistema de logs
 #=======================================================================================================
@@ -63,7 +110,7 @@ def registrar_errores(paso, mensaje):
     """
     textoLog=f"[{paso}] {mensaje}"
     logging.error(textoLog)
-    print(f"[ERROR]: {mensaje}")
+    print_error(mensaje)
 
 
 
@@ -75,7 +122,7 @@ def comprobar_root():
     """
     if os.geteuid()!=0:
         #os.geteuid() devuelve el UID efectivo del proceso. 0=root
-        print("[ERROR]: Este script ha de ejecutarse como root.")
+        print_error("Este script ha de ejecutarse como root.")
         print("         Ejecuta: sudo python3 fix_mod1.py")
         sys.exit(1)
 
@@ -103,14 +150,16 @@ def ejecutar_comando(comando, descripcion, paso="General", capturarSalida=False,
                               en marcha.
 
     Return:
-        str o None: La salida del comando si capturarSalida=True, None en otro caso
+        str o None: La salida del comando si capturarSalida=True.
+        True: Si el comando se ejecutó correctamente sin capturar salida.
+        False: Si el comando falló por cualquier motivo.
     """
 
     try:
         if mostrarSalida:
             #Modo interactivo: stdout y stderr van directos a la terminal, para ver el progreso en tiempo real
             resultado=subprocess.run(comando, check=True)
-            return None
+            return True
         else:
             #subprocess.run() ejecuta el comando como un proceso hijo
             resultado=subprocess.run(
@@ -121,7 +170,7 @@ def ejecutar_comando(comando, descripcion, paso="General", capturarSalida=False,
             )
             if capturarSalida:
                 return resultado.stdout #Devolver la salida estándar
-            return None
+            return True
         
     except subprocess.CalledProcessError as e:
         #Si el comando falla (código de retorno != 0), registrar el error
@@ -131,13 +180,13 @@ def ejecutar_comando(comando, descripcion, paso="General", capturarSalida=False,
                         f"Comando: {' '.join(comando)} | " 
                         f"Error: {errorTexto}")
         registrar_errores(paso, mensajeError)
-        return None
+        return False
     except FileNotFoundError:
         #Si el ejecutable no existe en el sistema.
         mensajeError=(f"Comando no encontrado: {comando[0]}. " 
                         f"Asegúrate de que está instalado.")
         registrar_errores(paso, mensajeError)
-        return None
+        return False
 
 
 def volver_al_menu():
@@ -262,7 +311,7 @@ def pedir_input_doble(mensaje, ocultar=False):
             entrada1=input(f"{mensaje}: ")
         #Validar que no esté vacío
         if not entrada1.strip():
-            print("[ERROR]: El valor no puede ser estar vacío.\n")
+            print_error("El valor no puede ser estar vacío.\n")
             continue
         
         #Segunda entrada: se pide lo mismo para confirmar
@@ -276,7 +325,7 @@ def pedir_input_doble(mensaje, ocultar=False):
             return entrada1
         else:
             #Si no coinciden, se informa al usuario y se repite el proceso
-            print("[ERROR]: Las entradas no coinciden. Inténtalo de nuevo.\n")
+            print_error("Las entradas no coinciden. Inténtalo de nuevo.\n")
 
 def verificar_permisos(ruta, permisosEsperados=None, propietarioEsperado=None, grupoEsperado=None,
                        paso="General", nivel="fail"):
