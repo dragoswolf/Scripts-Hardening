@@ -276,7 +276,7 @@ def paso3_programar_cron():
     print_info("Ejecutando primera verificación para generar registro inicial.")
     print_info("Esto puede tardar unos minutos...")
     print()
-    if not ejecutar_comando([CRON_AIDE], "ejecutar verificación inicial de AIDE", paso, mostrarSalida=True):
+    if not ejecutar_comando(["bash", CRON_AIDE], "ejecutar verificación inicial de AIDE", paso, mostrarSalida=True):
         return
     else:
         print_correcto("Verificación inicial completada.")
