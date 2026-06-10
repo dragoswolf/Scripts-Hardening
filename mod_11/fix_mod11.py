@@ -103,7 +103,6 @@ def paso1_instalar_aide():
         os.environ["DEBIAN_FRONTEND"]="noninteractive"
 
         if not ejecutar_comando(["apt", "install", "-y","aide","aide-common"], "instalarAIDE", paso, mostrarSalida=True):
-            print_error("No se pudo instalar AIDE.")
             return
         else:
             print_correcto("AIDE instalado correctamente")
@@ -126,6 +125,8 @@ def paso1_instalar_aide():
             print_correcto(f"Fichero de configuración existe en {AIDE_CONF}.")
         else:
             print_info("El fichero de configuración se generará al inicializar la base de datos.")
+    else:
+        print_correcto("AIDE ya está instalado")
 
 
 def paso2_inicializar_db():
