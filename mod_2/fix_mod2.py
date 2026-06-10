@@ -27,11 +27,21 @@
 import os
 import sys
 import subprocess
+import re
 from datetime import datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from utils import (configurar_logging, registrar_errores, comprobar_root,
-                   ejecutar_comando, volver_al_menu, escribir_fichero, leer_fichero)
+from utils import (configurar_logging, 
+                   registrar_errores, 
+                   comprobar_root,
+                   ejecutar_comando, 
+                   volver_al_menu, 
+                   escribir_fichero, 
+                   leer_fichero,
+                   print_aviso,
+                   print_correcto,
+                   print_error,
+                   print_info)
 
 
 #============================================================================================================
@@ -105,6 +115,9 @@ CRON_ALLOW_FILE="/etc/cron.allow"
 CRON_DENY_FILE="/etc/cron.deny"
 AT_ALLOW_FILE="/etc/at.allow"
 AT_DENY_FILE="/etc/at.deny"
+
+# Fichero de configuración de chrony
+CHRONY_CONF="/etc/chrony/chrony.conf"
 
 #Directorios de cron del sistema
 DIRECTORIOS_CRON=[
@@ -604,6 +617,27 @@ def paso9_habilitar_ntp():
     ejecutar_comando(["systemctl", "enable", "chrony"], "habilitar chrony", "Paso 9")
     ejecutar_comando(["systemctl", "start", "chrony"], "arrancar chrony", "Paso 9")
     print("[CORRECTO]: Chrony Habilitado y activo.")
+
+    contenido=leer_fichero(CHRONY_CONF)
+    if contenido is not None:
+        if re.search(r"^makestep\s+1\s+-1", contenido, re.MULTILINE):
+            print_correcto("Makestep ya configurado para corregir desfases grandes.")
+        else:
+            nuevoContenido=re.sub(r"^makestep\s+.*$", "makestep 1 -1", contenido, flags=re.MULTILINE)
+
+            if nuevoContenido==contenido:
+                #Si no hay línea makestep, hay que añadirla
+                nuevoContenido=contenido.rstrip("\n")+"\nmakestep 1 -1\n"
+            if not escribir_fichero(CHRONY_CONF, nuevoContenido, paso="Paso 9"):
+                print_aviso("No se pudo configurar chrony. Es posible que existan desfases temporales en el futuro.")
+            else:
+                print_correcto("Makestep configurado. Se corregirán los desfases mayores de 1 segundo.")
+            #reiniciamos chrony
+            if not ejecutar_comando(["systemctl", "restart", "chrony"], "reiniciar chrony", "Paso 9"):
+                return
+            else:
+                print_correcto("Chrony reinicializado correctamente.")
+
 
     print("[INFO]: Configurando zona horaria a Europe/Madrid...")
     ejecutar_comando(["timedatectl", "set-timezone", "Europe/Madrid"], "configurar zona horaria", "Paso 9")
