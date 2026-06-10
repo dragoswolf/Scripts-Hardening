@@ -53,8 +53,6 @@ FSTAB="/etc/fstab"
 
 
 FICHEROS_CRITICOS=[
-    "/etc/group",
-    "/etc/gshadow",
     "/etc/fstab",
 ]
 

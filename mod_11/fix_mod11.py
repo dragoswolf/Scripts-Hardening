@@ -162,12 +162,12 @@ def paso2_inicializar_db():
         except OSError:
             pass
 
-    print()
+        print()
 
-    resp=input("¿Deseas regenerar la base de datos? (s/n): ").strip().lower()
-    if resp!="s":
-        print_info("Base de datos existente conservada.")
-        return
+        resp=input("¿Deseas regenerar la base de datos? (s/n): ").strip().lower()
+        if resp!="s":
+            print_info("Base de datos existente conservada.")
+            return
     
     print()
     print_info("Inicializando la base de datos de AIDE...")
