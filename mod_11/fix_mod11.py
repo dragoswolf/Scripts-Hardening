@@ -103,6 +103,7 @@ def paso1_instalar_aide():
         os.environ["DEBIAN_FRONTEND"]="noninteractive"
 
         if not ejecutar_comando(["apt", "install", "-y","aide","aide-common"], "instalarAIDE", paso, mostrarSalida=True):
+            print_error("No se pudo instalar AIDE.")
             return
         else:
             print_correcto("AIDE instalado correctamente")
