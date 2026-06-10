@@ -195,8 +195,10 @@ def paso2_persistencia_journald():
         if not nuevoContenido.endswith("\n"):
             nuevoContenido+="\n"
 
-        escribir_fichero(JOURNALD_CONF, nuevoContenido, paso=paso)
-        print_correcto("Storage=persistent configurado")
+        if not escribir_fichero(JOURNALD_CONF, nuevoContenido, paso=paso):
+            return
+        else:
+            print_correcto("Storage=persistent configurado")
 
     # 2c. Configurar tamaño máximo del journal
     # Se limita a 500M
@@ -331,6 +333,8 @@ def paso4_logrotate():
             print(" - Retención: 12 semanas")
             print(" - Compresión: activada")
             print(" - Permisos nuevos ficheros: 640 syslog:adm")
+        else:
+            return
 
     
     # 4d. Verificar sintaxis de logrotate
