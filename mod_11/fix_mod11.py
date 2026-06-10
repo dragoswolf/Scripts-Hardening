@@ -287,6 +287,10 @@ def paso3_programar_cron():
     print()
     print_info("Si AIDE detecta cambios, enviará un aviso a syslog" \
     " (visible en /var/log/syslog).")
+    print_info("Para leer el registro, simplemente usa 'cat /var/log/aide/aide-check.log'")
+    print_info("Esto reportará los cambios realizados. Si los cambios que se ven son aquellos realizados" \
+    " por el usuario, no hay problema, pero si detecta cambios realizados sin que haya sido el usuario," \
+    " se recomienda una investigación.")
 
 
 def mostrar_menu():
