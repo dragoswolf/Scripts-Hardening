@@ -270,6 +270,16 @@ def paso3_programar_cron():
             return
         else:
             print_correcto("Servicio cron activado.")
+    
+    # 3f. Ejecutar primera verificación para generar registro inicial.
+    print()
+    print_info("Ejecutando primera verificación para generar registro inicial.")
+    print_info("Esto puede tardar unos minutos...")
+    print()
+    if not ejecutar_comando([CRON_AIDE], "ejecutar verificación inicial de AIDE", paso, mostrarSalida=True):
+        return
+    else:
+        print_correcto("Verificación inicial completada.")
 
     print()
     print_info("La verificación se ejecutará diariamente." \
