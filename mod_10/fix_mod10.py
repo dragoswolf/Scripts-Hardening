@@ -100,7 +100,7 @@ def paso1_rsylog():
     else:
         print_correcto("Rsyslog ya está activo.")
 
-    rc, _,_=ejecutar_comando_check(["systemctyl", "is-enabled", "--quiet", "rsyslog"])
+    rc, _,_=ejecutar_comando_check(["systemctl", "is-enabled", "--quiet", "rsyslog"])
 
     if rc!=0:
         if not ejecutar_comando(["systemctl", "enable", "rsyslog"], "habilitar rsyslog en el arranque", paso):
@@ -160,7 +160,7 @@ def paso2_persistencia_journald():
     storageOk=False
     for linea in contenido.splitlines():
         limpia=linea.strip()
-        if limpia=="Storage-persistent":
+        if limpia=="Storage=persistent":
             storageOk=True
             break
 
@@ -310,7 +310,7 @@ def paso4_logrotate():
             limpia=linea.strip()
             variablesConfGlobal=["weekly", "daily", "monthly", "rotate", "compress", "create"]
             if limpia and not limpia.startswith("#"):
-                if any (k in limpia for k in variablesConfGlobal):
+                if any(k in limpia for k in variablesConfGlobal):
                     print(f"    {limpia}")
     
     # 4c. Configurar rotación de rsyslog
@@ -351,7 +351,7 @@ def paso4_logrotate():
 
 
 
-def mostar_menu():
+def mostrar_menu():
     print()
     print("="*100)
     print("HARDENING: CONFIGURACIÓN Y SUPERVISIÓN DE LOGS.")
@@ -372,7 +372,7 @@ def main():
     comprobar_root()
 
     while True:
-        mostar_menu()
+        mostrar_menu()
         opcion=input("Selecciona una opción: ").strip().lower()
 
         match opcion:

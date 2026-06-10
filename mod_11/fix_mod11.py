@@ -55,9 +55,9 @@ FECHA=$(date '+%d-%m-%Y %H:%M:%S')
 mkdir -p "$LOG_DIR"
 
 # Ejecutar verificación
-echo "=========================================================================================================" >> "%LOG_FILE"
+echo "=========================================================================================================" >> "$LOG_FILE"
 echo "Verificación AIDE: $FECHA" >> "$LOG_FILE"
-echo "=========================================================================================================" >> "%LOG_FILE"
+echo "=========================================================================================================" >> "$LOG_FILE"
 
 /usr/bin/aide --check >> "$LOG_FILE" 2>&1
 RESULTADO=$?
@@ -70,7 +70,7 @@ elif [ $RESULTADO -ge 1 ] && [ $RESULTADO -le 7 ]; then
     logger -t aide-check "AIDE detectó cambios en la integridad del sistema. Ver $LOG_FILE"
 else
     echo "[ERROR]: Error al ejecutar AIDE (código: $RESULTADO)." >> "$LOG_FILE"
-    logger -t aide-check "Error al ejecutar AIDE (código: $RESULTADO)
+    logger -t aide-check "Error al ejecutar AIDE (código: $RESULTADO)"
 fi
 
 echo "" >> "$LOG_FILE"
@@ -100,7 +100,7 @@ def paso1_instalar_aide():
         print()
 
         # Configurar la variable de entorno para saltarnos la instalación interactiva
-        os.environ["DEBIAN_FRONTEND"]="nontinteractive"
+        os.environ["DEBIAN_FRONTEND"]="noninteractive"
 
         if not ejecutar_comando(["apt", "install", "-y","aide","aide-common"], "instalarAIDE", paso, mostrarSalida=True):
             return
@@ -204,8 +204,8 @@ def paso2_inicializar_db():
 
     print()
     print_info( "Esta base de datos representa el estado 'limpio' del sistema." \
-                "Es muy importante asegurarse de que el sistema no está comprometido" \
-                "antes de considerar esta base de datos como referencia.")
+                " Es muy importante asegurarse de que el sistema no está comprometido" \
+                " antes de considerar esta base de datos como referencia.")
     print()
 
 
@@ -246,7 +246,7 @@ def paso3_programar_cron():
         
     # 3d. Crear el script cron
     print_info("Creando script de verificación diaria...")
-    if not escribir_fichero(CRON_AIDE, CRON_CONTENIDO, permisos="755", paso=paso):
+    if not escribir_fichero(CRON_AIDE, CRON_CONTENIDO, permisos=0o755, paso=paso):
         return
     else:
         print_correcto(f"Script cron creado: {CRON_AIDE}")
@@ -273,13 +273,13 @@ def paso3_programar_cron():
 
     print()
     print_info("La verificación se ejecutará diariamente." \
-    "Los resultados se guardarán en: /var/log/aide/aide_check.log")
+    " Los resultados se guardarán en: /var/log/aide/aide_check.log")
     print()
     print_info("Si AIDE detecta cambios, enviará un aviso a syslog" \
-    "(visible en /var/log/syslog).")
+    " (visible en /var/log/syslog).")
 
 
-def mostar_menu():
+def mostrar_menu():
     print()
     print("="*100)
     print("HARDENING: DETECCIÓN DE INTRUSOS DE HOST (AIDE).")
@@ -295,11 +295,11 @@ def mostar_menu():
         
 
 def main():
-    configurar_logging(LOG_FILE)
     comprobar_root()
+    configurar_logging(LOG_FILE)
 
     while True:
-        mostar_menu()
+        mostrar_menu()
         opcion=input("Selecciona una opción: ").strip().lower()
 
         match opcion:

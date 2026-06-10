@@ -34,7 +34,7 @@ CRON_AIDE="/etc/cron.daily/aide-check"
 
 ALTERNATIVAS_CRON=[
     "/etc/cron.daily/aide",
-    "etc/cron.d/aide",
+    "/etc/cron.d/aide",
 ]
 
 
