@@ -176,9 +176,7 @@ def paso2_inicializar_db():
 
     # 2c. Regenerar o inicializar la base de datos.
     # Usar aideinit que es el wrapper de ubuntu para aide --init
-    rc, salida, stderr=ejecutar_comando_check(["aideinit"])
-
-    if rc!=0:
+    if not ejecutar_comando(["aideinit"], "inicializar base de datos AIDE", paso, mostrarSalida=True):
         #puede que aideinit no exista, en ese caso, intentarlo con el comando base
         if not ejecutar_comando(["aide", "--init"], "inicializar base de datos AIDE", paso, mostrarSalida=True):
             return
