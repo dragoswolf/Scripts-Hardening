@@ -178,13 +178,16 @@ def verificar_paso3():
             resultado_fail("MIRRORS_MODE no está configurado a 0", paso)
 
 
-        if any(l.strip() =='WEB_CMD=""' for l in lineas):
-            resultado_ok('WEB_CMD="" configurado.')
+        tieneWebCmdVacio=any(l.strip()=='WEB_CMD=""' for l in lineas)
+        tieneWebCmdFalse=any(l.strip()=='WEB_CMD="/bin/false"' for l in lineas)
+        
+
+        if tieneWebCmdVacio and not tieneWebCmdFalse:
+            resultado_ok('WEB_CMD="" configurado')
+        elif tieneWebCmdFalse:
+            resultado_fail('WEB_CMD="/bin/false" activo (bloquea actualizaciones).', paso)
         else:
-            resultado_fail("WEB_CMD no está configurado a 1", paso)
-
-
-
+            resultado_fail("WEB_CMD no está configurado.", paso)
 
     # 3d. Verificar que existe la base de datos de propiedades
     rkhunterDb="/var/lib/rkhunter/db/rkhunter.dat"

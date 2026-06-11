@@ -325,6 +325,9 @@ def paso3_instalar_rkhunter():
             elif limpia=='#WEB_CMD=""':
                 nuevasLineas.append('WEB_CMD=""')
                 modificado=True
+            elif limpia=='WEB_CMD="/bin/false"':
+                nuevasLineas.append('#WEB_CMD="/bin/false"')
+                modificado=True
             else:
                 nuevasLineas.append(linea)
 
