@@ -212,15 +212,8 @@ def paso2_configurar_clamav():
     print_info("Esto puede tardar unos minutos.")
     print()
 
-    rc,salida,stderr=ejecutar_comando_check(["freshclam"])
-
-    if rc==0:
-        print_correcto("Base de datos de firmas actualizada.")
-    else:
-        if "up to date" in (salida+stderr).lower():
-            print_correcto("Base de datos ya estaba actualizada.")
-        else:
-            print_aviso(f"Freshclam terminó con advertencias: {stderr.strip()[:200]}")
+    if not ejecutar_comando(["freshclam"], "actualizar base de datos de firmas", paso, mostrarSalida=True):
+        print_aviso("'freshclam' terminó con advertencias.")
     
     # 2d. Reiniciar servicio freshclam
     rc1,_,stderr=ejecutar_comando_check(["systemctl", "start", "clamav-freshclam"])
@@ -304,11 +297,10 @@ def paso3_instalar_rkhunter():
     # 3c. Actualizar base de datos de propiedades
     print()
     print_info("Generando base de datos de propiedades del sistema...")
-    rc,_,stderr=ejecutar_comando_check(["rkhunter", "--propupd"])
-    if rc==0:
-        print_correcto("Base de datos de propiedades generada.")
+    if not ejecutar_comando(["rkhunter", "--propupd"], "generar base de datos de propiedades", paso, mostrarSalida=True):
+        print_aviso("Error al generar propiedades.")
     else:
-        print_aviso(f"Error al generar propiedades: {stderr.strip()[:200]}")
+        print_correcto("Base de datos de propiedades generada.")
 
     # 3d. Configurar para reducir falsos positivos
     confRkhunter="/etc/rkhunter.conf"
@@ -340,7 +332,7 @@ def paso3_instalar_rkhunter():
             nuevoContenido ="\n".join(nuevasLineas)
             if not nuevoContenido.endswith("\n"):
                 nuevoContenido+="\n"
-            if not escribir_fichero(confRkhunter, nuevoContenido, paso):
+            if not escribir_fichero(confRkhunter, nuevoContenido, paso=paso):
                 print_error("Error al escribir la configuración de RKHunter.")
             else:
                 print_correcto("Configuración de RKHunter ajustada.")
@@ -370,15 +362,10 @@ def paso4_configurar_rkhunter():
     
     # 4a. Actualizar base de datos de firmas
     print_info("Actualizando base de datos de firmas de RKHunter...")
-    rc,salida,stderr=ejecutar_comando_check(["rkhunter", "--update"])
-
-    if rc==0:
-        print_correcto("Base de datos actualizada.")
+    if not ejecutar_comando(["rkhunter", "--update"], "actualizar base de datos de RKHunter", paso, mostrarSalida=True):
+        print_aviso("RKHunter terminó con advertencias.")
     else:
-        if "no update" in (salida+stderr).lower() or "mirror" in (salida+stderr).lower():
-            print_correcto("Base de datos ya estaba actualizada.")
-        else:
-            print_aviso(f"Advertencias durante la actualización: {stderr.strip()[:200]}")
+        print_correcto("Base de datos actualizada.")
 
     # 4b. Crear script cron semanal
     print()
