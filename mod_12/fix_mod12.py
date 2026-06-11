@@ -309,6 +309,8 @@ def paso3_instalar_rkhunter():
         modificado=False
         nuevasLineas=[]
 
+        webCmdAnadido=False
+
         for linea in contenido.splitlines():
             limpia=linea.strip()
 
@@ -322,11 +324,13 @@ def paso3_instalar_rkhunter():
             elif limpia=="#MIRRORS_MODE=1":
                 nuevasLineas.append("MIRRORS_MODE=0")
                 modificado=True
-            elif limpia=='#WEB_CMD=""':
-                nuevasLineas.append('WEB_CMD="/usr/bin/wget"')
-                modificado=True
             elif limpia=='WEB_CMD="/bin/false"':
                 nuevasLineas.append('#WEB_CMD="/bin/false"')
+                modificado=True
+            elif limpia=='#WEB_CMD="/bin/false"' and not webCmdAnadido:
+                nuevasLineas.append(linea)
+                nuevasLineas.append('WEB_CMD="/usr/bin/wget"')
+                webCmdAnadido=True
                 modificado=True
             else:
                 nuevasLineas.append(linea)

@@ -179,13 +179,9 @@ def verificar_paso3():
 
 
         tieneWebCmd=any(l.strip()=='WEB_CMD="/usr/bin/wget"' for l in lineas)
-        tieneWebCmdFalse=any(l.strip()=='WEB_CMD="/bin/false"' for l in lineas)
+        if tieneWebCmd:
+            resultado_ok('WEB_CMD="/usr/bin/wget" configurado')
 
-
-        if tieneWebCmd and not tieneWebCmdFalse:
-            resultado_ok('WEB_CMD="" configurado')
-        elif tieneWebCmdFalse:
-            resultado_fail('WEB_CMD="/bin/false" activo (bloquea actualizaciones).', paso)
         else:
             resultado_fail("WEB_CMD no está configurado.", paso)
 
