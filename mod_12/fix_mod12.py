@@ -323,7 +323,7 @@ def paso3_instalar_rkhunter():
                 nuevasLineas.append("MIRRORS_MODE=0")
                 modificado=True
             elif limpia=='#WEB_CMD=""':
-                nuevasLineas.append('WEB_CMD=""')
+                nuevasLineas.append('WEB_CMD="/usr/bin/wget"')
                 modificado=True
             elif limpia=='WEB_CMD="/bin/false"':
                 nuevasLineas.append('#WEB_CMD="/bin/false"')

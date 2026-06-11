@@ -178,11 +178,11 @@ def verificar_paso3():
             resultado_fail("MIRRORS_MODE no está configurado a 0", paso)
 
 
-        tieneWebCmdVacio=any(l.strip()=='WEB_CMD=""' for l in lineas)
+        tieneWebCmd=any(l.strip()=='WEB_CMD="/usr/bin/wget"' for l in lineas)
         tieneWebCmdFalse=any(l.strip()=='WEB_CMD="/bin/false"' for l in lineas)
-        
 
-        if tieneWebCmdVacio and not tieneWebCmdFalse:
+
+        if tieneWebCmd and not tieneWebCmdFalse:
             resultado_ok('WEB_CMD="" configurado')
         elif tieneWebCmdFalse:
             resultado_fail('WEB_CMD="/bin/false" activo (bloquea actualizaciones).', paso)
