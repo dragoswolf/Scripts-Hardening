@@ -296,7 +296,7 @@ def paso3_programar_cron():
 def mostrar_menu():
     print()
     print("="*100)
-    print("HARDENING: DETECCIÓN DE INTRUSOS DE HOST (AIDE).")
+    print("MÓDULO 11: DETECCIÓN DE INTRUSOS DE HOST (AIDE).")
     print("="*100)
     print()
     print(" Pasos disponibles:")
