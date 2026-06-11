@@ -329,7 +329,7 @@ def paso3_instalar_rkhunter():
                 modificado=True
             elif limpia=='#WEB_CMD="/bin/false"' and not webCmdAnadido:
                 nuevasLineas.append(linea)
-                nuevasLineas.append('WEB_CMD="/usr/bin/wget"')
+                nuevasLineas.append('WEB_CMD=curl')
                 webCmdAnadido=True
                 modificado=True
             else:
