@@ -318,20 +318,6 @@ def paso3_instalar_rkhunter():
             if limpia=="#ALLOWDEVFILE=/dev/shm/pulse-shm-*":
                 nuevasLineas.append("ALLOWDEVFILE=/dev/shm/pulse-shm-*")
                 modificado=True
-            elif limpia=="UPDATE_MIRRORS=0":
-                nuevasLineas.append("UPDATE_MIRRORS=1")
-                modificado=True
-            elif limpia=="MIRRORS_MODE=1":
-                nuevasLineas.append("MIRRORS_MODE=0")
-                modificado=True
-            elif limpia=='WEB_CMD="/bin/false"':
-                nuevasLineas.append('#WEB_CMD="/bin/false"')
-                modificado=True
-            elif limpia=='#WEB_CMD="/bin/false"' and not webCmdAnadido:
-                nuevasLineas.append(linea)
-                nuevasLineas.append('WEB_CMD=curl')
-                webCmdAnadido=True
-                modificado=True
             else:
                 nuevasLineas.append(linea)
 
@@ -369,10 +355,19 @@ def paso4_configurar_rkhunter():
     
     # 4a. Actualizar base de datos de firmas
     print_info("Actualizando base de datos de firmas de RKHunter...")
-    if not ejecutar_comando(["rkhunter", "--update"], "actualizar base de datos de RKHunter", paso, mostrarSalida=True):
-        print_aviso("RKHunter terminó con advertencias.")
+    ejecutar_comando(["apt", "update", "-qq"], "actualizar repositorios", paso, mostrarSalida=True)
+
+    if not ejecutar_comando(["apt", "install", "--only-upgrade", "-y", "rkhunter"], "actualizar paquete rkhunter", paso, mostrarSalida=True):
+        print_aviso("No se pudo actualizar rkhunter.")
     else:
         print_correcto("Base de datos actualizada.")
+
+    # Regenerar base de datos de propiedades tras actualización
+    print_info("Regenerando base de datos de propiedades...")
+    if not ejecutar_comando(["rkhunter", "--propupd"], "regenerar propiedades", paso, mostrarSalida=True):
+        print_aviso("Error al regenerar propiedades.")
+    else:
+        print_correcto("Base de datos de propiedades actualizada.")
 
     # 4b. Crear script cron semanal
     print()
