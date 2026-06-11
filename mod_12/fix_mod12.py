@@ -58,8 +58,6 @@ echo "==========================================================================
 echo "Escaneo ClamAV: $FECHA" >> "$LOG_FILE"
 echo "=========================================================================================================" >> "$LOG_FILE"
 
-# Actualizar base de datos antes de escanear
-freshclam --quiet 2>/dev/null
 
 # Escanear directorios críticos
 clamscan -r --quiet --infected \\
