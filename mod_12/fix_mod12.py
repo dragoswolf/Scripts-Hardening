@@ -318,10 +318,10 @@ def paso3_instalar_rkhunter():
             if limpia=="#ALLOWDEVFILE=/dev/shm/pulse-shm-*":
                 nuevasLineas.append("ALLOWDEVFILE=/dev/shm/pulse-shm-*")
                 modificado=True
-            elif limpia=="#UPDATE_MIRRORS=0":
+            elif limpia=="UPDATE_MIRRORS=0":
                 nuevasLineas.append("UPDATE_MIRRORS=1")
                 modificado=True
-            elif limpia=="#MIRRORS_MODE=1":
+            elif limpia=="MIRRORS_MODE=1":
                 nuevasLineas.append("MIRRORS_MODE=0")
                 modificado=True
             elif limpia=='WEB_CMD="/bin/false"':
