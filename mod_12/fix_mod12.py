@@ -109,7 +109,8 @@ echo "Escaneo RKHunter: $FECHA" >> "$LOG_FILE"
 echo "=========================================================================================================" >> "$LOG_FILE"
 
 # Actualizar base de datos antes de escanear
-rkhunter --update --quiet 2>/dev/null
+apt update -qq 2>/dev/null
+apt install --only-upgrade -y -qq rkhunter 2>/dev/null
 
 # Ejecutar escaneo (--skip-keypress evita pausas interactivas)
 rkhunter --check --skip-keypress --quiet --report-warnings-only >> "$LOG_FILE" 2>&1
