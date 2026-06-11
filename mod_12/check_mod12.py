@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 #=========================================================================================================
-# check_mod10.py - Script de verificación para el módulo 12 - Antimalware
+# check_mod12.py - Script de verificación para el módulo 12 - Antimalware
 #=========================================================================================================
 
 import os
@@ -17,13 +17,14 @@ from utils import (configurar_logging,
                 resultado_ok,
                 resultado_warn,
                 mostrar_resumen,
-                contadores                
+                contadores,
+                leer_fichero               
                 )
 
 #=========================================================================================================
 # CONSTANTES
 #=========================================================================================================
-LOG_FILE="/var/log/hardening/modulo12_fix.log"
+LOG_FILE="/var/log/hardening/modulo12_check.log"
 
 CRON_CLAMAV="/etc/cron.weekly/clamav-scan"
 CRON_RKHUNTER="/etc/cron.weekly/rkhunter-scan"
@@ -114,7 +115,7 @@ def verificar_paso2():
         try:
             mtime=os.path.getmtime(logClamav)
             fecha=time.strftime("%d-%m-%Y %H:%M:%S", time.localtime(mtime))
-            resultado_ok(f"Último escaneo registrado: {fecha})")
+            resultado_ok(f"Último escaneo registrado: {fecha}")
 
             diasAntig=(time.time()-mtime)/86400
             if diasAntig>8:
@@ -153,14 +154,46 @@ def verificar_paso3():
     else:
         resultado_fail("Binario RKHunter no encontrado.", paso)
 
-    # 3c. Verificar que existe la base de datos de propiedades
+    # 3c. Verificar configuración de rkhunter.conf
+    confRkhunter="/etc/rkhunter.conf"
+    contenido=leer_fichero(confRkhunter)
+    if contenido:
+        lineas=contenido.splitlines()
+
+        if any(l.strip().startswith("ALLOWDEVFILE=/dev/shm/pulse") for l in lineas):
+            resultado_ok("ALLOWDEVFILE configurado /dev/shm.")
+        else:
+            resultado_fail("ALLOWDEVFILE no está configurado. Posibles falsos positivos", paso)
+
+
+        if any(l.strip() =="UPDATE_MIRRORS=1" for l in lineas):
+            resultado_ok("UPDATE_MIRRORS=1 configurado.")
+        else:
+            resultado_fail("UPDATE_MIRRORS no está configurado a 1", paso)
+
+
+        if any(l.strip() =="MIRRORS_MODE=0" for l in lineas):
+            resultado_ok("MIRRORS_MODE=0 configurado.")
+        else:
+            resultado_fail("MIRRORS_MODE no está configurado a 0", paso)
+
+
+        if any(l.strip() =='WEB_CMD=""' for l in lineas):
+            resultado_ok('WEB_CMD="" configurado.')
+        else:
+            resultado_fail("WEB_CMD no está configurado a 1", paso)
+
+
+
+
+    # 3d. Verificar que existe la base de datos de propiedades
     rkhunterDb="/var/lib/rkhunter/db/rkhunter.dat"
     if os.path.isfile(rkhunterDb):
         resultado_ok("Base de datos de propiedades existe.")
         try:
             mtime=os.path.getmtime(rkhunterDb)
             fecha=time.strftime("%d-%m-%Y %H:%M:%S", time.localtime(mtime))
-            resultado_ok(f"Última actualización: {fecha})")
+            resultado_ok(f"Última actualización: {fecha}")
 
             diasAntig=(time.time()-mtime)/86400
             if diasAntig>30:
@@ -208,7 +241,7 @@ def verificar_paso4():
     # 4c. Verificar logs de escaneo
     logRkhunter="/var/log/rkhunter/rkhunter-scan.log"
     if os.path.isfile(logRkhunter):
-        resultado_ok("Base de datos de propiedades existe.")
+        resultado_ok("Logs de escaneo de RKHunter encontrados..")
         try:
             mtime=os.path.getmtime(logRkhunter)
             fecha=time.strftime("%d-%m-%Y %H:%M:%S", time.localtime(mtime))
@@ -216,7 +249,7 @@ def verificar_paso4():
 
             diasAntig=(time.time()-mtime)/86400
             if diasAntig>8:
-                resultado_warn(f"El útlimo escaneo tiene {int(diasAntig)} días.")
+                resultado_warn(f"El último escaneo tiene {int(diasAntig)} días.")
         except OSError:
             pass
     else:

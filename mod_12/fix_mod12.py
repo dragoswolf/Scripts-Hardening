@@ -2,7 +2,7 @@
 
 
 #=========================================================================================================
-# fix_mod10.py - Script de fortificación para el módulo 12 - Antimalware
+# fix_mod12.py - Script de fortificación para el módulo 12 - Antimalware
 #=========================================================================================================
 
 
@@ -235,7 +235,7 @@ def paso2_configurar_clamav():
     else:
         print_aviso(f"Han habido problemas al reiniciar freshclam: {stderr.strip()[:200]}")
     
-    if rc1 and rc2:
+    if rc1==0 and rc2==0:
         print_correcto("Servicio freshclam activo.")
     
 
@@ -324,15 +324,14 @@ def paso3_instalar_rkhunter():
             if limpia=="#ALLOWDEVFILE=/dev/shm/pulse-shm-*":
                 nuevasLineas.append("ALLOWDEVFILE=/dev/shm/pulse-shm-*")
                 modificado=True
-            elif limpia.startswith("UPDATE_MIRRORS=") and 0 in limpia:
+            elif limpia=="#UPDATE_MIRRORS=0":
                 nuevasLineas.append("UPDATE_MIRRORS=1")
                 modificado=True
-            elif limpia.startswith("MIRRORS_MODE=") and "1" in limpia:
+            elif limpia=="#MIRRORS_MODE=1":
                 nuevasLineas.append("MIRRORS_MODE=0")
                 modificado=True
-            elif limpia.startswith("WEB_CMD=") and '""' in limpia:
-                nuevasLineas.append("WEB_CMD=\"\"")
-                nuevasLineas.append("# WEB_CMD configurado para permitir actualizaciones")
+            elif limpia=='#WEB_CMD=""':
+                nuevasLineas.append('WEB_CMD=""')
                 modificado=True
             else:
                 nuevasLineas.append(linea)
