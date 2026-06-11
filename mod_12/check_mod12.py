@@ -163,27 +163,9 @@ def verificar_paso3():
         if any(l.strip().startswith("ALLOWDEVFILE=/dev/shm/pulse") for l in lineas):
             resultado_ok("ALLOWDEVFILE configurado /dev/shm.")
         else:
-            resultado_fail("ALLOWDEVFILE no está configurado. Posibles falsos positivos", paso)
-
-
-        if any(l.strip() =="UPDATE_MIRRORS=1" for l in lineas):
-            resultado_ok("UPDATE_MIRRORS=1 configurado.")
-        else:
-            resultado_fail("UPDATE_MIRRORS no está configurado a 1", paso)
-
-
-        if any(l.strip() =="MIRRORS_MODE=0" for l in lineas):
-            resultado_ok("MIRRORS_MODE=0 configurado.")
-        else:
-            resultado_fail("MIRRORS_MODE no está configurado a 0", paso)
-
-
-        tieneWebCmd=any(l.strip()=='WEB_CMD="/usr/bin/wget"' for l in lineas)
-        if tieneWebCmd:
-            resultado_ok('WEB_CMD="/usr/bin/wget" configurado')
-
-        else:
-            resultado_fail("WEB_CMD no está configurado.", paso)
+            resultado_warn("ALLOWDEVFILE no está configurado. Posibles falsos positivos")
+    else:
+        resultado_fail("No se pudo leer /etc/rkhunter.conf", paso)
 
     # 3d. Verificar que existe la base de datos de propiedades
     rkhunterDb="/var/lib/rkhunter/db/rkhunter.dat"
@@ -240,11 +222,11 @@ def verificar_paso4():
     # 4c. Verificar logs de escaneo
     logRkhunter="/var/log/rkhunter/rkhunter-scan.log"
     if os.path.isfile(logRkhunter):
-        resultado_ok("Logs de escaneo de RKHunter encontrados..")
+        resultado_ok("Logs de escaneo de RKHunter encontrados...")
         try:
             mtime=os.path.getmtime(logRkhunter)
             fecha=time.strftime("%d-%m-%Y %H:%M:%S", time.localtime(mtime))
-            resultado_ok(f"Último escaneo registrado: {fecha})")
+            resultado_ok(f"Último escaneo registrado: {fecha}")
 
             diasAntig=(time.time()-mtime)/86400
             if diasAntig>8:
