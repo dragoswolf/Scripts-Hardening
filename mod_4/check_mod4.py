@@ -115,7 +115,7 @@ def verificar_paso2():
         pwqPresente=False
         lineas=contenido.splitlines()
         for linea in lineas:
-            if "pam_pwquality.so" in linea and not linea.strip().startswith("#"):
+            if (not linea.strip().startswith("#") and "pam_pwquality.so" in linea):
                 pwqPresente=True
                 break
         if pwqPresente:
@@ -135,7 +135,12 @@ def verificar_paso2():
         "lcredit":{"esperado": -1, "comparar": "<="},
         "ocredit":{"esperado": -1, "comparar": "<="},
         "maxrepeat":{"esperado": 3, "comparar": "<="},
-        "difok":{"esperado": 5, "comparar": ">="}
+        "maxclassrepeat":{"esperado": 4, "comparar": "<="},
+        "difok":{"esperado": 5, "comparar": ">="},
+        "minclass":{"esperado": 3, "comparar": ">="},
+        "dictcheck":{"esperado": 1, "comparar": ">="},
+        "usercheck":{"esperado": 1, "comparar": ">="},
+        "retry":{"esperado": 3, "comparar": ">="}
     }
 
     for param, config in parametros.items():
@@ -162,6 +167,11 @@ def verificar_paso2():
                 resultado_fail(f"pwquality: {param} = {valor} (esperado{comparar} {esperado})", paso)
         else:
             resultado_fail(f"pwquality: {param} no configurado", paso)
+
+    if re.search(r"^\s*enforce_for_root", contenidoPwq, re.MULTILINE):
+        resultado_ok("pwquality: enforce_for_root activado")
+    else:
+        resultado_fail("pwquality: enforce_for_root no configurado", paso)
 
 def verificar_paso3():
     """
@@ -260,8 +270,8 @@ def verificar_paso3():
 
 def verificar_paso4():
     """
-    Verifica que pam_unix.so tiene remember configurado y que /etc/security/opasswd existe
-    con permisos correctos
+    Verifica que pam_pwhistory.so está configurado con remember
+    y que /etc/security/opasswd existe con permisos correctos
     """
     print()
     print("="*100)
@@ -271,31 +281,70 @@ def verificar_paso4():
 
     paso="Paso 4"
 
+    # 4a. Verificar pam_pwhistory.so en common-password
     contenido=leer_fichero(PAM_COMMON_PASSWORD, paso=paso)
     if contenido is not None:
-        rememberEncontrado=False
-        lineas=contenido.splitlines()
-
-        for linea in lineas:
-            if not linea.strip().startswith("#") and "pam_unix.so" in linea:
+        pwhistoryEncontrado=False
+        useAuthtok=False
+        enforceRoot=False
+        for linea in contenido.splitlines():
+            if (not linea.strip().startswith("#") and "pam_pwhistory.so" in linea):
+                pwhistoryEncontrado=True
                 match=re.search(r"remember=(\d+)", linea)
                 if match:
                     valor=int(match.group(1))
-                    rememberEncontrado=True
-
                     if valor>=5:
-                        resultado_ok(f"remember = {valor} en pam_unix.so")
+                        resultado_ok(f"pam_pwhistory.so con remember={valor}")
                     else:
-                        resultado_warn(f"remember={valor} en pam_unix.so (recomendado <=5) ")
+                        resultado_warn(f"pam_pwhistory.so con remember={valor} (recomendado >=5).")
+                else:
+                    resultado_warn("pam_pwhistory.so configurado sin remember.")
+                if "use_authtok" in linea:
+                    useAuthtok=True
+                    resultado_ok("pam_pwhistory.so configurado con use_authtok.")
+                if "enforce_for_root" in linea:
+                    enforceRoot=True
+                    resultado_ok("pam_pwhistory.so configurado con enforce_for_root.")
                 break
-
-
-        if not rememberEncontrado:
-            resultado_fail("remember no configurado en pam_unix.so", paso)
+        
+        if not pwhistoryEncontrado:
+            resultado_fail("pam_pwhistory.so no configurado en common-password", paso)
+        else:
+            if not useAuthtok:
+                resultado_fail("pam_pwhistory.so configurado sin use_authtok", paso)
+            if not enforceRoot:
+                resultado_fail("pam_pwhistory.so configurado sin enforce_for_root.", paso)
     else:
         resultado_fail(f"No se pudo leer {PAM_COMMON_PASSWORD}", paso)
-
+        return
+    
+    # 4b. Verificar los permisos de opasswd
     verificar_permisos(OPASSWD_FILE, "600", paso=paso)
+
+    # 4c. Verificar que pam_unix.so tiene use_authtok
+    unixUseAuthtok=False
+    unixHashing=None
+    for linea in contenido.splitlines():
+        if (not linea.strip().startswith("#") and "pam_unix.so" in linea and linea.strip().startswith("password")):
+            if "use_authtok" in linea:
+                unixUseAuthtok=True
+            for algo in ["yescrypt", "sha512", "sha256", "md5", "bigcrypt", "blowfish"]:
+                if algo in linea:
+                    unixHashing=algo
+                    break
+    
+    if unixUseAuthtok:
+        resultado_ok("pam_unix.so configurado con use_authtok en common-password")
+    else:
+        resultado_fail("pam_unix.so configurado sin use authtok en common-password", paso)
+    
+    # 4d. Verificar algoritmo de hashing en pam_unix.so
+    if unixHashing in ["yescrypt", "sha512"]:
+        resultado_ok(f"pam_unix.so usa {unixHashing}.")
+    elif unixHashing:
+        resultado_fail(f"pam_unix.so usa {unixHashing}. Debería ser yescrypt o sha512.", paso)
+    else:
+        resultado_warn("pam_unix.so configurado sin algoritmo de hashing explícito. Recomendado verificar la configuración.")
 
 
 def verificar_paso5():

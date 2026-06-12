@@ -63,6 +63,20 @@ SHELLS_INTERACTIVAS=[
     "bin/fish"
 ]
 
+FICHEROS_INIT=[
+    ".bashrc", 
+    ".bash_profile", 
+    ".bash_logout", 
+    ".profile", 
+    ".bash_login", 
+    ".kshrc", 
+    ".cshrc", 
+    ".login", 
+    ".exrc", 
+    ".tcshrc", 
+    ".zshrc"
+]
+
 #============================================================================================================
 
 
@@ -585,6 +599,47 @@ def verificar_paso10():
             resultado_ok(f"Grupo sudo tiene miembros: {miembros} (acceso privilegiado garantizado).")
         else:
             resultado_fail("Grupo sudo sin miembros. Si 'root' está bloqueado, no hay acceso privilegiado.", paso=paso)
+
+def verificar_paso11():
+    """
+    Verifica que los directorios home de usuarios humanos tienen permisos 0750 y
+    que los ficheros de inicialización tienen permiso 0640 o más restrictivo.
+    """
+    print()
+    print("="*100)
+    print("[PASO 11]: Auditar permisos de directorios home y ficheros de inicialización.")
+    print("="*100)
+    print()
+
+    paso="Paso 11"
+
+    contenido=leer_fichero(PASSWD_FILE, paso=paso)
+    if contenido is None:
+        return
+    
+    for linea in contenido.strip().splitlines():
+        campos=linea.split(":")
+        if len(campos)!=7:
+            continue
+        nombre=campos[0]
+        uid=int(campos[2])
+        homeDir=campos[5]
+
+        if uid <1000 or uid >=65534:
+            continue
+        if not os.path.isdir(homeDir):
+            continue
+
+        # 11a. Auditar permisos del directorio home
+        verificar_permisos(homeDir, "750", paso=paso)
+
+        # 11b. Ficheros de inicialización
+        permisosValidados=["640", "600", "440", "400", "200", "000"]
+        for fichero in FICHEROS_INIT:
+            rutaFichero=os.path.join(homeDir, fichero)
+            if not os.path.isfile(rutaFichero):
+                continue
+            verificar_permisos(rutaFichero, permisosValidados, paso=paso)
 
 
 def main():

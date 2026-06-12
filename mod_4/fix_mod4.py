@@ -8,7 +8,7 @@
 #   Paso 1: Eliminar nullok (rechazar contraseñas vacías)
 #   Paso 2: Configurar pwquality (complejidad de contraseñas)
 #   Paso 3: Configurar faillock (bloqueo tras intentos fallidos)
-#   Paso 4: Configurar remember (historial de contraseñas)
+#   Paso 4: Configurar pwhistory (historial de contraseñas)
 #   Paso 5: Configurar umask en PAM (permisos por defecto)
 #   Paso 6: Configurar pam_limits (límites de recursos)
 #
@@ -24,9 +24,19 @@ import sys
 import re
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__),".."))
-from utils import (configurar_logging, registrar_errores, comprobar_root,
-                   ejecutar_comando, ejecutar_comando_check, volver_al_menu,
-                   escribir_fichero, leer_fichero, cambiar_permisos)
+from utils import (configurar_logging, 
+                   registrar_errores, 
+                   comprobar_root,
+                   ejecutar_comando, 
+                   ejecutar_comando_check, 
+                   volver_al_menu,
+                   escribir_fichero, 
+                   leer_fichero, 
+                   cambiar_permisos,
+                   print_aviso,
+                   print_correcto,
+                   print_error,
+                   print_info)
 
 
 PAM_COMMON_AUTH= "/etc/pam.d/common-auth"
@@ -47,6 +57,128 @@ LOGIN_FILE="/etc/login.defs"
 
 
 LOG_FILE="/var/log/hardening/modulo4_fix.log"
+
+
+CONTENIDO_PWQUALITY="""
+#============================================================================================================
+# pwquality.conf - Política de calidad de contraseñas
+#============================================================================================================
+# Configurado por fix_mod4.py
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#============================================================================================================
+
+# Longitud mínima de la contraseña (recomendado: 12-14 para PYMEs)
+minlen = 12
+
+# Créditos de caracteres (valores negativos = mínimo obligatorio)
+# -1 significa "al menos 1 carácter de este tipo"
+dcredit = -1    # Mínimo 1 dígito (0-9)
+ucredit = -1    # Mínimo 1 mayúscula (A-Z)
+lcredit = -1    # Mínimo 1 minúscula (a-z)
+ocredit = -1    # Mínimo 1 carácter especial (!@#$...)
+
+# Máximo de caracteres consecutivos repetidos permitidos
+maxrepeat=3
+
+# Mínimo de caracteres diferentes respecto a la anterior contraseña
+difok=5
+
+# No permitir que la contraseña contenga el nombre de usuario
+usercheck=1
+
+# Máximo de caracteres consecutivos de la misma clase
+maxclassrepeat=4
+
+# Complejidad: rechazar contraseñas que no tengan al menos 3 clases
+# de caracteres diferentes (mayúsculas, minúsculas, dígitos, especiales)
+minclass=3
+
+# Rechazar contraseñas de diccionarios (cracklib)
+dictcheck=1
+
+# Número de reintentos antes de devolver error
+retry=3
+"""
+
+
+CONTENIDO_FAILLOCK="""
+#============================================================================================================
+# faillock.conf - bloqueo de cuentas tras intentos fallidos
+#============================================================================================================
+# Configurado por fix_mod4
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#============================================================================================================
+
+# Directorio donde se almacenan los registros de fallos por usuario
+dir = /var/run/faillock
+
+# Número de intentos fallidos antes de bloquear la cuenta
+deny=5
+
+# Tiempo en segundos para desbloquear automáticamente
+unlock_time=600
+
+# Ventana de tiempo en segundos para contar intentos
+# SI los 5 intentos fallidos ocurren dentro de estos 15 minutos, se bloquea
+fail_interval=900
+
+# También bloquea la cuenta root tras intentos fallidos
+# NOTA: Si se bloquea root, se puede desbloquear desde consola física
+# o esprando unlock_time segundos
+even_deny_root=True
+
+# Auditar los intentos fallidos incluso de usuarios existentes
+# Esto dificulta la enumeración de usuarios
+silent=false
+
+# Tipo de auditoría
+audit=True
+"""
+
+BLOQUEO_LIMITES="""
+#============================================================================================================
+# Límites de seguridad - Hardening TFG
+#============================================================================================================
+# Estos límites protegen el servidor contra abuso de recursos.
+# Formato: <dominio> <tipo> <recurso> <valor>
+# Tipos: soft (advertencia, el usuario puede ampliar) / hard (límite absoluto)
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#============================================================================================================
+# --- Límite de procesos (prevención de fork bombs) ---
+# Valores compatibles con entorno gráfico (300+ procesos)
+*           soft    nproc           1024
+*           hard    nproc           4096
+
+# --- Límite ficheros abiertos ---
+# Previene que un usuario agote los descriptores de fichero del sistema
+*           soft    nofile          1024
+*           hard    nofile          4096
+
+# --- Límite de tamaño de ficheros core (volcado de memoria) ---
+# Deshabilitar core dumps previene la fuga de información sensible
+# que podría estar en la memoria del proceso
+*           soft    core            0
+*           hard    core            0
+
+# --- Límite de memoria bloqueada (previene abuso de RAM) ---
+# Cantidad máxima de memoria que un proceso puede bloquear en la RAM (KB)
+*           soft    memlock         65536
+*           hard    memlock         65536
+
+# --- Excepción para root (necesita más recursos para administrar) ---
+root        soft    nproc           unlimited
+root        hard    nproc           unlimited
+root        soft    nofile          65536
+root        hard    nofile          65536
+
+#============================================================================================================
+"""
 
 
 def paso1_eliminar_nullok():
@@ -132,46 +264,7 @@ def paso2_configurar_pwquality():
     print()
     print("[INFO]: Configurando parámetros de calidad de contraseñas...")
 
-    configuracion="""#=================================================================
-# pwquality.conf - Política de calidad de contraseñas
-#=================================================================
-# Configurado por fix_mod4.py
-#=================================================================
-
-# Longitud mínima de la contraseña (recomendado: 12-14 para PYMEs)
-minlen = 12
-
-# Créditos de caracteres (valores negativos = mínimo obligatorio)
-# -1 significa "al menos 1 carácter de este tipo"
-dcredit = -1    # Mínimo 1 dígito (0-9)
-ucredit = -1    # Mínimo 1 mayúscula (A-Z)
-lcredit = -1    # Mínimo 1 minúscula (a-z)
-ocredit = -1    # Mínimo 1 carácter especial (!@#$...)
-
-# Máximo de caracteres consecutivos repetidos permitidos
-maxrepeat=3
-
-# Mínimo de caracteres diferentes respecto a la anterior contraseña
-difok=5
-
-# No permitir que la contraseña contenga el nombre de usuario
-usercheck=1
-
-# Máximo de caracteres consecutivos de la misma clase
-maxclassrepeat=4
-
-# Complejidad: rechazar contraseñas que no tengan al menos 3 clases
-# de caracteres diferentes (mayúsculas, minúsculas, dígitos, especiales)
-minclass=3
-
-# Rechazar contraseñas de diccionarios (cracklib)
-dictcheck=1
-
-# Número de reintentos antes de devolver error
-retry=3
-"""
-
-    if escribir_fichero(PWQUALITY_CONF, configuracion, permisos=0o644, paso=paso):
+    if escribir_fichero(PWQUALITY_CONF, CONTENIDO_PWQUALITY, permisos=0o644, paso=paso):
         print("[CORRECTO]: /etc/security/pwquality.conf configurado.")
     else:
         registrar_errores(paso, "No se pudo escribir pwquality.conf")
@@ -247,39 +340,9 @@ def paso3_configurar_faillock():
     print()
     print("[INFO]: Configurando parámetros de bloqueo de cuentas...")
 
-    configuracion="""#=================================================================
-# faillock.conf - bloqueo de cuentas tras intentos fallidos
-#=================================================================
-# Configurado por fix_mod4
-#=================================================================
 
-# Directorio donde se almacenan los registros de fallos por usuario
-dir = /var/run/faillock
 
-# Número de intentos fallidos antes de bloquear la cuenta
-deny=5
-
-# Tiempo en segundos para desbloquear automáticamente
-unlock_time=600
-
-# Ventana de tiempo en segundos para contar intentos
-# SI los 5 intentos fallidos ocurren dentro de estos 15 minutos, se bloquea
-fail_interval=900
-
-# También bloquea la cuenta root tras intentos fallidos
-# NOTA: Si se bloquea root, se puede desbloquear desde consola física
-# o esprando unlock_time segundos
-even_deny_root=True
-
-# Auditar los intentos fallidos incluso de usuarios existentes
-# Esto dificulta la enumeración de usuarios
-silent=false
-
-# Tipo de auditoría
-audit=True
-"""
-
-    if escribir_fichero(FAILLOCK_CONF, configuracion, permisos=0o644, paso=paso):
+    if escribir_fichero(FAILLOCK_CONF, CONTENIDO_FAILLOCK, permisos=0o644, paso=paso):
         print("[CORRECTO]: /etc/security/faillock.conf configurado.")
     else:
         registrar_errores(paso, "no se pudo escribir faillock.conf")
@@ -355,10 +418,10 @@ audit=True
         print("[CORRECTO]: pam_faillock.so ya está configurado en common-password.")
 
 
-def paso4_configurar_remember():
+def paso4_configurar_pwhistory():
     """
-    Configura pam_unix.so con remember=5 para que no se puedan reutilizar las últimas
-    5 contraseñas.
+    Configura pam_pwhistory.so en common-password para impedir 
+    la reutilización de las últimascinco contraseñas.
     """
     print()
     print("="*100)
@@ -376,20 +439,50 @@ def paso4_configurar_remember():
     lineas = contenido.splitlines()
     nuevasLineas=[]
     modificado=False
+    pwhistoryExiste=False
+
+    # 4a. Comprobar si pam_pwhistory.so ya está configurado.
+    for linea in lineas:
+        if "pam_pwhistory.so" in linea and not linea.strip().startswith("#"):
+            pwhistoryExiste=True
+            break
+
 
     for linea in lineas:
-        if "pam_unix.so" in linea and not linea.strip().startswith("#"):
-            if "remember=" in linea:
-                linea=re.sub(r"remember=\d+",
-                             f"remember={REMEMBER_VALUE}", linea)
-                print(f"[INFO]: Actualizado remember={REMEMBER_VALUE} en pam_unix.so")
+        limpia=linea.strip()
+
+        if ("pam_unix.so" in linea and not linea.strip().startswith("#") and limpia.startswith("password")):
+            # 4b. Verificar la existencia de use_authtok
+            if "use_authtok" not in linea:
+                linea=linea.rstrip() + " use_authtok"
+                print_info("Añadido use_authtok a pam_unix.so")
                 modificado=True
-            else:
-                linea=linea.rstrip() + f" remember={REMEMBER_VALUE}"
-                print(f"[INFO]: Añadido remember={REMEMBER_VALUE} en pam_unix.so")
+            
+            # 4c. Verificar el uso de un algoritmo de hashing seguro
+            algoritmosInseguros=["md5", "bigcrypt", "sha256", "blowfish"]
+            tieneHashSeguro=("yescrypt" in linea or "sha512" in linea)
+
+            if not tieneHashSeguro:
+                # Quitamos algoritmos inseguros si los hay
+                for algo in algoritmosInseguros:
+                    if algo in linea:
+                        linea = linea.replace(f" {algo}", "")
+                        print_correcto(f"Algoritmo inseguro {algo} eliminado de 'pam_unix.so'.")
+                linea=linea.rstrip()+" yescrypt"
+                print_info("Añadido yescrypt a pam_unix.so")
+                modificado=True
+
+            # 4d. Añadir pam_pwhistory.so antes de pam_unix.so
+            if not pwhistoryExiste:
+                lineasPwhistory=(f"password\trequired\t\t\tpam_pwhistory.so remember={REMEMBER_VALUE} use_authtok enforce_for_root")
+                nuevasLineas.append(lineasPwhistory)
+                print_info(f"Añadido pam_pwhistory.so con remember={REMEMBER_VALUE} antes de pam_unix.so")
+                pwhistoryExiste=True
                 modificado=True
         nuevasLineas.append(linea)
 
+
+    # 4e. Guardar modificaciones
     if modificado:
         nuevoContenido="\n".join(nuevasLineas)
         if not nuevoContenido.endswith("\n"):
@@ -400,24 +493,25 @@ def paso4_configurar_remember():
             registrar_errores("Paso 4", "No se pudo actualizar common-password")
 
     else:
-        print("[AVISO]: No se encontró 'pam_unix.so' en common-password.")
-        print("         Revisa la configuración PAM manualmente.")
+        if pwhistoryExiste:
+            print_correcto("'pam_pwhistory' ya está configurado.")
+        else:
+            print("[AVISO]: No se encontró 'pam_unix.so' en common-password.")
+            print("         Revisa la configuración PAM manualmente.")
 
+    # 4f. Crear directorio para el historial de contraseñas si no existe
     if not os.path.isdir("/etc/security"):
         os.makedirs("/etc/security", exist_ok=True)
     
+    # 4g. Crear fichero de historial de contraseñas si no existe
     if not os.path.isfile(OPASSWD_FILE):
         print("[INFO]: Creando fichero de historial de contraseñas...")
         if escribir_fichero(OPASSWD_FILE, "", permisos=0o600, paso=paso):
             cambiar_permisos(OPASSWD_FILE, propietario=0, grupo=0, paso=paso)
             print(f"[CORRECTO]: {OPASSWD_FILE} creado con permisos 600")
     else:
-        permisos=oct(os.stat(OPASSWD_FILE).st_mode)[-3:]
-        if permisos!="600":
-            cambiar_permisos(OPASSWD_FILE, permisos=0o600, paso=paso)
-            print(f"[CORRECTO]: Permisos de {OPASSWD_FILE} corregidos a 600.")
-        else:
-            print(f"[CORRECTO]: {OPASSWD_FILE} ya existe con los permisos correctos.")
+        cambiar_permisos(OPASSWD_FILE, permisos=0o600, paso=paso)
+
 
 
 def paso5_configurar_umask():
@@ -520,43 +614,6 @@ def paso6_configurar_limits():
         print("[INFO]: Para modificarlos, edita /etc/security/limits.conf")
         return
     
-    bloqueoLimites="""
-#==============================================================================
-# Límites de seguridad - Hardening TFG
-#==============================================================================
-# Estos límites protegen el servidor contra abuso de recursos.
-# Formato: <dominio> <tipo> <recurso> <valor>
-# Tipos: soft (advertencia, el usuario puede ampliar) / hard (límite absoluto)
-#==============================================================================
-# --- Límite de procesos (prevención de fork bombs) ---
-# Valores compatibles con entorno gráfico (300+ procesos)
-*           soft    nproc           1024
-*           hard    nproc           4096
-
-# --- Límite ficheros abiertos ---
-# Previene que un usuario agote los descriptores de fichero del sistema
-*           soft    nofile          1024
-*           hard    nofile          4096
-
-# --- Límite de tamaño de ficheros core (volcado de memoria) ---
-# Deshabilitar core dumps previene la fuga de información sensible
-# que podría estar en la memoria del proceso
-*           soft    core            0
-*           hard    core            0
-
-# --- Límite de memoria bloqueada (previene abuso de RAM) ---
-# Cantidad máxima de memoria que un proceso puede bloquear en la RAM (KB)
-*           soft    memlock         65536
-*           hard    memlock         65536
-
-# --- Excepción para root (necesita más recursos para administrar) ---
-root        soft    nproc           unlimited
-root        hard    nproc           unlimited
-root        soft    nofile          65536
-root        hard    nofile          65536
-
-#==============================================================================
-"""
 
     if contenidoActual:
         marcaHardening="# Límites de seguridad - Hardening TFG"
@@ -565,9 +622,9 @@ root        hard    nofile          65536
             indice=contenidoActual.index(marcaEndOfFile)
             contenidoActual=contenidoActual[:indice+len(marcaEndOfFile)]
             print("[INFO]: Bloque de hardening anterior eliminado.")
-        nuevoContenido=contenidoActual.rstrip("\n")+"\n"+ bloqueoLimites
+        nuevoContenido=contenidoActual.rstrip("\n")+"\n"+ BLOQUEO_LIMITES
     else:
-        nuevoContenido=bloqueoLimites
+        nuevoContenido=BLOQUEO_LIMITES
 
     if escribir_fichero(LIMITS_CONF, nuevoContenido, permisos=0o644, paso=paso):
         print("[CORRECTO]: Límites de recursos configurados en limits.conf.")
@@ -636,7 +693,7 @@ def main():
                 paso3_configurar_faillock()
                 volver_al_menu()
             case "4":
-                paso4_configurar_remember()
+                paso4_configurar_pwhistory()
                 volver_al_menu()
             case "5":
                 paso5_configurar_umask()

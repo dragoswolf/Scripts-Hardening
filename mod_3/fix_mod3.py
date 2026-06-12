@@ -15,6 +15,7 @@
 #   Paso 8: Bloquear usuarios no-root con UID 0
 #   Paso 9: Bloqueo automático de cuentas inactivas.
 #   Paso 10: Restringir acceso root directo
+#   Paso 11: Asegurar permisos de directorios home y ficheros de inicialización.
 #
 # IMPORTANTE: Este script debe ejecutarse como root (sudo)
 #
@@ -84,6 +85,20 @@ SHELLS_INTERACTIVAS=[
     "/bin/csh", 
     "/bin/fish"
     ]
+
+FICHEROS_INIT=[
+    ".bashrc", 
+    ".bash_profile", 
+    ".bash_logout", 
+    ".profile", 
+    ".bash_login", 
+    ".kshrc", 
+    ".cshrc", 
+    ".login", 
+    ".exrc", 
+    ".tcshrc", 
+    ".zshrc"
+]
 
 
 def paso1_auditar_passwd():
@@ -597,6 +612,54 @@ def paso10_restringir_root():
             escribir_fichero(SSHD_CONFIG_FILE, "\n".join(lineaSsh)+"\n", permisos=0o777, paso="Paso 10")
             ejecutar_comando(["systemctl", "reload", "ssh"], "recargar sshd", "Paso 10")
             print("[CORRECTO]: SSH: PermitRootLogin = no (configurado y sshd recargado).")
+
+
+def paso11_permisos_home():
+    """
+    Asegura que los directorios home de usuarios humanos tienen permisos 0750 y que los ficheros
+    de inicialización tienen permisos 0640.
+    """
+    print()
+    print("="*100)
+    print("[PASO 10]: Restringir acceso root directo.")
+    print("="*100)
+    print()
+
+    paso="Paso 11"
+
+    contenido=leer_fichero(PASSWD_FILE, paso)
+    if contenido is None:
+        return
+    
+    if contenido is None:
+        return
+    
+    for linea in contenido.strip().splitlines():
+        campos=linea.split(":")
+        if len(campos) !=7:
+            continue
+        nombre=campos[0]
+        uid=int(campos[2])
+        homeDir=campos[5]
+
+        # Buscar solo usuarios humanos con home real
+        if uid<1000 or uid>65534:
+            continue
+        if not os.path.isdir(homeDir):
+            continue
+
+        # 11a. Permisos del directorio home (0750)
+        cambiar_permisos(homeDir, permisos=0o750, paso=paso)
+
+        # 11b. Ficheros de inicialización
+        for fichero in FICHEROS_INIT:
+            rutaFichero=os.path.join(homeDir, fichero)
+            if not os.path.isfile(rutaFichero):
+                continue
+            cambiar_permisos(rutaFichero, permisos=0o640, paso=paso)
+        
+
+
 
 
 def mostar_menu():

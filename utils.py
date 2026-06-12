@@ -330,7 +330,6 @@ def pedir_input_doble(mensaje, ocultar=False):
 
 def verificar_permisos(ruta, permisosEsperados=None, propietarioEsperado=None, grupoEsperado=None,
                        paso="General", nivel="fail"):
-    
     """
     Verifica que un fichero tiene los permisos y propietario(s) correctos.
     Utiliza resultado_ok y resultado_fail o resultado_warn para reportar
