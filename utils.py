@@ -21,6 +21,7 @@ import sys
 import subprocess
 import logging
 import getpass
+import time
 
 #=======================================================================================================
 # GLOBALES
@@ -417,9 +418,6 @@ def verificar_permisos(ruta, permisosEsperados=None, propietarioEsperado=None, g
     return todoCorrecto
     
 
-#=======================================================================================================
-# FUNCIONES COMUNES PARA SCRIPTS DE VERIFICACIÓN
-#=======================================================================================================
 # Los contadores se gestionan como un diccionario mutable para poder modificarlos
 # desde los scripts que importen este módulo sin usar variables globales
 
@@ -533,3 +531,36 @@ def ejecutar_comando_check(comando, mostrarSalida=False):
 
     except FileNotFoundError:
         return (127, "", f"[ERROR]: Comando no encontrado: {comando[0]}")
+    
+
+def verificar_antiguedad(ruta, descripcion, mostrarTamano=False):
+    """
+    Muestra la fecha de modificación de un fichero (y opcionalmente su tamaño) con
+    resultado_ok, y devuelve la antigüedad en días para que el llamador pueda emitir su propio
+    resultado_warn.
+
+    Args:
+        ruta (str): Ruta absoluta al fichero
+        descripcion (str): Texto descriptivo para el resultado_ok
+        mostrarTamano (bool): Si True, añade el tamaño del fichero al mensaje (en KB o MB según corresponde)
+
+    Returns:
+        float o None: Antigüedad en días (fraccionario), o None si ocurre un error al leer el fichero.
+    """
+    try:
+        mtime=os.path.getmtime(ruta)
+        fecha=time.strftime("%d-%m-%Y %H:%M:%S", time.localtime(mtime))
+
+        if mostrarTamano:
+            tamano=os.path.getsize(ruta)
+            if tamano>1048576:
+                tamanoStr=f"{tamano/1048576:.1f} MB"
+            else:
+                tamanoStr=f"{tamano/1024:.1f} KB"
+            resultado_ok(f"{descripcion}: {fecha} ({tamanoStr})")
+        else:
+            resultado_ok(f"{descripcion}: {fecha}")
+        
+        return (time.time() - mtime)/86400
+    except OSError:
+        return None
