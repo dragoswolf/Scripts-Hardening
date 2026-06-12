@@ -352,7 +352,7 @@ def restaurar_backup(nombre, passphrase):
         return False
 
     # Extraer
-    rc, _, stderr = ejecutar_comando_check(["tar", "--listed-incremental=/dev/null", "-xzf",tarFile, "-C", "/"])
+    rc, _, stderr = ejecutar_comando_check(["tar", "--listed-incremental=/dev/null", "--overwrite", "-xzf",tarFile, "-C", "/"])
     os.remove(tarFile)
 
     if rc != 0:
@@ -372,7 +372,7 @@ def restaurar_backup(nombre, passphrase):
             tarFile= ultimo_dif.replace(".gpg","")
             rc,_,_= ejecutar_comando_check(["gpg", "--batch", "--quiet", "--decrypt","--passphrase", passphrase,"--output", tarFile, ultimo_dif])
             if rc== 0:
-                rc, _,stderr=ejecutar_comando_check(["tar", "--listed-incremental=/dev/null", "-xzf", tarFile, "-C", "/"])
+                rc, _,stderr=ejecutar_comando_check(["tar", "--listed-incremental=/dev/null", "--overwrite","-xzf", tarFile, "-C", "/"])
                 if rc==0:
                     os.remove(tarFile)
                     print_correcto("Diferencial aplicado.")
