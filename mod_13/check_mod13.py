@@ -69,7 +69,7 @@ def verificar_paso1():
     if os.path.isfile(GPG_KEY_FILE):
         resultado_ok("Contraseña de cifrado configurada.")
         if verificar_permisos(GPG_KEY_FILE, "600", 0,0, paso):
-            resultado_ok("Permisos del fichero de cifrado correctos.", paso)
+            resultado_ok("Permisos del fichero de cifrado correctos.")
         else:
             resultado_fail("Permisos del fichero de cifrado incorrectos.", paso)
     else:
