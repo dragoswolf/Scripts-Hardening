@@ -430,10 +430,8 @@ def paso1_configurar():
     passphrase=pedir_input_doble("Contraseña de cifrado", ocultar=True)
     
     #1e.Guardar clave GPG
-    escribir_fichero(GPG_KEY_FILE, passphrase + "\n", permisos=0o600,
-                     paso=paso)
-    cambiar_permisos(GPG_KEY_FILE, propietario="root", grupo="root",
-                     paso=paso)
+    escribir_fichero(GPG_KEY_FILE, passphrase + "\n", permisos=0o600, paso=paso)
+    cambiar_permisos(GPG_KEY_FILE, propietario=0, grupo=0, paso=paso)
     print_correcto("Contraseña de cifrado configurada.")
     print()
     print_info("Guarda esta contraseña en un lugar seguro fuera del servidor. Sin ella no podrás restaurar los backups.")
