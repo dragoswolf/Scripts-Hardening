@@ -18,7 +18,8 @@ from utils import (configurar_logging,
                 resultado_warn,
                 mostrar_resumen,
                 contadores,
-                leer_fichero               
+                leer_fichero,
+                verificar_antiguedad            
                 )
 
 #=========================================================================================================
@@ -69,16 +70,9 @@ def verificar_paso1():
     for dbPath in dbPaths:
         if os.path.isfile(dbPath):
             dbEncontrada=True
-            try:
-                mtime=os.path.getmtime(dbPath)
-                fecha=time.strftime("%d-%m-%Y %H:%M:%S", time.localtime(mtime))
-                resultado_ok(f"Base de datos de firmas existe (actualizada: {fecha})")
-
-                diasAntig=(time.time()-mtime)/86400
-                if diasAntig>7:
-                    resultado_warn(f"Base de datos tiene {int(diasAntig)} días (ejecutar 'freshclam' para actualizar)")
-            except OSError:
-                resultado_ok("Base de datos de firmas existe")
+            dias = verificar_antiguedad(dbPath, "Base de datos de firmas")
+            if dias is not None and dias > 7:
+                resultado_warn(f"Base de datos tiene {int(dias)} días. Ejecutar freshclam para actualizar.")
             break
     
     if not dbEncontrada:
@@ -112,16 +106,9 @@ def verificar_paso2():
     # 2b. Verificar logs de escaneo
     logClamav="/var/log/clamav/clamav-scan.log"
     if os.path.isfile(logClamav):
-        try:
-            mtime=os.path.getmtime(logClamav)
-            fecha=time.strftime("%d-%m-%Y %H:%M:%S", time.localtime(mtime))
-            resultado_ok(f"Último escaneo registrado: {fecha}")
-
-            diasAntig=(time.time()-mtime)/86400
-            if diasAntig>8:
-                resultado_warn(f"El último escaneo tiene {int(diasAntig)} días (el escaneo semanal podría no estar ejecutándose)")
-        except OSError:
-            pass
+        dias=verificar_antiguedad(logClamav, "Último escaneo registrado")
+        if dias is not None and dias >8:
+            resultado_warn(f"El último escaneo tiene {int(dias)} días. El escaneo semanal podría no estar ejecutándose")
     else:
         resultado_warn("No hay logs de escaneo todavía, se generarán en la próxima ejecución.")
 
@@ -171,16 +158,9 @@ def verificar_paso3():
     rkhunterDb="/var/lib/rkhunter/db/rkhunter.dat"
     if os.path.isfile(rkhunterDb):
         resultado_ok("Base de datos de propiedades existe.")
-        try:
-            mtime=os.path.getmtime(rkhunterDb)
-            fecha=time.strftime("%d-%m-%Y %H:%M:%S", time.localtime(mtime))
-            resultado_ok(f"Última actualización: {fecha}")
-
-            diasAntig=(time.time()-mtime)/86400
-            if diasAntig>30:
-                resultado_warn(f"Base de datos tiene {int(diasAntig)} días. Considerar actualizar con 'rkhunter --propupd'.")
-        except OSError:
-            pass
+        dias=verificar_antiguedad(rkhunterDb, "Ultima actualización")
+        if dias is not None and dias > 30:
+            resultado_warn(f"Base de datos tiene {int(dias)} días. Considerar actualizar con 'rkhunter --propupd'")
     else:
         resultado_warn("Base de datos de propiedades no encontrada. Ejecutar 'rkhunter --propupd'.")
 
@@ -223,16 +203,9 @@ def verificar_paso4():
     logRkhunter="/var/log/rkhunter/rkhunter-scan.log"
     if os.path.isfile(logRkhunter):
         resultado_ok("Logs de escaneo de RKHunter encontrados...")
-        try:
-            mtime=os.path.getmtime(logRkhunter)
-            fecha=time.strftime("%d-%m-%Y %H:%M:%S", time.localtime(mtime))
-            resultado_ok(f"Último escaneo registrado: {fecha}")
-
-            diasAntig=(time.time()-mtime)/86400
-            if diasAntig>8:
-                resultado_warn(f"El último escaneo tiene {int(diasAntig)} días.")
-        except OSError:
-            pass
+        dias=verificar_antiguedad(logRkhunter, "Último escaneo registrado")
+        if dias is not None and dias > 8:
+            resultado_warn(f"El último escaneo tiene {int(dias)} días.")
     else:
         resultado_warn("No hay logs de escaneo todavía.")
 

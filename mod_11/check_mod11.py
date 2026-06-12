@@ -18,7 +18,8 @@ from utils import (configurar_logging,
                    resultado_warn,
                    registrar_errores,
                    contadores,
-                   mostrar_resumen)
+                   mostrar_resumen,
+                   verificar_antiguedad)
 
 
 #=========================================================================================================
@@ -102,21 +103,10 @@ def verificar_paso2():
         resultado_ok(f"Base de datos existe ({AIDE_DB})")
 
         # 2b. Si existe la DB, verificar si todo está correcto
-        try:
-            mtime=os.path.getmtime(AIDE_DB)
-            fecha=time.strftime("%d-%m-%Y %H:%M:%S", time.localtime(mtime))
-            tamano=os.path.getsize(AIDE_DB)
+        dias = verificar_antiguedad(AIDE_DB, "Última actualización", mostrarTamano=True)
+        if dias is not None and dias >30:
+            resultado_warn(f"La base de datos tiene {int(dias)} dias de antiguedad. Actualizar con 'aide --update'")
 
-            resultado_ok(f"Ultima actualización: {fecha}")
-            resultado_ok(f"Tamaño: {tamano//1024}KB")
-
-            # Verificar antigüedad
-            diasAntig=(time.time() - mtime)/86400
-            if diasAntig >30:
-                resultado_warn(f"La base de datos tiene {int(diasAntig)} dias de antiguedad. Actualizar con 'aide --update'")
-
-        except OSError:
-            resultado_warn("No se pudo leer metadatos de la base de datos.")
     else:
         resultado_fail("Base de datos NO existe. Ejecuta el paso 2 del módulo 11 para inicializarla.", paso)
 
@@ -171,20 +161,11 @@ def verificar_paso3():
         # 3e. Verificar si hay logs recientes
         logFile=os.path.join(dirLogAide, "aide-check.log")
         if os.path.isfile(logFile):
-            try:
-                mtime=os.path.getmtime(logFile)
-                fecha=time.strftime("%d-%m-%Y %H:%M:%S", time.localtime(mtime))
-                if fecha:
-                    resultado_ok(f"Último log de verificación: {fecha}")
-                else:
-                    resultado_warn("No se pudo comprobar el último log de verificación.")
+           
+            dias = verificar_antiguedad(logFile, "Último log de verificación")
+            if dias is not None and dias > 2:
+                resultado_warn(f"El último log tiene {int(dias)} días. La verificación diaria podría no estar ejecutándose.")
 
-                diasAntig=(time.time()-mtime)/86400
-                
-                if diasAntig>2:
-                    resultado_warn(f"El último log tiene {int(diasAntig)} días. La verificación diaria podría no estar ejecutándose.")
-            except OSError:
-                pass
         else:
             resultado_warn("No hay logs de verificación todavía. Se generará en la próxima ejecución de cron.")
     else:
