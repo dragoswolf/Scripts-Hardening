@@ -404,7 +404,7 @@ def paso1_configurar():
         print_correcto(f"Directorio ya existe: {BACKUP_DIR}")
 
     # 1b. Asegurar permisos
-    cambiar_permisos(BACKUP_DIR, permisos=0o700,propietario="root", grupo="root", paso=paso)
+    cambiar_permisos(BACKUP_DIR, permisos=0o700,propietario=0, grupo=0, paso=paso)
     print_correcto("Permisos 700 (solo root).")
 
     # 1c. Crear directorio de configuración 
