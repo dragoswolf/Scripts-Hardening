@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 #=========================================================================================================
-# fix_mod10.py - Script de fortificación para el módulo 10 - Configuración y Supervisión de Logs
+# fix_mod11.py - Script de fortificación para el módulo 11 - Configuración y Supervisión de Logs
 #=========================================================================================================
 
 import os

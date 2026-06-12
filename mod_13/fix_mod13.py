@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+#=========================================================================================================
+# fix_mod13.py - Script de fortificación para el módulo 13 - Copias de seguridad
+#=========================================================================================================
+
 import os
 import sys
 import time
@@ -24,22 +28,148 @@ from utils import (configurar_logging,
                    )
 
 
-# =============================================================================
+#=========================================================================================================
 # CONSTANTES
-# =============================================================================
+#=========================================================================================================
 
 LOG_FILE= "/var/log/hardening/modulo13_fix.log"
 
 BACKUP_DIR ="/var/backups/hardening"
 BACKUP_CONF="/etc/hardening/backup.conf"
 GPG_KEY_FILE = "/etc/hardening/backup.key"
+CRON_BACKUP = "/etc/cron.d/hardening-backup"
 
 # Directorios/ficheros obligatorios para backup de sistema
 SISTEMA_DIRS = [
     "/etc",
 ]
 
+CRON_BACKUP_TARGETS = f"""#!/bin/bash
+# #=========================================================================================================
+# backup_cron.sh — Backup automático de hardening
+# #=========================================================================================================
+# Uso: backup_cron.sh [completo|diferencial]
+#
+# Autor: Dragos George Stan
+# TFG: Implementación Integral de Hardening en Ubuntu Server para PYMEs
+#=========================================================================================================
 
+TIPO="${{1:-diferencial}}"
+BACKUP_DIR="{BACKUP_DIR}"
+GPG_KEY="{GPG_KEY_FILE}"
+BACKUP_CONF="{BACKUP_CONF}"
+LOG="/var/log/hardening/backup_cron.log"
+FECHA=$(date '+%Y-%m-%d %H:%M:%S')
+
+echo "=========================================================================================================" >> "$LOG"
+echo "Backup $TIPO: $FECHA" >> "$LOG"
+echo "=========================================================================================================" >> "$LOG"
+
+PASSPHRASE=$(cat "$GPG_KEY")
+SNAR_DIR="$BACKUP_DIR"
+TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
+
+backup_set() {{
+    local NOMBRE="$1"
+    shift
+    local RUTAS=("$@")
+    local SNAR="$SNAR_DIR/$NOMBRE.snar"
+    local SNAR_ORIG="$SNAR_DIR/${{NOMBRE}}_completo.snar"
+    local TAR="$BACKUP_DIR/backup_${{NOMBRE}}_${{TIPO}}_${{TIMESTAMP}}.tar.gz"
+    local GPG="$TAR.gpg"
+
+    if [ "$TIPO" = "completo" ]; then
+        rm -f "$SNAR"
+    elif [ "$TIPO" = "diferencial" ]; then
+        if [ -f "$SNAR_ORIG" ]; then
+            cp "$SNAR_ORIG" "$SNAR"
+        else
+            echo "[AVISO]: No hay backup completo previo de $NOMBRE, haciendo completo" >> "$LOG"
+            rm -f "$SNAR"
+        fi
+    fi
+
+    tar --listed-incremental="$SNAR" -czf "$TAR" "${{RUTAS[@]}}" 2>/dev/null
+
+    if [ "$TIPO" = "completo" ]; then
+        cp "$SNAR" "$SNAR_ORIG" 2>/dev/null
+    fi
+
+    gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase "$PASSPHRASE" --output "$GPG" "$TAR" 2>/dev/null
+
+    rm -f "$TAR"
+
+    sha256sum "$GPG" > "$GPG.sha256" 2>/dev/null
+
+    echo "[CORRECTO]: $NOMBRE ($TIPO): $(du -h "$GPG" | cut -f1)" >> "$LOG"
+}}
+
+# Backup de sistema
+PKGFILE="$BACKUP_DIR/paquetes_instalados.txt"
+dpkg --get-selections > "$PKGFILE" 2>/dev/null
+CRONDIR="$BACKUP_DIR/crontabs_tmp"
+mkdir -p "$CRONDIR"
+crontab -l > "$CRONDIR/root.crontab" 2>/dev/null
+cp -r /etc/cron.d "$CRONDIR/cron.d" 2>/dev/null
+
+backup_set "sistema" /etc "$PKGFILE" "$CRONDIR"
+
+rm -f "$PKGFILE"
+rm -rf "$CRONDIR"
+
+# Backup de usuarios
+if [ -d /home ]; then
+    backup_set "usuarios" /home
+fi
+
+# Backup extra (si hay configuración)
+if [ -f "$BACKUP_CONF" ]; then
+    EXTRA_RUTAS=()
+    while IFS= read -r linea; do
+        linea=$(echo "$linea" | xargs)
+        [[ -z "$linea" || "$linea" == \\#* ]] && continue
+        [ -e "$linea" ] && EXTRA_RUTAS+=("$linea")
+    done < "$BACKUP_CONF"
+
+    if [ ${{#EXTRA_RUTAS[@]}} -gt 0 ]; then
+        backup_set "extra" "${{EXTRA_RUTAS[@]}}"
+    fi
+fi
+
+# Rotación (mantener últimos 4 completos)
+for NOMBRE in sistema usuarios extra; do
+    COMPLETOS=($(ls -1t "$BACKUP_DIR"/backup_${{NOMBRE}}_completo_*.tar.gz.gpg 2>/dev/null))
+    if [ ${{#COMPLETOS[@]}} -gt 4 ]; then
+        for ((i=4; i<${{#COMPLETOS[@]}}; i++)); do
+            rm -f "${{COMPLETOS[$i]}}" "${{COMPLETOS[$i]}}.sha256"
+        done
+        echo "[INFO]: Rotados backups antiguos de $NOMBRE" >> "$LOG"
+    fi
+done
+
+echo "" >> "$LOG"
+"""
+
+
+CRON_CONTENIDO = """
+#=========================================================================================================
+# Backup automático de hardening
+# Completo: día 1 de cada mes a las 02:00
+# Diferencial: todos los domingos a las 02:00
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#=========================================================================================================
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Backup completo mensual (día 1)
+0 2 1 * * root {script_dir}/backup_cron.sh completo
+
+# Backup diferencial semanal (domingos, excepto día 1)
+0 2 * * 0 root [ $(date +\\%d) -ne 01 ] && {script_dir}/backup_cron.sh diferencial
+"""
 
 # =============================================================================
 # FUNCIONES AUXILIARES
@@ -192,6 +322,66 @@ def rotar_backups(nombre, maxCompletos=4):
     print_info(f"Rotación: eliminados {len(eliminar)} backup(s) antiguo(s) de '{nombre}'.")
 
 
+def restaurar_backup(nombre, passphrase):
+    """Restaura el último backup completo + último backup diferencial.
+    
+    Args:
+        nombre (str): Nombre del fichero que restaurar
+        passphrase (str): Contraseña GPG para descfirar los backups
+
+    Returns:
+        True si se restauró correctamente, False en caso de error.
+    """
+    # Buscar último completo
+    completos=sorted(glob.glob(
+    os.path.join(BACKUP_DIR, f"backup_{nombre}_completo_*.tar.gz.gpg")
+    ))
+    if not completos:
+        print_aviso(f"No hay backup completo de '{nombre}'.")
+        return False
+
+    ultimo_completo=completos[-1]
+    print_info(f"Restaurando completo: {os.path.basename(ultimo_completo)}")
+
+    # Descifrar
+    tarFile = ultimo_completo.replace(".gpg", "")
+    rc, _, stderr = ejecutar_comando_check(["gpg", "--batch", "--quiet", "--decrypt", "--passphrase", passphrase,"--output", tarFile, ultimo_completo])
+
+    if rc != 0:
+        print_error(f"Fallo al descifrar: {stderr.strip()[:200]}")
+        return False
+
+    # Extraer
+    rc, _, stderr = ejecutar_comando_check(["tar", "--listed-incremental=/dev/null", "-xzf",tarFile, "-C", "/"])
+    os.remove(tarFile)
+
+    if rc != 0:
+        print_error(f"Fallo al extraer: {stderr.strip()[:200]}")
+        return False
+
+    print_correcto("Completo restaurado.")
+
+    # Buscar último diferencial
+    diferenciales = sorted(glob.glob(os.path.join(BACKUP_DIR, f"backup_{nombre}_diferencial_*.tar.gz.gpg")))
+
+    if diferenciales:
+        ultimo_dif=diferenciales[-1]
+        # Verificar que es posterior al completo (crítico)
+        if ultimo_dif>ultimo_completo:
+            print_info(f"Aplicando diferencial: {os.path.basename(ultimo_dif)}")
+            tarFile= ultimo_dif.replace(".gpg","")
+            rc,_,_= ejecutar_comando_check(["gpg", "--batch", "--quiet", "--decrypt","--passphrase", passphrase,"--output", tarFile, ultimo_dif])
+            if rc== 0:
+                rc, _,stderr=ejecutar_comando_check(["tar", "--listed-incremental=/dev/null", "-xzf", tarFile, "-C", "/"])
+                if rc==0:
+                    os.remove(tarFile)
+                    print_correcto("Diferencial aplicado.")
+                else:
+                    print_error(f"Fallo al aplicar el diferencial: {stderr.strip()[:200]}")
+            else:
+                print_aviso("No se pudo descifrar el diferencial.")
+    return True
+
 
 
 def paso1_configurar():
@@ -213,15 +403,16 @@ def paso1_configurar():
     else:
         print_correcto(f"Directorio ya existe: {BACKUP_DIR}")
 
-    cambiar_permisos(BACKUP_DIR, permisos="0o700",propietario="root", grupo="root", paso=paso)
+    # 1b. Asegurar permisos
+    cambiar_permisos(BACKUP_DIR, permisos=0o700,propietario="root", grupo="root", paso=paso)
     print_correcto("Permisos 700 (solo root).")
 
-    # 1b. Crear directorio de configuración 
+    # 1c. Crear directorio de configuración 
     confDir = os.path.dirname(BACKUP_CONF)
     if not os.path.isdir(confDir):
         ejecutar_comando(["mkdir", "-p", confDir],f"crear {confDir}",paso)
 
-    # ── 1c: Configurar contraseña GPG ──
+    # 1d. Configurar clave GPG
     print()
     if os.path.isfile(GPG_KEY_FILE):
         print_info("Ya existe una contraseña de cifrado configurada.")
@@ -238,7 +429,7 @@ def paso1_configurar():
     print_info("Atención. Se recomienda una contraseña de mínimo 8 caracteres.")
     passphrase=pedir_input_doble("Contraseña de cifrado", ocultar=True)
     
-
+    #1e.Guardar clave GPG
     escribir_fichero(GPG_KEY_FILE, passphrase + "\n", permisos=0o600,
                      paso=paso)
     cambiar_permisos(GPG_KEY_FILE, propietario="root", grupo="root",
@@ -433,4 +624,281 @@ def paso3_backup_manual():
     print()
     print_info("RECOMENDACIÓN: Copie el contenido de este directorio a una unidad externa "
     "(unidad USB o disco duro externo por ejemplo) para proteger los backups ante un fallo total del servidor.")
-    print(f"  Ejemplo: cp -r {BACKUP_DIR} /media/<unidad_externa>/")
+    print_info(f"  Ejemplo: cp -r {BACKUP_DIR} /media/<unidad_externa>/")
+
+
+def paso4_programar_cron():
+    """
+    Crea el script de backup para cron y la entrada en cron.d.
+    Completo mensual (día 1) + diferencial semanal (domingos).
+    """
+    print()
+    print("="*100)
+    print("[PASO 4]: Programar backup automático")
+    print("="*100)
+    print()
+
+    paso="Paso 4"
+
+    # 4a.Verificar contraseña de cifrado
+    if not os.path.isfile(GPG_KEY_FILE):
+        print_error("Contraseña de cifrado no configurada. Ejecuta el paso 1.")
+        return
+
+    scriptDir=os.path.dirname(os.path.abspath(__file__))
+
+    # 4b. Crear script de cron
+    cronScript= os.path.join(scriptDir, "backup_cron.sh")
+
+
+    if escribir_fichero(cronScript, CRON_BACKUP_TARGETS, permisos=0o700, paso=paso):
+        print(f"Script de backup creado: {cronScript}")
+    else:
+        print_error("No se ha podido crear el script")
+
+    # 4c. Crear entrada cron
+    cronContenido=CRON_CONTENIDO.replace("{script_dir}", scriptDir)
+    escribir_fichero(CRON_BACKUP, cronContenido, permisos=0o644, paso=paso)
+    print_correcto(f"Cron configurado: {CRON_BACKUP}")
+
+    # 4d. Verificar cron activo
+    rc, _,_= ejecutar_comando_check(["systemctl", "is-active", "--quiet","cron"])
+    if rc==0:
+        print_correcto("Servicio cron activo.")
+    else:
+        ejecutar_comando(["systemctl", "enable", "--now", "cron"], "activar cron", paso)
+
+    print()
+    print_info("Programación:")
+    print("  - Completo: día 1 de cada mes a las 02:00")
+    print("  - Diferencial: todos los domingos a las 02:00")
+    print("  - Rotación: se conservan los últimos 4 completos")
+
+
+def paso5_verificar_integridad():
+    """
+    Verifica la integridad de los backups existentes comprobando los hashes SHA-256 y realizando un test de descifrado.
+    """
+    print()
+    print("="*100)
+    print("[PASO 5]: Verificar integridad de backups")
+    print("="*100)
+    print()
+
+    paso="Paso 5"
+
+    # 5a. verificar requisitos
+    if not os.path.isdir(BACKUP_DIR):
+        print_error("Directorio de backups no existe.")
+        return
+
+    passphrase=obtener_passphrase()
+    if not passphrase:
+        print_error("Contraseña de cifrado no configurada.")
+        return
+
+    # 5b. Buscar todos los backups
+    backups =sorted(glob.glob(os.path.join(BACKUP_DIR,"backup_*.tar.gz.gpg")))
+
+    if not backups:
+        print_info("No hay backups para verificar.")
+        return
+
+    errores=0
+    # 5c. Verificar cada backup (hash + descifrado)
+    for gpgFile in backups:
+        nombre= os.path.basename(gpgFile)
+        hashFile = gpgFile+".sha256"
+
+        print_info(f"Verificando: {nombre}")
+
+        # Verificar hash SHA-256 
+        if os.path.isfile(hashFile):
+            hashGuardado= leer_fichero(hashFile)
+            if hashGuardado:
+                hashGuardado=hashGuardado.strip().split()[0]
+                sha256=hashlib.sha256()
+                try:
+                    with open(gpgFile, "rb") as f:
+                        #Cargar en RAM los ficheros de 64 en 64 KB, para ahorrar cuello de botella
+                        for bloque in iter(lambda: f.read(65536), b""):
+                            sha256.update(bloque)
+                    hashCalculado =sha256.hexdigest()
+
+                    if hashCalculado == hashGuardado:
+                        print_correcto("Hash SHA-256 correcto")
+                    else:
+                        print_error("Hash no coincide")
+                        errores +=1
+                        continue
+                except OSError as e:
+                    print_error(f"No se pudo leer: {e}")
+                    errores +=1
+                    continue
+        else:
+            print_aviso("Sin fichero de hash")
+
+        # Test de descifrado
+        rc, _, stderr = ejecutar_comando_check(["gpg", "--batch", "--quiet", "--decrypt","--passphrase", passphrase,"--output", "/dev/null", gpgFile])
+        if rc==0:
+            print_correcto("Descifrado correcto")
+        else:
+            print_error(f"Fallo al descifrar: {stderr.strip()[:200]}")
+            errores +=1
+
+    print()
+    if errores==0:
+        print_correcto(f"{len(backups)} backup(s) verificado(s) correctamente.")
+    else:
+        print_aviso(f"{errores} backup(s) con errores de {len(backups)} verificado(s).")
+
+
+def paso6_restaurar():
+    """
+    Restaura backups de forma interactiva.
+    Sistema:            obligatorio. 
+    Usuarios y extra:   opcionales.
+    """
+    print()
+    print("="*100)
+    print("[PASO 6]: Restaurar backups")
+    print("="*100)
+    print()
+
+    paso="Paso 6"
+
+    # 6a. Verificar requisitos
+    if not os.path.isdir(BACKUP_DIR):
+        print_error("Directorio de backups no existe.")
+        return
+
+    passphrase = obtener_passphrase()
+    if not passphrase:
+        passphrase = input("Contraseña de descifrado: ").strip()
+        if not passphrase:
+            print_error("Se necesita contraseña para restaurar.")
+            return
+
+    print_aviso("La restauración sobreescribirá ficheros existentes.")
+    print_aviso("Asegúrate de que estás en un sistema recién instalado o que sabes lo que estás haciendo. ")
+    print()
+    resp=input("¿Continuar con la restauración? (s/n): ").strip()
+    if resp.lower() != "s":
+        print_info("Restauración cancelada.")
+        return
+
+
+    # 6b. Restaurar sistema (obligatorio)
+    print()
+    print("[1/3] Restaurando backup de sistema...")
+    if restaurar_backup("sistema", passphrase):
+        # Restaurar paquetes si existe la lista
+        pkgFile= "/var/backups/hardening/paquetes_instalados.txt"
+        if os.path.isfile(pkgFile):
+            print()
+            resp = input("¿Restaurar paquetes instalados? (s/n): ").strip()
+            if resp.lower()=="s":
+                print_info("Restaurando paquetes...")
+                rc1,_,_=ejecutar_comando_check(["bash", "-c", f"dpkg --set-selections < {pkgFile}"])
+                rc2,_,_=ejecutar_comando_check(["apt-get", "dselect-upgrade", "-y"])
+                if rc1!=0 or rc2 !=0:
+                    print_error("Error al restaurar paquetes.")
+                    registrar_errores(paso, "Error al restaurar paquetes")
+                print("Paquetes restaurados.")
+    print()
+
+    # 6c. Restaurar usuarios (opcional)
+    print("[2/3] Backup de usuarios (/home)...")
+    completos_usr = glob.glob(os.path.join(BACKUP_DIR,"backup_usuarios_completo_*.tar.gz.gpg"))
+    if completos_usr:
+        resp = input("¿Restaurar datos de usuarios? (s/n): ").strip()
+        if resp.lower()=="s":
+            if restaurar_backup("usuarios", passphrase):
+                print_correcto("Backup de datos de usuarios restaurada.")
+            else:
+                print_error("Error al restaurar backup de datos de usuarios.")
+                registrar_errores(paso, "Error al restaurar backup de datos de usuarios.")
+        else:
+            print_info("Backup de usuarios omitido.")
+    else:
+        print_info("No hay backup de usuarios disponible.")
+    print()
+
+    # 6d. Restaurar extra (opcional)
+    print("[3/3] Backup extra...")
+    completos_ext = glob.glob(os.path.join(BACKUP_DIR, "backup_extra_completo_*.tar.gz.gpg"))
+    if completos_ext:
+        resp = input("¿Restaurar datos extra? (s/n): ").strip()
+        if resp.lower()=="s":
+            if restaurar_backup("extra", passphrase):
+                print_correcto("Backup de datos extra restaurado correctamente.")
+            else:
+                print_error("Error al restaurar backup de datos extra.")
+                registrar_errores(paso, "Error al restaurar backup de datos extra.")
+        else:
+            print_info("Backup extra omitido.")
+    else:
+        print_info("No hay backup extra disponible.")
+
+    print()
+    print_correcto("Restauración finalizada.")
+    print_info("Es recomendable reiniciar el servidor: sudo systemctl daemon-reload && sudo reboot")
+    print()
+
+
+def mostrar_menu():
+    print()
+    print("="*100)
+    print("MÓDULO 13: COPIAS DE SEGURIDAD.")
+    print("="*100)
+    print()
+    print(" Pasos disponibles:")
+    print("     1. Configurar directorio y cifrado.")
+    print("     2. Configurar rutas extra.")
+    print("     3. Ejecutar backup manual (completo).")
+    print("     4. Programar backup automático (cron).")
+    print("     5. Verificar integridad de backups.")
+    print("     6. Restaurar backups.")
+    print()
+    print("     q. Salir")
+    print()
+        
+
+def main():
+    comprobar_root()
+    configurar_logging(LOG_FILE)
+
+    while True:
+        mostrar_menu()
+        opcion=input("Selecciona una opción: ").strip().lower()
+
+        match opcion:
+            case "1":
+                paso1_configurar()
+                volver_al_menu()
+            case "2":
+                paso2_configurar_extras()
+                volver_al_menu()
+            case "3":
+                paso3_backup_manual()
+                volver_al_menu()
+            case "4":
+                paso4_programar_cron()
+                volver_al_menu()
+            case "5":
+                paso5_verificar_integridad()
+                volver_al_menu()
+            case "6":
+                paso6_restaurar()
+                volver_al_menu()
+            case "q":
+                print()
+                print_info("Saliendo del script...")
+                sys.exit(0)
+            case _:
+                print_error("Opción no válida. Inténtelo de nuevo.")
+
+
+if __name__=="__main__":
+    main()
+
