@@ -41,7 +41,11 @@ from utils import (configurar_logging,
                    ejecutar_comando_check, 
                    volver_al_menu,
                    escribir_fichero, 
-                   leer_fichero, 
+                   leer_fichero,
+                   print_info,
+                   print_aviso,
+                   print_correcto,
+                   print_error 
                    )
 
 
@@ -94,16 +98,16 @@ def configurar_directiva_ssh(directiva, valor, paso="General"):
 
             if limpia.startswith("#") or valorActual!=valor:
                 lineas[i]=f"{directiva} {valor}"
-                print(f"[INFO]: {directiva}: {valorActual} -> {valor}")
+                print_info(f"{directiva}: {valorActual} -> {valor}")
                 modificado=True
             else:
-                print(f"[CORRECTO]: {directiva} ya tiene el valor correcto ({valor})")
+                print_correcto(f"{directiva} ya tiene el valor correcto ({valor})")
             encontrado=True
             break
 
     if not encontrado:
         lineas.append(f"{directiva} {valor}")
-        print(f"[INFO]: {directiva} {valor} añadido al final.")
+        print_info(f"{directiva} {valor} añadido al final.")
         modificado=True
 
     if modificado:
@@ -135,9 +139,9 @@ def recargar_ssh(paso="General"):
 
     if rc!=0:
         registrar_errores(paso, f"Configuración SSH inválida: {stderr.strip()}")
-        print(f"[ERROR]: La configuración de SSH no es válida:")
+        print_error(f"La configuración de SSH no es válida:")
         print(f"         {stderr.strip()}")
-        print("[ERROR]: No se ha recargado el servicio.")
+        print_error("No se ha recargado el servicio.")
         # Muestra cada línea de error
         for lineaError in stderr.strip().splitlines():
             print(f"        {lineaError}")
@@ -161,7 +165,7 @@ def recargar_ssh(paso="General"):
     # Recargar el servicio SSH
     ejecutar_comando(["systemctl", "reload", "ssh"], "recargar servicio SSH", paso)
 
-    print("[CORRECTO]: Servicio SSH recargado correctamente.")
+    print_correcto("Servicio SSH recargado correctamente.")
     return True
 #=========================================================================================================
 
@@ -169,17 +173,20 @@ def recargar_ssh(paso="General"):
 # Medidas de seguridad
 def paso1_cambiar_puertos():
     """
-    Cambia el puerto de escuca de SSH a un puerto no estándar.
+    Cambia el puerto de escucha de SSH a un puerto no estándar.
     Pide al usuario el nuevo puerto y valida que esté en rango.
     """
     print()
     print("="*100)
     print("[PASO 1]: Cambiar el puerto SSH.")
     print("="*100)
+    print_info("Cambia el puerto de escucha de SSH a un puerto no estándar.")
+    print_info("Se pide el nuevo puerto y valida que esté en rango.")
     print()
 
     paso="Paso 1"
 
+    # 1a. Mostrar el puerto actual
     contenido=leer_fichero(SSHD_CONFIG, paso=paso)
     if contenido is None:
         registrar_errores(paso, f"No se pudo leer {SSHD_CONFIG}.")
@@ -193,42 +200,43 @@ def paso1_cambiar_puertos():
             puertoActual=limpia.split()[1]
             break
 
-    print(f"[INFO]: Puerto actual: {puertoActual}")
+    print_info(f"Puerto actual: {puertoActual}")
     print()
-    print("[INFO]: Recomendaciones:")
-    print("        - Usar un puerto entre 1024 y 65535")
-    print("        - Evitar puertos conocidos (80, 443, 8080, 3306...)")
-    print("        - Ejemplo: 2222, 2022, 49152")
+    print_info("Recomendaciones:")
+    print_info("        - Usar un puerto entre 1024 y 65535")
+    print_info("        - Evitar puertos conocidos (80, 443, 8080, 3306...)")
+    print_info("        - Ejemplo: 2222, 2022, 49152")
     print()
 
     nuevoPuerto=input("Introduce el nuevo puerto SSH (o Enter para mantener el actual): ").strip()
 
     if not nuevoPuerto:
-        print("[INFO]: No se realizaron cambios.")
+        print_info("No se realizaron cambios.")
         return
     
     try:
         puerto=int(nuevoPuerto)
     except ValueError:
-        print("[ERROR]: El puerto debe ser un número.")
+        print_error("El puerto debe ser un número.")
         return
     
     if puerto < 1024 or puerto >65535:
-        print("[ERROR]: El puerto debe estar entre 1024 y 65535.")
+        print_error("El puerto debe estar entre 1024 y 65535.")
         return
     
     if puerto==int(puertoActual):
-        print(f"[CORRECTO]: El puerto ya es {puerto}.")
+        print_correcto(f"El puerto ya es {puerto}.")
         return
     
+    # 1b. Validar y aplicar el nuevo puerto
     rc, salida, _=ejecutar_comando_check(["ss", "-tlnp", f"sport = :{puerto}"])
 
     if salida.strip().count("\n")>0:
-        print(f"[AVISO]: El puerto {puerto} parece estar en uso:")
+        print_aviso(f"El puerto {puerto} parece estar en uso:")
         print(f"         {salida.strip()}")
         respuesta=input("¿Continuar de todas formas? (s/n): ").strip().lower()
         if respuesta!="s":
-            print("[INFO]: No se realizaron cambios.")
+            print_info("No se realizaron cambios.")
             return
         
     if configurar_directiva_ssh("Port", str(puerto), paso):
@@ -246,10 +254,12 @@ def paso2_allow_users():
     print("="*100)
     print("[PASO 2]: Restringir acceso por usuarios.")
     print("="*100)
-    print()
+    print_info("Configura AllowUsers para restringir qué usuarios pueden conectarse por SSH.")
+    print
 
     paso="Paso 2"
 
+    # 2a. Mostrar configuración actual de AllowUsers
     contenido=leer_fichero(SSHD_CONFIG, paso=paso)
     if contenido is None:
         registrar_errores(paso, f"No se pudo leer {SSHD_CONFIG}.")
@@ -265,9 +275,9 @@ def paso2_allow_users():
             break
 
     if allowActual:
-        print(f"[INFO]: AllowUsers actual: {allowActual}")
+        print_info(f"AllowUsers actual: {allowActual}")
     else:
-        print("[INFO]: AllowUsers no está configurado (todos los usuarios pueden conectarse).")
+        print_info("AllowUsers no está configurado (todos los usuarios pueden conectarse).")
 
     contenidoPasswd=leer_fichero(PASSWD, paso)
     if contenidoPasswd:
@@ -284,26 +294,27 @@ def paso2_allow_users():
             print(f"\n[INFO]: Usuarios humanos del sistema: {', '.join(usuariosHumanos)}")
 
     print()
-    print("[AVISO]: Si no incluyes tu usuario, perderás acceso SSH.")
-    print("[INFO]: Introduce los usuarios separados por espacios.")
+    print_aviso("Si no incluyes tu usuario, perderás acceso SSH.")
+    print_info("Introduce los usuarios separados por espacios.")
     print("        Ejemplo: usuario1 usuario2 usuario3...")
     print()
 
     usuarios=input("Usuarios permitidos (o Enter para no cambiar): ").strip()
 
     if not usuarios:
-        print("[INFO]: No se realizaron cambios.")
+        print_info("No se realizaron cambios.")
         return
     
+    # 2b. Validar usuarios y aplicar AllowUsers
     listaUsuarios=usuarios.split()
 
     for usuario in listaUsuarios:
         rc,_,_=ejecutar_comando_check(["id", usuario])
         if rc !=0:
-            print(f"[AVISO]: El usuario '{usuario}' no existe en el sistema.")
+            print_aviso(f"El usuario '{usuario}' no existe en el sistema.")
             respuesta=input("¿Continuar de todas formas? (s/n): ").strip().lower()
             if respuesta!="s":
-                print("[INFO]: No se realizaron cambios.")
+                print_info("No se realizaron cambios.")
                 return
 
     if configurar_directiva_ssh("AllowUsers", " ".join(listaUsuarios), paso):
@@ -311,13 +322,14 @@ def paso2_allow_users():
 
 def paso3_deshabilitar_gssapi():
     """
-    Deshabilita la autenticación GSSAPI en SSH
+    Deshabilita la autenticación GSSAPI en SSH para reducir la superficie de ataque
+    y acelerar la conexión SSH
     """
     print()
     print("="*100)
-    print("[PASO 3]: Deshabilitar autenticacoón GSSAPI.")
+    print("[PASO 3]: Deshabilitar autenticación GSSAPI.")
     print("="*100)
-    print()
+    print("Deshabilita la autenticación GSSAPI (Kerberos).")
 
     paso="Paso 3"
 
@@ -333,12 +345,13 @@ def paso4_login_grace_time():
     print("="*100)
     print("[PASO 4]: Configurar LoginGraceTime.")
     print("="*100)
+    print_info("Limita a 30 segundos el tiempo para completar la autenticación SSH.")
     print()
 
     paso="Paso 4"
 
-    print("[INFO]: LoginGraceTime limita el tiempo para autenticarse.")
-    print("[INFO]: Valor recomendado: 30 segundos.")
+    print_info("LoginGraceTime limita el tiempo para autenticarse.")
+    print_info("Valor recomendado: 30 segundos.")
     print()
 
     if configurar_directiva_ssh("LoginGraceTime", "30", paso):
@@ -354,14 +367,15 @@ def paso5_client_alive():
     print("="*100)
     print("[PASO 5]: Configurar ClientAliveInterval y ClientAliveCountMax.")
     print("="*100)
+    print_info("Configura el timeout de sesiones SSH inactivas.")
     print()
 
     paso="Paso 5"
 
-    print("[INFO]: Configuración de timeout de sesiones inactivas:")
-    print("         - ClientAliveInterval = 300 segundos")
-    print("         - ClientAliveCountMax = 3 segundos")
-    print("         - Timeout total: 300 x 3 = 900 segundos")
+    print_info("Configuración de timeout de sesiones inactivas:")
+    print_info("         - ClientAliveInterval = 300 segundos")
+    print_info("         - ClientAliveCountMax = 3 segundos")
+    print_info("         - Timeout total: 300 x 3 = 900 segundos")
     print()
 
     exito1=configurar_directiva_ssh("ClientAliveInterval", "300", paso)
@@ -373,12 +387,15 @@ def paso5_client_alive():
 
 def paso6_hostbased_auth():
     """
-    Deshabilita la autenticación basada en host.
+    Deshabilita la autenticación basada en host. Esto permite acceso sin verificar
+    la identidad individual del usuario. Si un host se comrpomete, todos sus usuarios
+    tendrían acceso.
     """
     print()
     print("="*100)
     print("[PASO 6]: Deshabilitar HostbasedAuthentication")
     print("="*100)
+    print_info("Deshabilita la autenticación basada en host.")
     print()
 
     paso="Paso 6"
@@ -386,14 +403,17 @@ def paso6_hostbased_auth():
     if configurar_directiva_ssh("HostbasedAuthentication", "no", paso):
         recargar_ssh(paso)
 
+
 def paso7_ignore_rhosts():
     """
-    Configura SSH para ignorar ficheros .rhosts y .shosts
+    Configura SSH para ignorar ficheros .rhosts y .shosts, evitando relaciones de confianza
+    heredadas de rlogin que un atacante podría explotar.
     """
     print()
     print("="*100)
     print("[PASO 7]: Configurar ClientAliveInterval y ClientAliveCountMax.")
     print("="*100)
+    print_info("Configura SSH para ignorar ficheros .rhosts y .shosts")
     print()
 
     paso="Paso 7"
@@ -410,6 +430,8 @@ def paso8_strict_modes():
     print("="*100)
     print("[PASO 8]: Habilitar StrictModes")
     print("="*100)
+    print_info("Habilita StrictModes para que SSH verifique los permisos antes")
+    print_info("de permitir la autenticación por clava.")
     print()
 
     paso="Paso 8"
@@ -426,6 +448,7 @@ def paso9_permit_user_environment():
     print("="*100)
     print("[PASO 9]: Deshabilitar PermitUserEnvironment")
     print("="*100)
+    print_info("Impide que los usuarios definan variables de entorno via SSH.")
     print()
 
     paso="Paso 9"
@@ -436,12 +459,14 @@ def paso9_permit_user_environment():
 
 def paso10_print_last_log():
     """
-    Habilita PrintLastLog para mostrar la última conexión al hacer login.
+    Habilita PrintLastLog para mostrar la última conexión al hacer login,
+    permitiendo detectar accesos no autorizados a su cuenta.
     """
     print()
     print("="*100)
     print("[PASO 10]: Habilitar PrintLastLog")
     print("="*100)
+    print_info("Muestra al usuario la fecha, hora e IP de su última conexión SSH.")
     print()
 
     paso="Paso 10"
@@ -515,10 +540,10 @@ def main():
                 paso10_print_last_log()
                 volver_al_menu()
             case "q":
-                print("\n[INFO]: Saliendo del script.")
+                print_info("Saliendo del script.")
                 sys.exit(0)
             case _:
-                print("[ERROR]: Opción no válida. Inténtelo de nuevo.")
+                print_error("Opción no válida. Inténtelo de nuevo.")
 
 
 if __name__=="__main__":

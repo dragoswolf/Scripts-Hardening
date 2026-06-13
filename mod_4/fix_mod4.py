@@ -190,6 +190,8 @@ def paso1_eliminar_nullok():
     print("="*100)
     print("[PASO 1]: Eliminar nullok (rechazar contraseñas vacías)")
     print("="*100)
+    print_info("Elimina la opción 'nullok'")
+    print_info("Esto impide que cualquier usuario pueda autenticarse con una contraseña vacía")
     print()
 
     paso="Paso 1"
@@ -203,18 +205,20 @@ def paso1_eliminar_nullok():
             registrar_errores(paso, f"No se pudo leer {fichero}.")
             continue
 
+        # 1a. Buscar lineas que contengan nullok
         lineas=contenido.splitlines()
         modificado=False
         nuevasLineas=[]
 
         for linea in lineas:
+            # 1b. Eliminar nullok de la linea
             if "pam_unix.so" in linea and "nullok" in linea:
                 lineaOriginal=linea
                 linea=linea.replace(" nullok", "")
                 linea=linea.replace("nullok ", "")
                 linea=linea.replace("nullok", "")
 
-                print(f"[INFO]: {fichero}:")
+                print_info(f"{fichero}:")
                 print(f"    Antes: {lineaOriginal.strip()}")
                 print(f"    Después: {linea.strip()}")
 
@@ -222,6 +226,7 @@ def paso1_eliminar_nullok():
                 nullokEncontrado=True
             nuevasLineas.append(linea)
 
+        # 1c. Guardar modificaciones en el fichero
         if modificado:
             nuevoContenido="\n".join(nuevasLineas)
 
@@ -229,15 +234,15 @@ def paso1_eliminar_nullok():
                 nuevoContenido+="\n"
 
             if escribir_fichero(fichero, nuevoContenido, permisos=0o644, paso=paso):
-                print(f"[CORRECTO]: {fichero} actualizado.")
+                print_correcto(f"{fichero} actualizado.")
             else:
                 registrar_errores(paso, f"No se pudo escribir en {fichero}.")
         else:
-            print(f"[CORRECTO]: {fichero}: Nullok no presente.")
+            print_correcto(f"{fichero}: Nullok no presente.")
     
     if not nullokEncontrado:
         print()
-        print("[CORRECTO]: Ningún fichero PAM tenía nullok.")
+        print_correcto("Ningún fichero PAM tenía nullok.")
 
 
 def paso2_configurar_pwquality():
@@ -248,28 +253,32 @@ def paso2_configurar_pwquality():
     print("="*100)
     print("[PASO 2]: Configurar la complejidad de contraseñas.")
     print("="*100)
+    print_info("Instala y configura el módulo pam_pwquality para exigir contraseñas robustas.")
     print()
 
     paso="Paso 2"
 
+    # 2a. Instalar libpam-pwquality
     rc, salida, _= ejecutar_comando_check(["dpkg", "-s", "libpam-pwquality"])
 
     if rc!=0:
-        print("[INFO]: Instalando libpam-pwquality...")
+        print_info("Instalando libpam-pwquality...")
         ejecutar_comando(["apt-get", "install", "-y", "libpam-pwquality"], "instalar libpam-pwquality", paso=paso, mostrarSalida=True)
 
     else:
-        print("[CORRECTO]: 'libpam pwquality' ya está instalado.")
+        print_correcto("'libpam pwquality' ya está instalado.")
 
+    # 2b. Configurar /etc/security/pwquality.conf
     print()
-    print("[INFO]: Configurando parámetros de calidad de contraseñas...")
+    print_info("Configurando parámetros de calidad de contraseñas...")
 
     if escribir_fichero(PWQUALITY_CONF, CONTENIDO_PWQUALITY, permisos=0o644, paso=paso):
-        print("[CORRECTO]: /etc/security/pwquality.conf configurado.")
+        print_correcto("/etc/security/pwquality.conf configurado.")
     else:
         registrar_errores(paso, "No se pudo escribir pwquality.conf")
         return
     
+    # 2c. Verificar pam_pwquality.so en common-password
     contenido=leer_fichero(PAM_COMMON_PASSWORD, paso=paso)
     if contenido is None:
         registrar_errores(paso, f"No se pudo leer {PAM_COMMON_PASSWORD}")
@@ -294,17 +303,17 @@ def paso2_configurar_pwquality():
                 nuevoContenido+="\n"
 
             escribir_fichero(PAM_COMMON_PASSWORD, nuevoContenido, permisos=0o644, paso=paso)
-            print("[CORRECTO]: pam_pwquality.so actualizado con retry=3.")
+            print_correcto("pam_pwquality.so actualizado con retry=3.")
         else:
-            print("[CORRECTO]: pam_pwquality.so ya configurado en common-password.")
+            print_correcto("pam_pwquality.so ya configurado en common-password.")
     else:
-        print("[AVISO]: pam_pwquality.so no está en common-password.")
+        print_aviso("pam_pwquality.so no está en common-password.")
         print("         Esto se configura automáticamente al instalar")
         print("         libpam-pwquality. Verifica la instalación.")
     
 
     print()
-    print("[INFO]: Resumen de la política de contraseñas:")
+    print_info("Resumen de la política de contraseñas:")
     print("         - Longitud mínima: 12 caracteres")
     print("         - Al menos 1 dígito, 1 mayúscula, 1 minúscula, 1 especial")
     print("         - Máximo 3 caracteres consecutivos repetidos")
@@ -320,41 +329,44 @@ def paso3_configurar_faillock():
     print("="*100)
     print("[PASO 3]: Configurar bloqueos tras intentos fallidos.")
     print("="*100)
+    print_info("Configura pam_faillock para bloquear cuentas tras 5 intentos, incluido root.")
+    print_info("El desbloqueo es automático tras 10 minutos.")
     print()
 
     paso="Paso 3"    
 
+    # 3a. Verificar que pam_faillock está disponible
     if not os.path.isfile(PAM_FAILLOCK):
         rc, salida,_=ejecutar_comando_check(["find", "/usr/lib", "-name", "pam_faillock.so"])
 
         if not salida.strip():
-            print("[AVISO]: pam_faillock.so no encontrado en el sistema.")
-            print("[INFO]: Intentando instalar libpam-modules...")
+            print_aviso("pam_faillock.so no encontrado en el sistema.")
+            print_info("Intentando instalar libpam-modules...")
             ejecutar_comando(["apt-get", "install", "-y", "libpam-modules"], "instalar libpam-modules", paso, mostrarSalida=True)
 
         else:
-            print(f"[CORRECTO]: pam_faillock.so encontrado en {salida.strip()}.")
+            print_correcto(f"pam_faillock.so encontrado en {salida.strip()}.")
     else:
-        print("[CORRECTO]: pam_faillock disponible.")
+        print_correcto("pam_faillock disponible.")
 
+    # 3b. Configurar 7etc/security/faillock.conf
     print()
-    print("[INFO]: Configurando parámetros de bloqueo de cuentas...")
-
-
+    print_info("Configurando parámetros de bloqueo de cuentas...")
 
     if escribir_fichero(FAILLOCK_CONF, CONTENIDO_FAILLOCK, permisos=0o644, paso=paso):
-        print("[CORRECTO]: /etc/security/faillock.conf configurado.")
+        print_correcto("/etc/security/faillock.conf configurado.")
     else:
         registrar_errores(paso, "no se pudo escribir faillock.conf")
         return
     
+    # 3c. Configurar faillock en common-auth
     contenido= leer_fichero(PAM_COMMON_AUTH, paso=paso)
     if contenido is None:
         registrar_errores(paso, f"No se pudo leer {PAM_COMMON_AUTH}")
         return
     
     if "pam_faillock.so" not in contenido:
-        print("[INFO]: Añadiendo pam_faillock.so a common-auth...")
+        print_info("Añadiendo pam_faillock.so a common-auth...")
 
         lineas=contenido.splitlines()
         nuevasLineas=[]
@@ -382,17 +394,18 @@ def paso3_configurar_faillock():
                 nuevoContenido+="\n"
 
             if escribir_fichero(PAM_COMMON_AUTH, nuevoContenido, permisos=0o644, paso=paso):
-                print("[CORRECTO]: 'pam_faillock.so' añadido a common-auth.")
+                print_correcto("'pam_faillock.so' añadido a common-auth.")
             else:
                 registrar_errores(paso, "No se pudo actualizar common-auth.")
 
     else:
-        print("[CORRECTO]: 'pam_faillock.so' ya está configurado en common-auth.")
+        print_correcto("'pam_faillock.so' ya está configurado en common-auth.")
 
+    # 3d. Configurar faillock en common-account
     contenidoAccount=leer_fichero(PAM_COMMON_ACCOUNT, paso=paso)
     if contenidoAccount is not None:
         if "pam_faillock.so" not in contenidoAccount:
-            print("[INFO]: Añadiendo pam_faillock.so a common-account...")
+            print_info("Añadiendo pam_faillock.so a common-account...")
 
             lineas=contenidoAccount.splitlines()
             insertado=False
@@ -413,9 +426,20 @@ def paso3_configurar_faillock():
                     nuevoContenido+="\n"
                 
                 if escribir_fichero(PAM_COMMON_ACCOUNT, nuevoContenido, permisos=0o644, paso=paso):
-                    print("[CORRECTO]: pam_faillock.so añadido a common-account.")
+                    print_correcto("pam_faillock.so añadido a common-account.")
     else:
-        print("[CORRECTO]: pam_faillock.so ya está configurado en common-password.")
+        print_correcto("pam_faillock.so ya está configurado en common-password.")
+
+    print()
+    print_info("Resumen de la política de bloqueo:")
+    print_info("    - Bloqueo tras 5 intentos fallidos.")
+    print_info("    - Desbloqueo automático tras 10 minutos.")
+    print_info("    - Ventana de 15 minutos para contar intentos.")
+    print_info("    - Root también se bloquea.")
+    print()
+    print_info("Comandos útiles:")
+    print_info("    faillock --user <usuario>           -> Ver el estado del usuario")
+    print_info("    faillock --user <usuario> --reset   -> Desbloquear el usuario")
 
 
 def paso4_configurar_pwhistory():
@@ -427,6 +451,8 @@ def paso4_configurar_pwhistory():
     print("="*100)
     print("[PASO 4]: Configurar historial de contraseñas")
     print("="*100)
+    print_info("Configura pam_pwhistory. para impedir la reutilización de las 5 últimas contraseñas.")
+    print_info(" Asegura que pam_unix.so use use_authtok y yescrypt como algoritmo de hashing seguro.")
     print()
 
     paso="Paso 4"
@@ -488,7 +514,7 @@ def paso4_configurar_pwhistory():
         if not nuevoContenido.endswith("\n"):
             nuevoContenido+="\n"
         if escribir_fichero(PAM_COMMON_PASSWORD, nuevoContenido, permisos=0o644, paso=paso):
-            print(f"[CORRECTO]: Historial de contraseñas configurado. (recordará las últimas {REMEMBER_VALUE}).")
+            print_correcto(f"Historial de contraseñas configurado. (recordará las últimas {REMEMBER_VALUE}).")
         else:
             registrar_errores("Paso 4", "No se pudo actualizar common-password")
 
@@ -496,7 +522,7 @@ def paso4_configurar_pwhistory():
         if pwhistoryExiste:
             print_correcto("'pam_pwhistory' ya está configurado.")
         else:
-            print("[AVISO]: No se encontró 'pam_unix.so' en common-password.")
+            print_aviso("No se encontró 'pam_unix.so' en common-password.")
             print("         Revisa la configuración PAM manualmente.")
 
     # 4f. Crear directorio para el historial de contraseñas si no existe
@@ -505,10 +531,10 @@ def paso4_configurar_pwhistory():
     
     # 4g. Crear fichero de historial de contraseñas si no existe
     if not os.path.isfile(OPASSWD_FILE):
-        print("[INFO]: Creando fichero de historial de contraseñas...")
+        print_info("Creando fichero de historial de contraseñas...")
         if escribir_fichero(OPASSWD_FILE, "", permisos=0o600, paso=paso):
             cambiar_permisos(OPASSWD_FILE, propietario=0, grupo=0, paso=paso)
-            print(f"[CORRECTO]: {OPASSWD_FILE} creado con permisos 600")
+            print_correcto(f"{OPASSWD_FILE} creado con permisos 600")
     else:
         cambiar_permisos(OPASSWD_FILE, permisos=0o600, paso=paso)
 
@@ -519,15 +545,18 @@ def paso5_configurar_umask():
     COnfigura el umask a 027 en PAm para que los ficheros y directorios creados por los usuarios
     no sean legibles por 'otros'
     """
-
     print()
     print("="*100)
     print("[PASO 5]: Configurar umask en PAM (permisos por defecto)")
     print("="*100)
+    print_info("Configura umask 027 en PAM (common-session) y login.defs.")
+    print_info("Con esto se logra que los ficheros y directorios creados por")
+    print_info("los usuarios no sean legibles por 'otros'.")
     print()
 
     paso="Paso 5"
 
+    # 5a. Verificar/configurar umask en common-session
     contenido=leer_fichero(PAM_COMMON_SESSION, paso=paso)
     if contenido is None:
         registrar_errores("Paso 5", f"No se pudo leer {PAM_COMMON_SESSION}.")
@@ -549,14 +578,14 @@ def paso5_configurar_umask():
                     linea=linea.rstrip() + f" umask={UMASK_DESEADO}"
                 
                 modificado=True
-                print(f"[INFO]: Actualizado umask a {UMASK_DESEADO} en pam_umask.so.")
+                print_info(f"Actualizado umask a {UMASK_DESEADO} en pam_umask.so.")
         nuevasLineas.append(linea)
     
     if not umaskEncontrado:
         nuevasLineas.append(f"session optional                        "
                             f"pam_umask.so umask={UMASK_DESEADO}")
         modificado = True
-        print(f"[INFO]: Añadido pam_umask.so con umask={UMASK_DESEADO}")
+        print_info(f"Añadido pam_umask.so con umask={UMASK_DESEADO}")
 
     if modificado:
         nuevoContenido="\n".join(nuevasLineas)
@@ -564,13 +593,14 @@ def paso5_configurar_umask():
             nuevoContenido+="\n"
 
         if escribir_fichero(PAM_COMMON_SESSION, nuevoContenido, permisos=0o644, paso=paso):
-            print("[CORRECTO]: umask configurado en common-session.")
+            print_correcto("umask configurado en common-session.")
         else:
             registrar_errores("Paso 5", "No se pudo actualizar common-session")
     
     else:
-        print(f"[CORRECTO]: umask ya está configurado a {UMASK_DESEADO} en common-session.")
+        print_correcto(f"umask ya está configurado a {UMASK_DESEADO} en common-session.")
 
+    # 5b. Configurar UMASK en /etc/login.defs como respaldo
     contenidoLogin=leer_fichero(LOGIN_FILE, paso=paso)
     if contenidoLogin is not None:
         if re.search(r"^UMASK\s+022", contenidoLogin, re.MULTILINE):
@@ -581,17 +611,18 @@ def paso5_configurar_umask():
                 flags=re.MULTILINE
             )
             escribir_fichero(LOGIN_FILE, contenidoLogin, permisos=0o644, paso=paso)
-            print("[CORRECTO]: UMASK actualizado a 027 en /etc/login.defs.")
+            print_correcto("UMASK actualizado a 027 en /etc/login.defs.")
         elif re.search(r"^UMASK\s+0?27$", contenidoLogin, re.MULTILINE):
-            print(f"[CORRECTO]: UMASK ya es 027 en {LOGIN_FILE}.")
+            print_correcto(f"UMASK ya es 027 en {LOGIN_FILE}.")
         else:
-            print("[AVISO]: No se encontró directiva UMASK en /etc/login.defs")
+            print_aviso("No se encontró directiva UMASK en /etc/login.defs")
 
     print()
-    print("[INFO]: Con umask 027:")
-    print("     - Ficheros nuevos: rw-r----- (640)")
-    print("     - Directorios nuevos: rwxr-x--- (750)")
-    print("     - 'Otros' no tienen ningún acceso")
+    print_info("Con umask 027:")
+    print_info("     - Ficheros nuevos: rw-r----- (640)")
+    print_info("     - Directorios nuevos: rwxr-x--- (750)")
+    print_info("     - 'Otros' no tienen ningún acceso")
+    print()
 
 
 def paso6_configurar_limits():
@@ -603,15 +634,18 @@ def paso6_configurar_limits():
     print("="*100)
     print("[PASO 6]: Configurar límites de recursos")
     print("="*100)
+    print_info("Configura límites de recursos en /etc/security/limits.conf.")
+    print_info("Con esto se pretende prevenir el abuso de recursos y fork bombs.")
     print()
 
     paso="Paso 6"
 
+    # 6a. Escribir bloque de límites en limits.conf
     contenidoActual=leer_fichero(LIMITS_CONF, paso=paso)
 
     if contenidoActual and "# Hardening TFG" in contenidoActual:
-        print("[CORRECTO]: Los límites de hardening ya están configurados.")
-        print("[INFO]: Para modificarlos, edita /etc/security/limits.conf")
+        print_correcto("Los límites de hardening ya están configurados.")
+        print_info("Para modificarlos, edita /etc/security/limits.conf")
         return
     
 
@@ -621,31 +655,32 @@ def paso6_configurar_limits():
         if marcaHardening in contenidoActual:
             indice=contenidoActual.index(marcaEndOfFile)
             contenidoActual=contenidoActual[:indice+len(marcaEndOfFile)]
-            print("[INFO]: Bloque de hardening anterior eliminado.")
+            print_info("Bloque de hardening anterior eliminado.")
         nuevoContenido=contenidoActual.rstrip("\n")+"\n"+ BLOQUEO_LIMITES
     else:
         nuevoContenido=BLOQUEO_LIMITES
 
     if escribir_fichero(LIMITS_CONF, nuevoContenido, permisos=0o644, paso=paso):
-        print("[CORRECTO]: Límites de recursos configurados en limits.conf.")
+        print_correcto("Límites de recursos configurados en limits.conf.")
     else:
         registrar_errores("Paso 6", "No se pudo escribir limits.conf")
         return
     
+    # 6b. Verificar pam_limits.so en common-session.
     contenidoSession=leer_fichero(PAM_COMMON_SESSION, paso=paso)
     if contenidoSession is not None:
         if "pam_limits.so" not in contenidoSession:
-            print("[INFO]: Añadiendo pam_limits.so a common-session...")
+            print_info("Añadiendo pam_limits.so a common-session...")
             nuevoSession=contenidoSession.rstrip("\n")+"\n"
             nuevoSession+=("session required                            "
                            "pam_limits.so\n")
             if escribir_fichero(PAM_COMMON_SESSION, nuevoSession, permisos=0o644, paso=paso):
-                print("[CORRECTO]: pam_limits.so añadido a common-session.")
+                print_correcto("pam_limits.so añadido a common-session.")
         else:
-            print("[CORRECTO]: pam_limits.so ya presente en common-session.")
+            print_correcto("pam_limits.so ya presente en common-session.")
 
     print()
-    print("[INFO]: Resumen de límites configurados:")
+    print_info("Resumen de límites configurados:")
     print("     - Procesos por usuario: máximo 256 (prevención fork bomb)")
     print("     - Ficheros abiertos: máximo 4096")
     print("     - Core dumps: deshabilitados")
@@ -702,10 +737,10 @@ def main():
                 paso6_configurar_limits()
                 volver_al_menu()
             case "q":
-                print("\n[INFO]: Saliendo del script.")
+                print_info("Saliendo del script.")
                 sys.exit(0)
             case _:
-                print("[ERROR]: Opción no válida. Inténtelo de nuevo.")
+                print_error("Opción no válida. Inténtelo de nuevo.")
 
 
 if __name__=="__main__":

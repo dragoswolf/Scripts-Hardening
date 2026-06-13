@@ -1,12 +1,43 @@
 #!/usr/bin/env python3
+#=========================================================================================================
+# fix_mod7.py - Script de fortificación para el módulo 7 - Parámetros del Kernel
+#=========================================================================================================
+# Este script implementa las siguientes medidas de seguridad:
+#
+#   Paso 1: Habilitar protección SYN cookies
+#   Paso 2: Deshabilitar enrutamiento de origen IP
+#   Paso 3: Deshabilitar redirecciones ICMP
+#   Paso 4: Protección contra mensajes ICMP erróneos
+#   Paso 5: Exec-Shield
+#   Paso 6: Registro de paquetes marcianos
+#   Paso 7: Ignorar echo boradcasts ICMP
+#   Paso 8: Desactivar IPv6 si no se usa.
+#
+#
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Los errores se registran en /var/log/hardening/modulo7_fix.log
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#=========================================================================================================
 
 import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from utils import (configurar_logging, registrar_errores, comprobar_root,
-                   ejecutar_comando, ejecutar_comando_check,
-                   volver_al_menu, leer_fichero, escribir_fichero)
+from utils import (configurar_logging, 
+                   registrar_errores, 
+                   comprobar_root,
+                   ejecutar_comando_check,
+                   volver_al_menu, 
+                   leer_fichero, 
+                   escribir_fichero,
+                   print_info,
+                   print_aviso,
+                   print_correcto,
+                   print_error
+                   )
 
 
 LOG_FILE="/var/log/hardening/modulo7_fix.log"
@@ -103,7 +134,7 @@ def aplicar_sysctl(parametro, valor, paso="General"):
     valorActual=obtener_valor_sysctl(parametro)
 
     if valorActual==valor:
-        print(f"[CORRECTO]: {parametro} = {valor} (ya configurado).")
+        print_correcto(f"{parametro} = {valor} (ya configurado).")
         persistir_sysctl(parametro, valor)
         return True
     
@@ -112,20 +143,24 @@ def aplicar_sysctl(parametro, valor, paso="General"):
     if rc!=0:
         registrar_errores(paso, f"No se pudo aplicar {parametro}={valor}: "
                           f"{stderr.strip()}")
-        print(f"[ERROR]: No se pudo aplicar {parametro}={valor}")
+        print_error(f"No se pudo aplicar {parametro}={valor}")
         return False
 
-    print(f"[CORRECTO]: {parametro}: {valorActual} -> {valor}")
+    print_correcto(f"{parametro}: {valorActual} -> {valor}")
 
     persistir_sysctl(parametro, valor)
     return True
 
 
 def paso1_syn_cookies():
+    """
+    Habilita la protección SYN cookies para prevenir ataques SYN flood.
+    """
     print()
     print("="*100)
     print("[PASO 1]: Habilitar protección SYN cookies.")
     print("="*100)
+    print_info("Habilita SYN cookies para proteger contra ataques SYN flood.")
     print()
 
     paso="Paso 1"
@@ -133,10 +168,16 @@ def paso1_syn_cookies():
     aplicar_sysctl("net.ipv4.tcp_syncookies", "1", paso)
 
 def paso2_source_routing():
+    """
+    Deshabilita el enrutamiento de origen IP en todas las interfaces
+    """
     print()
     print("="*100)
     print("[PASO 2]: Deshabilitar enrutamiento de origen IP.")
     print("="*100)
+    print_info("Deshabilita el source routing IP, que permite al emisor\n" \
+    "especificar la ruta del paquete saltándose las tablas de enrutamiento.\n" \
+    "Previene ataques MITM")
     print()
 
     paso="Paso 2"
@@ -151,10 +192,18 @@ def paso2_source_routing():
 
 
 def paso3_icmp_redirects():
+    """
+    Deshabilita la aceptación y el envío de redirecciones ICMP. Previene así
+    ataques donde un atacante envía mensajes ICMP Redirect falsos para redirigir
+    tráfico.
+    """
     print()
     print("="*100)
     print("[PASO 3]: Deshabilitar redirecciones ICMP.")
     print("="*100)
+    print_info("Deshabilita la acceptación y el envío de redirecciones ICMP.\n" \
+    "Previene así ataques donde un atacante envía mensajes ICMP Redirect falsos\n" \
+    "para redirigir tráfico.")
     print()
 
     paso="Paso 3"
@@ -176,10 +225,16 @@ def paso3_icmp_redirects():
 
 
 def paso4_icmp_bogus():
+    """
+    Habilita la protección contra mensajes ICMP erróneos, ignorando las respuestas
+    ICMP inválidas de routers mal configurados.
+    """
     print()
     print("="*100)
     print("[PASO 4]: Protección contra mensajes ICMP erróneos.")
     print("="*100)
+    print_info("Habilita la protección contra mensajes ICMP erróneos, ignorando\n" \
+    "las respuestas ICMP inválidas de routers mal configurados.")
     print()
 
     paso="Paso 4"
@@ -188,26 +243,39 @@ def paso4_icmp_bogus():
 
 
 def paso5_exec_shield():
+    """
+    Configura ASLR al máximo nivel (aleatoriza memoria) y activa kptr_restrict para
+    ocultar direcciones del kernel a usuarios no privilegiados.
+    """
     print()
     print("="*100)
     print("[PASO 5]: Exec-Shield")
     print("="*100)
+    print_info("Configura ASLR al máximo nivel (aleatoriza memoria) y activa kptr_restrict\n" \
+    "para ocultar direcciones del kernel a usurios no privilegiados.")
     print()
 
     paso="Paso 5"
 
-    #ASLR nivel 2= aleatorizar stack, heap, mmap, vdso
+    # 5a. ASLR nivel 2= aleatorizar stack, heap, mmap, vdso
     aplicar_sysctl("kernel.randomize_va_space", "2", paso)
 
-    # kptr_restrict=1 -> ocultar punteros del kernel a usuarios no-root
+    # 5b. kptr_restrict=1 -> ocultar punteros del kernel a usuarios no-root
     aplicar_sysctl("kernel.kptr_restrict", "1", paso)
 
 
 def paso6_log_martians():
+    """
+    Habilita el registro de paquetes marcianos (paquetes con direcciones IP imposibles
+    o inesperadas). Permite detectar intentos de spoofing o errores de configuración
+    de red.
+    """
     print()
     print("="*100)
     print("[PASO 6]: Registro de paquetes marcianos")
     print("="*100)
+    print_info("Habilita el registro de paquetes marcianos (paquetes con direcciones IP\n" \
+    "imposibles o inesperadas). Permite detectar intentos de spoofing o errores de configuración de red.")
     print()
 
     paso="Paso 6"
@@ -217,10 +285,16 @@ def paso6_log_martians():
 
 
 def paso7_icmp_echo_broadcast():
+    """
+    Configura el kernel para ignorar peticiones ICMP echo dirigidas a direcciones de broadcast.
+    Previene que el servidor participe en algunos tipos de ataques (ej: Smurf).
+    """
     print()
     print("="*100)
     print("[PASO 7]: Ignorar echo broadcasts ICMP")
     print("="*100)
+    print_info("Configura el kernel para ignorar peticiones ICMP echo dirigidas a direcciones\n" \
+    "de broadcast. Previene que el servidor participe en algunos tipos de ataques (ej: Smurf)")
     print()
 
     paso="Paso 7"
@@ -229,24 +303,31 @@ def paso7_icmp_echo_broadcast():
 
 
 def paso8_desactivar_ipv6():
+    """
+    Desactiva IPv6 completamente si no se utiliza. Verifica previamente que no hayan
+    servicios escuchando en IPv6.
+    """
     print()
     print("="*100)
     print("[PASO 8]: Desactivar IPv6 (si no se usa)")
     print("="*100)
+    print_info("Desactiva IPv6 completamente si no se utiliza. Verifica previamente que\n" \
+    "no hayan servicios escuchando en IPv6")
     print()
 
     paso="Paso 8"
 
+    # 8a. Verifica estado actual
     valorActual=obtener_valor_sysctl("net.ipv6.conf.all.disable_ipv6")
-
     if valorActual=="1":
-        print("[CORRECTO]: IPv6 ya está desactivado.")
+        print_correcto("IPv6 ya está desactivado.")
         persistir_sysctl("net.ipv6.conf.all.disable_ipv6", "1")
         persistir_sysctl("net.ipv6.conf.default.disable_ipv6", "1")
         persistir_sysctl("net.ipv6.conf.lo.disable_ipv6", "1")
         return
 
-    print("[INFO]: Verificando si hay servicios escuchando en IPv6...")
+    # 8b. Verifica si hay servicios activos escuchando en IPv6
+    print_info("Verificando si hay servicios escuchando en IPv6...")
     print()
 
     rc, salida, _ = ejecutar_comando_check(["ss", "-tlnp6"])
@@ -258,31 +339,33 @@ def paso8_desactivar_ipv6():
         serviciosIPv6.append(linea.strip())
     
     if serviciosIPv6:
-        print(f"[AVISO]: Se han detectado {len(serviciosIPv6)} servicio(s) escuchando en IPv6: ")
+        print_aviso(f"Se han detectado {len(serviciosIPv6)} servicio(s) escuchando en IPv6: ")
         print()
         for srv in serviciosIPv6:
+            # 8c. Extrae la información relevante del servicio
             campos=srv.split()
             if len(campos)>=4:
                 direccion=campos[3]
                 proceso=campos[5] if len(campos)>=6 else "(desconocido)"
                 print(f"    - {direccion} {proceso}")
         print()
-        print("[AVISO]: Desactivar IPv6 podría afectar a estos servicios.")
+        print_aviso("Desactivar IPv6 podría afectar a estos servicios.")
         resp=input("¿Desactivar IPv6 de todas formas? (s/N): ").strip().lower()
 
         if resp!="s":
-            print("[INFO]: IPv6 no se ha desactivado.")
+            print_info("IPv6 no se ha desactivado.")
             return
     else:
-        print("[CORRECTO]: No hay servicios escuchando exclusivamente en IPv6.")
+        print_correcto("No hay servicios escuchando exclusivamente en IPv6.")
         print()
 
-    print("[INFO]: Desactivando IPv6...")
+    # 8d. Desactiva IPv6
+    print_info("Desactivando IPv6...")
     aplicar_sysctl("net.ipv6.conf.all.disable_ipv6", "1", paso=paso)
     aplicar_sysctl("net.ipv6.conf.default.disable_ipv6", "1", paso=paso)
     aplicar_sysctl("net.ipv6.conf.lo.disable_ipv6", "1", paso=paso)
     print()
-    print("[CORRECTO]: IPv6 desactivado.")
+    print_correcto("IPv6 desactivado.")
 
 
 def mostar_menu():
@@ -340,10 +423,10 @@ def main():
                 paso8_desactivar_ipv6()
                 volver_al_menu()
             case "q":
-                print("\n[INFO]: Saliendo del script.")
+                print_info("Saliendo del script.")
                 sys.exit(0)
             case _:
-                print("[ERROR]: Opción no válida. Inténtelo de nuevo.")
+                print_error("Opción no válida. Inténtelo de nuevo.")
 
 
 if __name__=="__main__":

@@ -4,8 +4,12 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from utils import (configurar_logging, registrar_errores, comprobar_root,
-                   ejecutar_comando, ejecutar_comando_check, volver_al_menu)
+from utils import (configurar_logging, 
+                   registrar_errores, 
+                   comprobar_root,
+                   ejecutar_comando, 
+                   ejecutar_comando_check, 
+                   volver_al_menu)
 
 
 LOG_FILE="/var/log/hardening/modulo8_fix.log"
@@ -147,46 +151,6 @@ def paso1_instalar_apparmor():
         print(f"        En modo complain:   {estado['complain']}")
 
 
-def paso3_enforce_perfiles():
-    print()
-    print("="*100)
-    print("[PASO 2]: Poner todos los perfiles en modo enforce")
-    print("="*100)
-    print()
-
-    paso="Paso 2"
-
-    perfilesComplain=obtener_perfiles_complain()
-
-    if not perfilesComplain:
-        print("[CORRECTO]: Todos los perfiles ya están en modo enforce.")
-        return
-    
-    print(f"[INFO]: {len(perfilesComplain)} perfil(es) en modo complain.")
-    
-    for perfil in perfilesComplain:
-        print(f"    - {perfil}")
-    print()
-
-    errores=0
-
-    rc, salida, stderr=ejecutar_comando_check(["bash","-c","aa-enforce /etc/apparmor.d/*"])
-
-    if rc==0:
-        print("[CORRECTO]: Todos los perfiles cambiados a enforce")
-    else:
-        print(f"[ERROR]: {stderr.strip()}")
-        errores+=1
-
-
-
-    print()
-    if errores==0:
-        print(f"[CORRECTO]: {len(perfilesComplain)} perfil(es) cambiados a modo enforce.")
-    else:
-        print(f"[AVISO]: {errores} perfil(es) no se pudieron cambiar.")
-
-
 def paso2_perfiles_adicionales():
     print()
     print("="*100)
@@ -246,6 +210,49 @@ def paso2_perfiles_adicionales():
         print(f"        En modo complain:   {estado['complain']}")
 
 
+
+def paso3_enforce_perfiles():
+    print()
+    print("="*100)
+    print("[PASO 2]: Poner todos los perfiles en modo enforce")
+    print("="*100)
+    print()
+
+    paso="Paso 2"
+
+    perfilesComplain=obtener_perfiles_complain()
+
+    if not perfilesComplain:
+        print("[CORRECTO]: Todos los perfiles ya están en modo enforce.")
+        return
+    
+    print(f"[INFO]: {len(perfilesComplain)} perfil(es) en modo complain.")
+    
+    for perfil in perfilesComplain:
+        print(f"    - {perfil}")
+    print()
+
+    errores=0
+
+    rc, salida, stderr=ejecutar_comando_check(["bash","-c","aa-enforce /etc/apparmor.d/*"])
+
+    if rc==0:
+        print("[CORRECTO]: Todos los perfiles cambiados a enforce")
+    else:
+        print(f"[ERROR]: {stderr.strip()}")
+        errores+=1
+
+
+
+    print()
+    if errores==0:
+        print(f"[CORRECTO]: {len(perfilesComplain)} perfil(es) cambiados a modo enforce.")
+    else:
+        print(f"[AVISO]: {errores} perfil(es) no se pudieron cambiar.")
+
+
+
+
 def mostar_menu():
     print()
     print("="*100)
@@ -280,7 +287,7 @@ def main():
                 paso3_enforce_perfiles()
                 volver_al_menu()
             case "q":
-                print("\n[INFO]: Saliendo del script.")
+                print_info("Saliendo del script.")
                 sys.exit(0)
             case _:
                 print("[ERROR]: Opción no válida. Inténtelo de nuevo.")

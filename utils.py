@@ -415,7 +415,18 @@ def verificar_permisos(ruta, permisosEsperados=None, propietarioEsperado=None, g
             todoCorrecto=False
 
     return todoCorrecto
+
+def obtener_permisos(ruta):
+    """
+    Devuelve los permisos actuales de un fichero como string octal de 3 dígitos
+
+    Args:
+        ruta (str): Ruta absoluta al fichero o directorio
     
+    Return:
+        str: Permisos en forma octal de 3 dígitos
+    """
+    return oct(os.stat(ruta).st_mode)[-3]    
 
 # Los contadores se gestionan como un diccionario mutable para poder modificarlos
 # desde los scripts que importen este módulo sin usar variables globales
