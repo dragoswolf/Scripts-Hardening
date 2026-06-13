@@ -10,7 +10,7 @@
 #   Desde cualquier script de módulo
 #   import sys, os
 #   sys.path.insert(0, os.path.join(os.path.dirname(__file__),".."))
-#   from utils import (configurar_logging, registrar_error, comprobar_root, ejecutar_comando, volver_al_menu)
+#   from utils import (configurar_logging, registrar_errores, comprobar_root, ejecutar_comando, volver_al_menu)
 #
 # Autor: Dragos George Stan
 # TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
@@ -94,8 +94,8 @@ def configurar_logging(logFile):
     """
 
     #Crea el directorio de logs si no existe
-    if not os.path.isdir(LOG_DIR):
-        os.makedirs(LOG_DIR, exist_ok=True)
+    if not os.path.isdir(logFile):
+        os.makedirs(logFile, exist_ok=True)
 
     #Configurar el logger con formato [YYYY-MM-DD HH:MM:SS] ERROR: <mensajeError>
 

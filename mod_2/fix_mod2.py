@@ -598,7 +598,7 @@ def paso9_habilitar_ntp():
 
     if "ii" not in resultado.stdout:
         print_info("Instalando chrony...")
-        ejecutar_comando(["apt", "install", "-y", "chrony"], "instalar chrony", "Paso 9")
+        ejecutar_comando(["apt", "install", "-y", "chrony"], "instalar chrony", "Paso 9", mostrarSalida=True)
         print_correcto("Chrony instalado.")
     else:
         print_info("Chrony ya está instalado...")
