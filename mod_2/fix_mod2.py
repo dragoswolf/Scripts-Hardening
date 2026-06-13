@@ -151,7 +151,7 @@ def paso1_actualizar_sistema():
     print("="*100)
     print()
     print_info("Esta medida aplica todos los parches de seguridad disponibles\n" \
-    "           para cerrar vulnerabilidad conocidas (CVEs).")
+    "       para cerrar vulnerabilidad conocidas (CVEs).")
     print()
 
     # 4a. Actualizar índices
@@ -197,7 +197,7 @@ def paso2_eliminar_paquetes():
     print("[PASO 3]: Eliminar paquetes innecesarios u huérfanos")
     print("="*100)
     print_info("Esta medida reduce la superficie de ataque eliminando software\n" \
-    "           que no es necesario para la función del servidor.")
+    "       que no es necesario para la función del servidor.")
     print()
 
 
@@ -253,7 +253,7 @@ def paso3_personalizar_motd():
     print("[PASO 1]: Personalizar MOTD (Message of the Day)")
     print("="*100)
     print_info("Esta medida elimina la información del sistema que Ubuntu muestra tras\n" \
-    "           el login (versión SO, kernel, paquetes pendientes) y la sustituye por un aviso legal.")
+    "       el login (versión SO, kernel, paquetes pendientes) y la sustituye por un aviso legal.")
     print()
 
     # 1a. Deshabilitar scripts dinámicos por defecto
@@ -300,7 +300,7 @@ def paso4_configurar_banners():
     print("[PASO 2]: Configurar banners de inicio de sesión")
     print("="*100)
     print_info("Esta medida elimina la información del sistema que\n" \
-    "           Ubuntu muestra ANTES del login (consola local).")
+    "       Ubuntu muestra ANTES del login (consola local).")
     print()
 
     # 2a. Sobrescribir /etc/issue
@@ -336,7 +336,7 @@ def paso5_configurar_gpg():
     print("="*100)
     print()
     print_info("Esta medida asegura que APT rechace paquetes modificados o\n" \
-    "           provenientes de repositorios no autenticados.")
+    "       provenientes de repositorios no autenticados.")
     print()
 
     # 5a. Crear fichero de refuerzo GPG
@@ -380,7 +380,7 @@ def paso6_configurar_unattended():
     print("="*100)
     print()
     print_info("Esta medida configura el sistema para aplicar automáticamente\n" \
-    "           los parches de seguridad, reduciendo la ventana de exposición.")
+    "       los parches de seguridad, reduciendo la ventana de exposición.")
     print()
 
     # 6a. Instalar unattended-upgrades
@@ -474,7 +474,7 @@ def paso7_deshabilitar_servicios():
     print("="*100)
     print()
     print_info("Esta medida reduce la superficie de ataque deshabilitando\n" \
-    "           servicios que no son necesarios para la función del servidor.")
+    "       servicios que no son necesarios para la función del servidor.")
     print()
 
     # 7a. Comprobar si el servicio existe
@@ -525,8 +525,8 @@ def paso8_documentar_servicios():
     print("="*100)
     print()
     print_info("Crea un fichero de documentación con los servicios de red actualmente activos\n" \
-    "           para futuras auditorias. Implementa el principio de un servicio por sistema documentando\n"
-    "           la función del servidor.")
+    "       para futuras auditorias. Implementa el principio de un servicio por sistema documentando\n"
+    "       la función del servidor.")
     print()
 
     # 8a. Obtener serviciosd e red activos.
@@ -587,7 +587,7 @@ def paso9_habilitar_ntp():
     print("="*100)
     print()
     print_info("Esta medida asegura que el reloj del sistema está sincronizado para que los logs\n" \
-    "           tengan timestamps correctos y los protocolos criptográficos funcionen correctamente.")
+    "       tengan timestamps correctos y los protocolos criptográficos funcionen correctamente.")
     print()
 
     # 9a. Instalar chrony
@@ -665,7 +665,7 @@ def paso10_restringir_cron():
     print("="*100)
     print()
     print_info("Esta medida impide que usuarios no autorizados programen tareasn\n" \
-    "           con cron o at, evitando la persistencia de un atacante.")
+    "       con cron o at, evitando la persistencia de un atacante.")
     print()
 
 

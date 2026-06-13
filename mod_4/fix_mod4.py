@@ -451,7 +451,7 @@ def paso4_configurar_pwhistory():
     print("[PASO 4]: Configurar historial de contraseñas")
     print("="*100)
     print_info("Configura pam_pwhistory. para impedir la reutilización de las 5 últimas contraseñas.\n" \
-    "           Asegura que pam_unix.so use use_authtok y yescrypt como algoritmo de hashing seguro.")
+    "       Asegura que pam_unix.so use use_authtok y yescrypt como algoritmo de hashing seguro.")
     print()
 
     paso="Paso 4"
@@ -549,7 +549,7 @@ def paso5_configurar_umask():
     print("[PASO 5]: Configurar umask en PAM (permisos por defecto)")
     print("="*100)
     print_info("Configura umask 027 en PAM (common-session) y login.defs.\n" \
-    "           Con esto se logra que los ficheros y directorios creados por los usuarios no sean legibles por 'otros'.")
+    "       Con esto se logra que los ficheros y directorios creados por los usuarios no sean legibles por 'otros'.")
     print()
 
     paso="Paso 5"

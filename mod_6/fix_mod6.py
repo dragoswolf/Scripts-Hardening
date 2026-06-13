@@ -184,7 +184,7 @@ def paso2_auditoria_filesystem():
     print("[PASO 2]: Auditoría del filesystem.")
     print("="*100)
     print_info("Audita el filesystem buscando directorios world-writable, sin sticky bit, y ficheros sin propietario válido.\n" \
-    "           Les añade el sticky bit para que solo los propietarios puedan realizar cambios.")
+    "       Les añade el sticky bit para que solo los propietarios puedan realizar cambios.")
     print()
 
     paso="Paso 2"
@@ -399,7 +399,7 @@ def paso4_chattr_ficheros():
     print("[PASO 4]: Proteger ficheros críticos.")
     print("="*100)
     print_info("Permite bloquear o desbloquear ficheros críticos del sistema.\n" \
-    "           Impide modificaciones incluso por root.")
+    "       Impide modificaciones incluso por root.")
     print()
 
     paso="Paso 4"

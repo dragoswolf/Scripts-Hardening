@@ -89,7 +89,7 @@ def paso1_rsylog():
     print("[PASO 1]: Verificar rsyslog instalado y activo.")
     print("="*100)
     print_info("Verifica que rsyslog está instalado y activo como sistema\n" \
-    "           centralizado de logs. Si no lo está, lo instala y habilita para el arranque")
+    "       centralizado de logs. Si no lo está, lo instala y habilita para el arranque")
     print()
 
     paso="Paso 1"
@@ -147,7 +147,7 @@ def paso2_persistencia_journald():
     print("[PASO 2]: Configurar persistencia de journald.")
     print("="*100)
     print_info("Configurar journald para almacenar los logs de forma persistene en\n" \
-    "           /var/log/journal/ con límites de tamaño y tiempo de retención configurados.")
+    "       /var/log/journal/ con límites de tamaño y tiempo de retención configurados.")
     print()
 
     paso="Paso 2"
@@ -281,7 +281,7 @@ def paso3_permisos_logs():
     print("[PASO 3]: Asegurar permisos de ficheros de log.")
     print("="*100)
     print_info("Verifica y corrige los permisos de los ficheros de log\n" \
-    "           principales para que no sean legibles por usuarios no autorizados.")
+    "       principales para que no sean legibles por usuarios no autorizados.")
     print()
 
     paso="Paso 3"
@@ -313,7 +313,7 @@ def paso4_logrotate():
     print("[PASO 4]: Configurar logrotate.")
     print("="*100)
     print_info("Configura logrotate para los ficheros de log con rotación semanal,\n" \
-    "           12 semanas de retención, compresión y creación con permisos seguros.")
+    "       12 semanas de retención, compresión y creación con permisos seguros.")
     print()
 
     paso="Paso 4"
