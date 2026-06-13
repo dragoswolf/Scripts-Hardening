@@ -186,13 +186,11 @@ def paso1_personalizar_motd():
 def paso2_configurar_banners():
     """
     Configura los banners de /etc/issue y /etc/issue.net para eliminar información sensible y añadir
-    un aviso legal. Configura SSH para mostrar el banner en conexiones remotas.
+    un aviso legal.
 
     Proceso:
         1. Sobreescribir /etc/issue con banner legal
         2. Sobreescribir /etc/issue.net con banner legal
-        3. Configurar la directiva Banner en ssh_config
-        3. Reiniciar SSH
     """
     print()
     print("="*100)
@@ -200,7 +198,7 @@ def paso2_configurar_banners():
     print("="*100)
     print()
     print_info("Esta medida elimina la información del sistema que Ubuntu muestra,")
-    print_info("ANTES del login (consola local y SSH).")
+    print_info("ANTES del login (consola local).")
     print()
 
     # 2a. Sobrescribir /etc/issue
