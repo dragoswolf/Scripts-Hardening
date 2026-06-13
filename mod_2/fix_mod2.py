@@ -92,22 +92,22 @@ TEXTO_MOTD_SCRIPT="""#!/bin/bash
 # =============================================================================
 echo "***********************************************************************"
 echo "*                                                                     *"
-echo "*   AVISO LEGAL: Este sistema es propiedad de la organizacion.        *"
-echo "*   El acceso no autorizado esta prohibido y sera perseguido          *"
-echo "*   conforme a la legislacion vigente (CP art. 197 bis, RGPD).        *"
+echo "*   AVISO LEGAL: Este sistema es propiedad de la organización.        *"
+echo "*   El acceso no autorizado está prohibido y será perseguido          *"
+echo "*   conforme a la legislación vigente (CP art. 197 bis, RGPD).        *"
 echo "*                                                                     *"
 echo "*   Todas las actividades en este sistema son monitorizadas           *"
-echo "*   y registradas. El uso continuado implica la aceptacion            *"
-echo "*   de las politicas de seguridad de la organizacion.                 *"
+echo "*   y registradas. El uso continuado implica la aceptación            *"
+echo "*   de las politicas de seguridad de la organización.                 *"
 echo "*                                                                     *"
 echo "***********************************************************************"
 """
 
 # Banner legal para issue/issue.net
 TEXTO_BANNER="""*******************************************************************
-*  ATENCION: Sistema restringido. Solo personal autorizado.       *
-*  Todo acceso queda registrado. El uso no autorizado sera        *
-*  perseguido conforme a la legislacion vigente.                  *
+*  ATENCIÓN: Sistema restringido. Solo personal autorizado.       *
+*  Todo acceso queda registrado. El uso no autorizado será        *
+*  perseguido conforme a la legislación vigente.                  *
 *******************************************************************
 """
 
@@ -212,37 +212,6 @@ def paso2_configurar_banners():
     print_info(f"Escribiendo banner legal en {ISSUE_NET_FILE}...")
     if escribir_fichero(ISSUE_NET_FILE, TEXTO_BANNER, 0o644):
         print_correcto(f"{ISSUE_NET_FILE} configurado.")
-
-    
-    # 2c. Configurar SSH para mostrar el banner
-    contenidoSshd=leer_fichero(SSHD_CONFIG_FILE)
-    if contenidoSshd is not None:
-        bannerYaConfigurado=False
-        lineasNuevas=[]
-        for linea in contenidoSshd.splitlines():
-            lineaLimpia=linea.strip()
-            if lineaLimpia.lower().startswith("banner") or lineaLimpia.lower().startswith("#banner"):
-                if not bannerYaConfigurado:
-                    lineasNuevas.append("Banner /etc/issue.net")
-                    bannerYaConfigurado=True
-            else:
-                lineasNuevas.append(linea)
-
-        if not bannerYaConfigurado:
-            lineasNuevas.append("")
-            lineasNuevas.append("# Banner legal añadido por fix_mod2.py")
-            lineasNuevas.append("Banner /etc/issue.net")
-
-        nuevoContenido="\n".join(lineasNuevas)+"\n"
-        print_info(f"Configurando directiva Banner en {SSHD_CONFIG_FILE}...")
-        if escribir_fichero(SSHD_CONFIG_FILE, nuevoContenido, 0o600):
-            print_correcto("Directiva 'Banner /etc/issue.net' configurada")
-        
-        print_info("Reiniciando servicio SSH...")
-        ejecutar_comando(["systemctl", "restart", "ssh"], "reiniciar SSH", "Paso 2")
-        print_correcto("SSH reiniciado.")
-    else:
-        print_error(f"No se puede leer {SSHD_CONFIG_FILE}")
 
     print()
     print_info("PASO 2 COMPLETADO.")

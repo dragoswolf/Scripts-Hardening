@@ -14,10 +14,10 @@
 #   Paso 8: Habilitar StrictModes
 #   Paso 9: Deshabilitar PermitUserEnvironment
 #   Paso 10: Habilitar PrintLastLog
+#   Paso 11: Configurar Banner SSH
 #
 # NOTA: Algunas medidas relacionadas con SSH se configuran en otros
 # módulos, pero tiene más sentido dejarlos en esos otros módulos:
-#   - Banner SSH -> Módulo 2 - Fortificación General (paso 2)
 #   - PermitEmptyPasswords -> Módulo 3 - Seguridad en Usuarios (paso 7)
 #   - PermitRootLogin -> Módulo 3 - Seguridad en usuarios (paso 10)
 #
@@ -475,6 +475,32 @@ def paso10_print_last_log():
     if configurar_directiva_ssh("PrintLastLog", "yes", paso):
         recargar_ssh(paso)
 
+
+def paso11_banner_ssh():
+    """
+    Configura la directiva Banner en sshd_config para que SSH muestre
+    el contenido de /etc/issue.net a los usuarios antes de autenticarse
+    """
+    print()
+    print("="*100)
+    print("[PASO 10]: Habilitar PrintLastLog")
+    print("="*100)
+    print_info("Configurar el banner SSH para mostrar a la hora de\n" \
+    "autenticarse.")
+    print()
+
+    paso="Paso 11"
+
+    # 11a. Verificar que /etc/issue.net existe
+    if not os.path.isfile("/etc/issue.net"):
+        print_aviso("El fichero /etc/issue.net no existe.")
+        print_aviso("Ejecuta primero el módulo 2, paso 2 para\n" \
+        "crear el banner con el texto de aviso legal.")
+        return
+
+    # 11b. Configurar la directiva Banner
+    if configurar_directiva_ssh("Banner", "/etc/issue.net", paso):
+        recargar_ssh(paso)
 
 
         

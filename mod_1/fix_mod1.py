@@ -350,7 +350,7 @@ def paso4_reactivar_usb():
     print()
 
     #Reactivar USB reduce la seguridad, así que pedimos confirmación
-    confirmacion= input("¿Estás seguro de que deseas reactivar USB? (s/n)").strip().lower()
+    confirmacion= input("¿Estás seguro de que deseas reactivar USB? (s/n): ").strip().lower()
 
     if confirmacion!="s":
         print_info("Operación cancelada. USB sigue deshabilitado.")
