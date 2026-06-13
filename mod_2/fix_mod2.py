@@ -34,7 +34,6 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from utils import (configurar_logging, 
-                   registrar_errores, 
                    comprobar_root,
                    ejecutar_comando, 
                    volver_al_menu, 

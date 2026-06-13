@@ -122,7 +122,7 @@ def paso1_proteger_grub():
 
     #Generamos el hash PBKDF2 de la contraseña
     print()
-    print("\n[INFO]: Generando hash PBKDF2 de la contraseña...")
+    print_info("Generando hash PBKDF2 de la contraseña...")
     try:
         proceso=subprocess.run(
             ["grub-mkpasswd-pbkdf2"], 
@@ -264,7 +264,7 @@ def paso3_deshabilitar_usb():
                 contenido=f.read()
             if "blacklist usb-storage" in contenido:
                 print_info(f"La regla ya existe en {USB_MODPROBE_FILE}.")
-                print("[CORRECTO] PASO 3: No se requieren cambios en la configuración.")
+                print_correcto("No se requieren cambios en la configuración.")
                 #A pesar de todo, verificamos si el módulo está cargado.
                 resultado=subprocess.run(["lsmod"], capture_output=True, text=True)
 
@@ -426,7 +426,7 @@ def main():
                 paso4_reactivar_usb()
                 volver_al_menu()
             case "q":
-                print("\n[INFO]: Saliendo del script.")
+                print_info("Saliendo del script.")
                 sys.exit(0)
             case _:
                 print_error("Opción no válida. Inténtelo de nuevo.")
