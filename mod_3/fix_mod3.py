@@ -122,8 +122,8 @@ def paso1_auditar_passwd():
     print("="*100)
     print("[PASO 1]: Auditar /etc/passwd")
     print("="*100)
-    print_info("Revisa las cuentas del sistema y cambia la shell de las cuentas de servicio.")
-    print_info("a /usr/sbin/nologin para impedir su uso interactivo.")
+    print_info("Revisa las cuentas del sistema y cambia la shell de las cuentas de servicio\n" \
+    "           a /usr/sbin/nologin para impedir su uso interactivo.")
     print()
 
     
@@ -189,8 +189,8 @@ def paso2_auditar_grupos():
     print("="*100)
     print_info("[PASO 2]: Auditar grupos y pertenencia")
     print("="*100)
-    print_info("Muestra los miembros de grupos sensibles y permite")
-    print_info("eliminar usuarios que no deberían pertenecer a ellos.")
+    print_info("Muestra los miembros de grupos sensibles y permite\n" \
+    "           eliminar usuarios que no deberían pertenecer a ellos.")
     print()
 
     # 2a. Listar miembros de grupos sensibles.
@@ -286,8 +286,9 @@ def paso4_proteger_shadow():
     print("="*100)
     print("[PASO 4]: Proteger Shadow")
     print("="*100)
-    print_info("Establece permisos 640 y propietario root:shadow en /etc/shadow, para que")
-    print_info("solo root y el grupo shadow puedan leer los hashes.")
+    print_info("Establece permisos 640 y propietario root:shadow en /etc/shadow,\n" \
+    "           para que solo root y el grupo shadow puedan leer los hashes.")
+    print_info("")
     print()
 
     if not os.path.isfile(SHADOW_FILE):
@@ -444,8 +445,8 @@ def paso7_cuentas_sin_contrasena():
     print("="*100)
     print("[PASO 7]: Deshabilitar cuentas sin contraseña.")
     print("="*100)
-    print_info("Busca cuentas con contraseña vacñia en /etc/shadow y las bloquea.")
-    print_info("También verifica que SSH no permita contraseñas vacías")
+    print_info("Busca cuentas con contraseña vacñia en /etc/shadow y las bloquea.\n" \
+    "           También verifica que SSH no permita contraseñas vacías")
     print()
 
     contenido=leer_fichero(SHADOW_FILE, paso="Paso 7")
@@ -518,8 +519,8 @@ def paso8_bloquear_uid0():
     print("="*100)
     print("[PASO 8]: Buscar y bloquear cuentas no-root con UID 0.")
     print("="*100)
-    print_info("Busca cuentas con UID 0 que no sean root.")
-    print_info("Solo root debe tener UID 0.")
+    print_info("Busca cuentas con UID 0 que no sean root.\n" \
+    "           Solo root debe tener UID 0.")
     print()
 
 
@@ -560,8 +561,8 @@ def paso9_bloqueo_inactivas():
     print("="*100)
     print("[PASO 9]: Bloqueo automático de cuentas inactivas.")
     print("="*100)
-    print_info("Bloquea automáticamente las cuentas cuyas contraseña haya expirado")
-    print_info("y no se cambie en 30 días.")
+    print_info("Bloquea automáticamente las cuentas cuyas contraseña haya \n" \
+    "           expirado y no se cambie en 30 días.")
     print()
 
     # 9a. Establecer INACTIVE para nuevas cuentas
@@ -602,8 +603,8 @@ def paso10_restringir_root():
     print("="*100)
     print("[PASO 10]: Restringir acceso root directo.")
     print("="*100)
-    print_info("Bloquea la contraseña de root y deshabilita su login por SSH.")
-    print_info("Toda administración se realizará exclusivamente a través de sudo.")
+    print_info("Bloquea la contraseña de root y deshabilita su login por SSH.\n" \
+    "           Toda administración se realizará exclusivamente a través de sudo.")
     print()
 
     # 10a. Verificar que hay usuarios en el grupo sudo

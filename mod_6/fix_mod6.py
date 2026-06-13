@@ -100,8 +100,7 @@ def paso1_auditar_suid_sgid():
     print("="*100)
     print("[PASO 1]: Auditar binarios SUID/SGID.")
     print("="*100)
-    print_info("Busca binarios con bit SUID/SGID en el sistema.")
-    print_info("Ofrece eliminar el bit de los que no son necesarios.")
+    print_info("Busca binarios con bit SUID/SGID en el sistema. Ofrece eliminar el bit de los que no son necesarios.")
     print()
 
     paso="Paso 1"
@@ -184,11 +183,9 @@ def paso2_auditoria_filesystem():
     print("="*100)
     print("[PASO 2]: Auditoría del filesystem.")
     print("="*100)
-    print_info("Audita el filesystem buscando directorios world-writable, sin sticky bit,")
-    print_info(" y ficheros sin propietario válido.")
-    print_info("Les añade el sticky bit para que solo los propietarios puedan realizar cambios.")
+    print_info("Audita el filesystem buscando directorios world-writable, sin sticky bit, y ficheros sin propietario válido.\n" \
+    "           Les añade el sticky bit para que solo los propietarios puedan realizar cambios.")
     print()
-
 
     paso="Paso 2"
 
@@ -299,8 +296,8 @@ def paso3_opciones_montaje():
     print("="*100)
     print("[PASO 3]: Configurar opciones de montaje.")
     print("="*100)
-    print_info("Configura opciones restrictivas en directorios para impedir ejecutar binarios o")
-    print_info("explotar bits SUID en estos directorios.")
+    print_info("Configura opciones restrictivas en directorios para impedir ejecutar binarios\n" \
+    "o explotar bits SUID en estos directorios.")
     print()
 
     paso="Paso 3"
@@ -401,8 +398,8 @@ def paso4_chattr_ficheros():
     print("="*100)
     print("[PASO 4]: Proteger ficheros críticos.")
     print("="*100)
-    print_info("Permite bloquear o desbloquear ficheros críticos del sistema.")
-    print_info("Impide modificaciones incluso por root.")
+    print_info("Permite bloquear o desbloquear ficheros críticos del sistema.\n" \
+    "           Impide modificaciones incluso por root.")
     print()
 
     paso="Paso 4"

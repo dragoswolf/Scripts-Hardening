@@ -191,8 +191,7 @@ def paso1_eliminar_nullok():
     print("="*100)
     print("[PASO 1]: Eliminar nullok (rechazar contraseñas vacías)")
     print("="*100)
-    print_info("Elimina la opción 'nullok'")
-    print_info("Esto impide que cualquier usuario pueda autenticarse con una contraseña vacía")
+    print_info("Elimina la opción 'nullok'. Esto impide que cualquier usuario pueda autenticarse con una contraseña vacía")
     print()
 
     paso="Paso 1"
@@ -330,8 +329,7 @@ def paso3_configurar_faillock():
     print("="*100)
     print("[PASO 3]: Configurar bloqueos tras intentos fallidos.")
     print("="*100)
-    print_info("Configura pam_faillock para bloquear cuentas tras 5 intentos, incluido root.")
-    print_info("El desbloqueo es automático tras 10 minutos.")
+    print_info("Configura pam_faillock para bloquear cuentas tras 5 intentos, incluido root. El desbloqueo es automático tras 10 minutos.")
     print()
 
     paso="Paso 3"    
@@ -452,8 +450,8 @@ def paso4_configurar_pwhistory():
     print("="*100)
     print("[PASO 4]: Configurar historial de contraseñas")
     print("="*100)
-    print_info("Configura pam_pwhistory. para impedir la reutilización de las 5 últimas contraseñas.")
-    print_info(" Asegura que pam_unix.so use use_authtok y yescrypt como algoritmo de hashing seguro.")
+    print_info("Configura pam_pwhistory. para impedir la reutilización de las 5 últimas contraseñas.\n" \
+    "           Asegura que pam_unix.so use use_authtok y yescrypt como algoritmo de hashing seguro.")
     print()
 
     paso="Paso 4"
@@ -550,9 +548,8 @@ def paso5_configurar_umask():
     print("="*100)
     print("[PASO 5]: Configurar umask en PAM (permisos por defecto)")
     print("="*100)
-    print_info("Configura umask 027 en PAM (common-session) y login.defs.")
-    print_info("Con esto se logra que los ficheros y directorios creados por")
-    print_info("los usuarios no sean legibles por 'otros'.")
+    print_info("Configura umask 027 en PAM (common-session) y login.defs.\n" \
+    "           Con esto se logra que los ficheros y directorios creados por los usuarios no sean legibles por 'otros'.")
     print()
 
     paso="Paso 5"
@@ -635,8 +632,7 @@ def paso6_configurar_limits():
     print("="*100)
     print("[PASO 6]: Configurar límites de recursos")
     print("="*100)
-    print_info("Configura límites de recursos en /etc/security/limits.conf.")
-    print_info("Con esto se pretende prevenir el abuso de recursos y fork bombs.")
+    print_info("Configura límites de recursos en /etc/security/limits.conf. Con esto se pretende prevenir el abuso de recursos y fork bombs.")
     print()
 
     paso="Paso 6"

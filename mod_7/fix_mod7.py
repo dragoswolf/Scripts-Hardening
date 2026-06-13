@@ -186,8 +186,8 @@ def paso2_source_routing():
     print("[PASO 2]: Deshabilitar enrutamiento de origen IP.")
     print("="*100)
     print_info("Deshabilita el source routing IP, que permite al emisor\n" \
-    "especificar la ruta del paquete saltándose las tablas de enrutamiento.\n" \
-    "Previene ataques MITM")
+    "           especificar la ruta del paquete saltándose las tablas de enrutamiento.\n" \
+    "           Previene ataques MITM")
     print()
 
     paso="Paso 2"
@@ -212,8 +212,8 @@ def paso3_icmp_redirects():
     print("[PASO 3]: Deshabilitar redirecciones ICMP.")
     print("="*100)
     print_info("Deshabilita la acceptación y el envío de redirecciones ICMP.\n" \
-    "Previene así ataques donde un atacante envía mensajes ICMP Redirect falsos\n" \
-    "para redirigir tráfico.")
+    "           Previene así ataques donde un atacante envía mensajes ICMP Redirect falsos\n" \
+    "           para redirigir tráfico.")
     print()
 
     paso="Paso 3"
@@ -244,7 +244,7 @@ def paso4_icmp_bogus():
     print("[PASO 4]: Protección contra mensajes ICMP erróneos.")
     print("="*100)
     print_info("Habilita la protección contra mensajes ICMP erróneos, ignorando\n" \
-    "las respuestas ICMP inválidas de routers mal configurados.")
+    "           las respuestas ICMP inválidas de routers mal configurados.")
     print()
 
     paso="Paso 4"
@@ -262,7 +262,7 @@ def paso5_exec_shield():
     print("[PASO 5]: Exec-Shield")
     print("="*100)
     print_info("Configura ASLR al máximo nivel (aleatoriza memoria) y activa kptr_restrict\n" \
-    "para ocultar direcciones del kernel a usurios no privilegiados.")
+    "           para ocultar direcciones del kernel a usurios no privilegiados.")
     print()
 
     paso="Paso 5"
@@ -285,7 +285,7 @@ def paso6_log_martians():
     print("[PASO 6]: Registro de paquetes marcianos")
     print("="*100)
     print_info("Habilita el registro de paquetes marcianos (paquetes con direcciones IP\n" \
-    "imposibles o inesperadas). Permite detectar intentos de spoofing o errores de configuración de red.")
+    "           imposibles o inesperadas). Permite detectar intentos de spoofing o errores de configuración de red.")
     print()
 
     paso="Paso 6"
@@ -304,7 +304,7 @@ def paso7_icmp_echo_broadcast():
     print("[PASO 7]: Ignorar echo broadcasts ICMP")
     print("="*100)
     print_info("Configura el kernel para ignorar peticiones ICMP echo dirigidas a direcciones\n" \
-    "de broadcast. Previene que el servidor participe en algunos tipos de ataques (ej: Smurf)")
+    "           de broadcast. Previene que el servidor participe en algunos tipos de ataques (ej: Smurf)")
     print()
 
     paso="Paso 7"
@@ -322,7 +322,7 @@ def paso8_desactivar_ipv6():
     print("[PASO 8]: Desactivar IPv6 (si no se usa)")
     print("="*100)
     print_info("Desactiva IPv6 completamente si no se utiliza. Verifica previamente que\n" \
-    "no hayan servicios escuchando en IPv6")
+    "           no hayan servicios escuchando en IPv6")
     print()
 
     paso="Paso 8"

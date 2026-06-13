@@ -150,8 +150,8 @@ def paso2_inicializar_db():
     print("="*100)
     print("[PASO 2]: Inicializar/regenerar Base de Datos.")
     print("="*100)
-    print("Inicializa la base de datos de AIDE. Si ya existe una base de datos,\n" \
-    "pregunta al usuario si desea regenerarla.")
+    print_info("Inicializa la base de datos de AIDE. Si ya existe una base de datos,\n" \
+    "           pregunta al usuario si desea regenerarla.")
     print()
 
     paso="Paso 2"

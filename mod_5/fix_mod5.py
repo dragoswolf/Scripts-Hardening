@@ -181,8 +181,7 @@ def paso1_cambiar_puertos():
     print("="*100)
     print("[PASO 1]: Cambiar el puerto SSH.")
     print("="*100)
-    print_info("Cambia el puerto de escucha de SSH a un puerto no estándar.")
-    print_info("Se pide el nuevo puerto y valida que esté en rango.")
+    print_info("Cambia el puerto de escucha de SSH a un puerto no estándar. Se pide el nuevo puerto y valida que esté en rango.")
     print()
 
     paso="Paso 1"
@@ -256,7 +255,7 @@ def paso2_allow_users():
     print("[PASO 2]: Restringir acceso por usuarios.")
     print("="*100)
     print_info("Configura AllowUsers para restringir qué usuarios pueden conectarse por SSH.")
-    print
+    print()
 
     paso="Paso 2"
 
@@ -330,7 +329,8 @@ def paso3_deshabilitar_gssapi():
     print("="*100)
     print("[PASO 3]: Deshabilitar autenticación GSSAPI.")
     print("="*100)
-    print("Deshabilita la autenticación GSSAPI (Kerberos).")
+    print_info("Deshabilita la autenticación GSSAPI (Kerberos).")
+    print()
 
     paso="Paso 3"
 
@@ -431,8 +431,7 @@ def paso8_strict_modes():
     print("="*100)
     print("[PASO 8]: Habilitar StrictModes")
     print("="*100)
-    print_info("Habilita StrictModes para que SSH verifique los permisos antes")
-    print_info("de permitir la autenticación por clava.")
+    print_info("Habilita StrictModes para que SSH verifique los permisos antes de permitir la autenticación por clave.")
     print()
 
     paso="Paso 8"

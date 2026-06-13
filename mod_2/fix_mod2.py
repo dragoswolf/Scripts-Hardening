@@ -4,10 +4,10 @@
 #============================================================================================================
 # Este script implementa las siguientes medidas de seguridad en Ubuntu Server:
 #
-#   Paso 1: Personalizar MOTD para eliminar información sensible
-#   Paso 2: Configurar banners de inicio de sesión
-#   Paso 3: Eliminar paquetes innecesarios u huérfanos
-#   Paso 4: Actualizar kernel y sistema
+#   Paso 1: Actualizar kernel y sistema
+#   Paso 2: Personalizar MOTD para eliminar información sensible
+#   Paso 3: Configurar banners de inicio de sesión
+#   Paso 4: Eliminar paquetes innecesarios u huérfanos
 #   Paso 5: Configurar verificación de integridad de paquetes (GPG)
 #   Paso 6: Configurar actualizaciones automáticas de seguridad
 #   Paso 7: Detener y deshabilitar servicios innecesarios
@@ -132,7 +132,58 @@ DIRECTORIOS_CRON=[
 SHADOW_FILE="/etc/shadow"
 PASSWD_FILE="/etc/passwd"
 
-def paso1_personalizar_motd():
+
+def paso1_actualizar_sistema():
+    """
+    Actualiza la lista de paquetes y aplica todas las actualizaciones disponibles,
+    incluyendo las del kernel.
+
+    Proceso:
+        1. Actualizar indices de repositorios
+        2. Aplicar actualizaciones
+        3. Aplicar actualizaciones con cambios de dependencias
+        4. Comprobar si se requiere reinicio
+    """
+
+    print()
+    print("="*100)
+    print("[PASO 4]: Actualizar kernel y sistema.")
+    print("="*100)
+    print()
+    print_info("Esta medida aplica todos los parches de seguridad disponibles\n" \
+    "           para cerrar vulnerabilidad conocidas (CVEs).")
+    print()
+
+    # 4a. Actualizar índices
+    print_info("Actualizando lista de paquetes...")
+    ejecutar_comando(["apt", "update"], "actualizar lista de paquetes", "Paso 4", mostrarSalida=True)
+    print_correcto("Lista actualizada.")
+
+    # 4b. Aplicar actualizaciones
+    print_info("Aplicando actualizaciones (apt upgrade)...")
+    ejecutar_comando(["apt", "upgrade", "-y"], "aplicar actualizaciones", "Paso 4", mostrarSalida=True)
+    print_correcto("Actualizaciones aplicadas.")
+
+    # 4c. Actualizaciones con cambios de dependencias
+    print_info("Aplicando actualizaciones con dependencias (apt dist-upgrade)...")
+    ejecutar_comando(["apt", "dist-upgrade", "-y"], "aplicar dist-upgrade", "Paso 4", mostrarSalida=True)
+    print_correcto("dist-upgrade completado.")
+
+    # 4d. Comprobar reinicio pendiente
+    if os.path.isfile("/var/run/reboot-required"):
+        print()
+        print("="*100)
+        print_aviso("Se rquiere REINICIO para aplicar actualizaciones del kernel. ")
+        print_aviso("Planifica un reinicio en la próxima ventana de mantenimiento.")
+        print("="*100)
+    else:
+        print_info("No se requiere reinicio.")
+    
+    print()
+    print_info("Sistema actualizado.")
+
+
+def paso2_personalizar_motd():
     """
     Personaliza el MOTD para eliminar información sensible del sistema.
     Deshabilita los scripts dinámicos por defecto y crea un banner legal.
@@ -146,10 +197,8 @@ def paso1_personalizar_motd():
     print("="*100)
     print("[PASO 1]: Personalizar MOTD (Message of the Day)")
     print("="*100)
-    print()
-    print_info("Esta medida elimina la información del sistema que Ubuntu muestra,")
-    print_info("tras el login (versión SO, kernel, paquetes pendientes) y la")
-    print_info("sustituye por un aviso legal.")
+    print_info("Esta medida elimina la información del sistema que Ubuntu muestra tras\n" \
+    "           el login (versión SO, kernel, paquetes pendientes) y la sustituye por un aviso legal.")
     print()
 
     # 1a. Deshabilitar scripts dinámicos por defecto
@@ -182,7 +231,7 @@ def paso1_personalizar_motd():
     print_info("Se mostrará un aviso legal tras el login.")
 
 
-def paso2_configurar_banners():
+def paso3_configurar_banners():
     """
     Configura los banners de /etc/issue y /etc/issue.net para eliminar información sensible y añadir
     un aviso legal.
@@ -195,9 +244,8 @@ def paso2_configurar_banners():
     print("="*100)
     print("[PASO 2]: Configurar banners de inicio de sesión")
     print("="*100)
-    print()
-    print_info("Esta medida elimina la información del sistema que Ubuntu muestra,")
-    print_info("ANTES del login (consola local).")
+    print_info("Esta medida elimina la información del sistema que\n" \
+    "           Ubuntu muestra ANTES del login (consola local).")
     print()
 
     # 2a. Sobrescribir /etc/issue
@@ -218,7 +266,7 @@ def paso2_configurar_banners():
 
 
 
-def paso3_eliminar_paquetes():
+def paso4_eliminar_paquetes():
     """
     Elimina paquetes huérfanos y paquetes comúnmente innecesarios en un servidor.
 
@@ -231,9 +279,10 @@ def paso3_eliminar_paquetes():
     print("="*100)
     print("[PASO 3]: Eliminar paquetes innecesarios u huérfanos")
     print("="*100)
+    print_info("Esta medida reduce la superficie de ataque eliminando software\n" \
+    "           que no es necesario para la función del servidor.")
     print()
-    print_info("Esta medida reduce la superficie de ataque eliminando software")
-    print_info("que no es necesario para la función del servidor.")
+
 
     # 3a. Eliminar paquetes huérfanos
     print_info("Eliminando paquetes huérfanos...")
@@ -273,57 +322,6 @@ def paso3_eliminar_paquetes():
     print()
 
 
-def paso4_actualizar_sistema():
-    """
-    Actualiza la lista de paquetes y aplica todas las actualizaciones disponibles,
-    incluyendo las del kernel.
-
-    Proceso:
-        1. Actualizar indices de repositorios
-        2. Aplicar actualizaciones
-        3. Aplicar actualizaciones con cambios de dependencias
-        4. Comprobar si se requiere reinicio
-    """
-
-    print()
-    print("="*100)
-    print("[PASO 4]: Actualizar kernel y sistema.")
-    print("="*100)
-    print()
-    print_info("Esta medida aplica todos los parches de seguridad disponibles")
-    print_info("para cerrar vulnerabilidad conocidas (CVEs).")
-    print()
-
-    # 4a. Actualizar índices
-    print_info("Actualizando lista de paquetes...")
-    ejecutar_comando(["apt", "update"], "actualizar lista de paquetes", "Paso 4", mostrarSalida=True)
-    print_correcto("Lista actualizada.")
-
-    # 4b. Aplicar actualizaciones
-    print_info("Aplicando actualizaciones (apt upgrade)...")
-    ejecutar_comando(["apt", "upgrade", "-y"], "aplicar actualizaciones", "Paso 4", mostrarSalida=True)
-    print_correcto("Actualizaciones aplicadas.")
-
-    # 4c. Actualizaciones con cambios de dependencias
-    print_info("Aplicando actualizaciones con dependencias (apt dist-upgrade)...")
-    ejecutar_comando(["apt", "dist-upgrade", "-y"], "aplicar dist-upgrade", "Paso 4", mostrarSalida=True)
-    print_correcto("dist-upgrade completado.")
-
-    # 4d. Comprobar reinicio pendiente
-    if os.path.isfile("/var/run/reboot-required"):
-        print()
-        print("="*100)
-        print_aviso("Se rquiere REINICIO para aplicar actualizaciones del kernel. ")
-        print_aviso("Planifica un reinicio en la próxima ventana de mantenimiento.")
-        print("="*100)
-    else:
-        print_info("No se requiere reinicio.")
-    
-    print()
-    print_info("PASO 4 COMPLETADO.")
-    print_info("Sistema actualizado. Se requiere volver a ejecutar el paso 1.")
-
-
 def paso5_configurar_gpg():
     """
     Configura APT para rechazar paquetes sin firma GPG válida e instala debsums para verificar
@@ -338,8 +336,8 @@ def paso5_configurar_gpg():
     print("[PASO 5]: Verificación de integridad de paquetes (GPG)")
     print("="*100)
     print()
-    print_info("Esta medida asegura que APT rechace paquetes modificados o")
-    print_info("provenientes de repositorios no autenticados.")
+    print_info("Esta medida asegura que APT rechace paquetes modificados o\n" \
+    "           provenientes de repositorios no autenticados.")
     print()
 
     # 5a. Crear fichero de refuerzo GPG
@@ -363,7 +361,6 @@ def paso5_configurar_gpg():
         print_correcto("debsums instalado.")
 
     print()
-    print_info("PASO 5 COMPLETADO.")
     print_info("Integridad de paquetes configurada.")
     print_info("'debsums' disponible para verificar integridad con: sudo debsums -s")
     print()
@@ -383,8 +380,8 @@ def paso6_configurar_unattended():
     print("[PASO 6]: Verificación de integridad de paquetes (GPG)")
     print("="*100)
     print()
-    print("Esta medida configura el sistema para aplicar automáticamente")
-    print("los parches de seguridad, reduciendo la ventana de exposición.")
+    print_info("Esta medida configura el sistema para aplicar automáticamente\n" \
+    "           los parches de seguridad, reduciendo la ventana de exposición.")
     print()
 
     # 6a. Instalar unattended-upgrades
@@ -460,10 +457,6 @@ def paso6_configurar_unattended():
 
     print_correcto("Timers de APT habilitados y activos.")
 
-    print()
-    print_info("PASO 6 COMPLETADO.")
-    print_info("Actualizaciones automáticas configuradas.")
-    print()
 
 
 def paso7_deshabilitar_servicios():
@@ -481,8 +474,8 @@ def paso7_deshabilitar_servicios():
     print("[PASO 7]: Detener y deshabilitar servicios innecesarios.")
     print("="*100)
     print()
-    print_info("Esta medida reduce la superficie de ataque deshabilitando")
-    print_info("servicios que no son necesarios para la función del servidor.")
+    print_info("Esta medida reduce la superficie de ataque deshabilitando\n" \
+    "           servicios que no son necesarios para la función del servidor.")
     print()
 
     # 7a. Comprobar si el servicio existe
@@ -515,9 +508,6 @@ def paso7_deshabilitar_servicios():
 
         print_correcto(f"{servicio} detenido, deshabilitado y enmascarado.")
     
-    print()
-    print_info("PASO 7 completado.")
-    print_info("Servicios innecesarios deshabilitados.")
 
 
 def paso8_documentar_servicios():
@@ -535,8 +525,9 @@ def paso8_documentar_servicios():
     print("[PASO 8]: Documentar servicios autorizados (un servicio por sistema)")
     print("="*100)
     print()
-    print_info("Esta medida reduce la superficie de ataque deshabilitando")
-    print_info("servicios que no son necesarios para la función del servidor.")
+    print_info("Crea un fichero de documentación con los servicios de red actualmente activos\n" \
+    "           para futuras auditorias. Implementa el principio de un servicio por sistema documentando\n"
+    "           la función del servidor.")
     print()
 
     # 8a. Obtener serviciosd e red activos.
@@ -576,7 +567,6 @@ def paso8_documentar_servicios():
         print_correcto(f"{SERVICIOS_AUTORIZADOS_FILE} creado.")
 
     print()
-    print_info("PASO 8 COMPLETADO.")
     print_info("Servicios autorizados documentados.")
     print_info(f"Puede encontrar el documento en {SERVICIOS_AUTORIZADOS_FILE}")
 
@@ -597,9 +587,8 @@ def paso9_habilitar_ntp():
     print("[PASO 9]: Habilitar NTP/Chronyd")
     print("="*100)
     print()
-    print_info("Esta medida asegura que el reloj del sistema está sincronizado")
-    print_info("para que los logs tengan timestamps correctos y los protocolos")
-    print_info("criptográficos funcionen correctamente.")
+    print_info("Esta medida asegura que el reloj del sistema está sincronizado para que los logs\n" \
+    "           tengan timestamps correctos y los protocolos criptográficos funcionen correctamente.")
     print()
 
     # 9a. Instalar chrony
@@ -655,8 +644,7 @@ def paso9_habilitar_ntp():
                 print(f"    {linea.strip()}")
 
     print()
-    print_info("PASO 9 COMPLETADO.")
-    print("NTP/Chronyd habilitad.\nEl reloj del sistema se sincroniza automáticamente.")
+    print_info("NTP/Chronyd habilitad.\nEl reloj del sistema se sincroniza automáticamente.")
 
 
 
@@ -677,8 +665,8 @@ def paso10_restringir_cron():
     print("[PASO 10]: Restringir cronjobs a usuarios autorizados")
     print("="*100)
     print()
-    print_info("Esta medida impide que usuarios no autorizados programen tareas")
-    print_info("con cron o at, evitando la persistencia de un atacante.")
+    print_info("Esta medida impide que usuarios no autorizados programen tareasn\n" \
+    "           con cron o at, evitando la persistencia de un atacante.")
     print()
 
 
@@ -714,7 +702,6 @@ def paso10_restringir_cron():
             print_correcto(f"{directorio} tiene permisos 700")
     
     print()
-    print_info("PASO 10 COMPLETADO.")
     print_info("Cronjobs restringidos.")
     print_info("Solo root puede crear cronjobs y tareas 'at'.")
 
@@ -734,9 +721,8 @@ def paso11_asegurar_contrasenas():
     print("[PASO 11]: Cambiar contraseñas por defecto y bloquear cuentas")
     print("="*100)
     print()
-    print("Esta medida asegura que no existen cuentas con contraseñas")
-    print("vacías o por defecto, y que las cuentas de servicio no pueden")
-    print("iniciar sesión interactivamente.")
+    print_info("Esta medida asegura que no existen cuentas con contraseñas vacías o por defecto,\n" \
+    "           y que las cuentas de servicio no pueden iniciar sesión interactivamente.")
     print()
 
     # 11a. Detectar y bloquear cuentas con contraseña vacía
@@ -796,12 +782,6 @@ def paso11_asegurar_contrasenas():
                         ejecutar_comando(["usermod", "-s", "/usr/bin/nologin", usuario], f"cambiar shell de {usuario}", "Paso 11")
                         print_correcto(f"El usuario {usuario} ya no puede iniciar sesión.")
         
-    print()
-    print_info("PASO 11 COMPLETADO.")
-    print_info("Contraseñas y cuentas aseguradas.")
-    print_info("No hay cuentas con contraseña vacía.")
-    print_info("Root bloqueado. Acceso solo mediante sudo.")
-    print_info("Cuentas de servicio sin shell interactiva.")
 
 
 def mostrar_menu():

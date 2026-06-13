@@ -99,7 +99,7 @@ def paso1_instalar_activa_ufw():
     print("[PASO 1]: Verificar/Instalar y activar UFW")
     print("="*100)
     print_info("Verifica si UFW está instalado, de lo contrario lo instala, configura\n" \
-    "la política por defecto, permite SSH y activa el firewall.")
+    "           la política por defecto, permite SSH y activa el firewall.")
     print()
 
     paso="Paso 1"
@@ -199,8 +199,8 @@ def paso3_abrir_puertos():
     print("[PASO 3]: Abrir puertos/servicios adicionales")
     print("="*100)
     print_info("Menú interactivo para abrir puertos/servicios adicionales en UFW.\n" \
-    "Permite especificar puerto o nombre de servicio, y opconalmente restringir por\n" \
-    "IP de origen")
+    "           Permite especificar puerto o nombre de servicio, y opconalmente restringir por\n" \
+    "           IP de origen")
     print()
 
     paso="Paso 3"
@@ -276,7 +276,7 @@ def paso4_eliminar_reglas():
     print("[PASO 4]: Eliminar reglas existentes")
     print("="*100)
     print_info("Muestra las reglas numeradas y permite eliminar reglas seleccionadas.\n" \
-    "Protege contra la eliminación accidental de la regla de SSH.")
+    "           Protege contra la eliminación accidental de la regla de SSH.")
     print()
 
     paso="Paso 4"
@@ -405,9 +405,9 @@ def mostar_menu():
     print()
     print(" Pasos disponibles:")
     print("     1. Verificar/Instalar UFW y permitir SSH.")
-    print("     2. Ver reglas activas")
-    print("     3. Abrir puertos/servicios adicionales.")
-    print("     4. Eliminar reglas existentes.")
+    print("     2. Ver reglas activas. [OPCIONAL]")
+    print("     3. Abrir puertos/servicios adicionales. [OPCIONAL]")
+    print("     4. Eliminar reglas existentes. [OPCIONAL]")
     print("     5. Activar logging.")
     print()
     print("     q. Salir")

@@ -68,7 +68,7 @@ def mostrar_menu():
     print("         1. Proteger el gestor de arranque GRUB con contraseña.")
     print("         2. Enmascarar Ctrl+Alt+Delete.")
     print("         3. Deshabilitar USB.")
-    print("         4. Rehabilitar USB.")
+    print("         4. Rehabilitar USB. [OPCIONAL]")
     print()
     print("         q. Salir.")
 #=========================================================================================================
@@ -93,8 +93,9 @@ def paso1_proteger_grub():
     print("[PASO 1]: Proteger el gestor de arranque GRUB con contraseña.")
     print("\n" + "="*70)
     print()
-    print("Esta medida impide que un atacante con acceso a la consola edite")
-    print("las entradas de GRUB para obtener una shell root sin contraseña.")
+    print_info("Esta medida impide que un atacante con acceso a la consola edite\n" \
+    "           las entradas de GRUB para obtener una shell root sin contraseña.")
+    print("")
     print()
 
     #Comprobamos si GRUB ya está protegido
@@ -182,9 +183,9 @@ password_pbkdf2 {nombreGrub} {hashLinea}
     ejecutar_comando(["update-grub"], "actualizar GRUB", "Paso 1")
 
     print()
-    print_correcto("PASO 1 COMPLETADO: GRUB protegido con contraseña.")
-    print(f"                              Usuario GRUB: {nombreGrub}")
-    print("                               Al editar entradas de GRUB (tecla 'e'), se pedirá autenticación.")
+    print_correcto("GRUB protegido con contraseña.")
+    print_info(f"Usuario GRUB: {nombreGrub}")
+    print_info("Al editar entradas de GRUB (tecla 'e'), se pedirá autenticación.")
 
 
 
@@ -205,7 +206,7 @@ def paso2_deshabilitar_ctrl_alt_del():
     print("="*100)
     print("[PASO 2]: Deshabilitar Ctrl+Alt+Delete")
     print("="*100)
-    print("Esta medida impide que se use ctrl+alt+del para reiniciar el servidor o interrumpir servicios.")
+    print_info("Esta medida impide que se use ctrl+alt+del para reiniciar el servidor o interrumpir servicios.")
     print()
 
     #Comprobamos el estado actual y verificamos si el target ya está enmascarado
@@ -227,9 +228,7 @@ def paso2_deshabilitar_ctrl_alt_del():
     print_info("Recargando configuración de systemd...")
     ejecutar_comando(["systemctl", "daemon-reload"], "recargar systemd", "Paso 2")
 
-    print()
-    print_correcto("PASO 2 COMPLETADO: Ctrl+alt+del deshabilitado.")
-    print()
+
 
 #=========================================================================================================
 # PASO 3: Deshabilitar almacenamiento USB
@@ -253,9 +252,8 @@ def paso3_deshabilitar_usb():
     print("[PASO 3]: Deshabilitar almacenamiento USB (usb-storage).")
     print("="*100)
     print()
-    print("Esta medida impide que se conecten dispositivos de almacenamiento")
-    print("USB al servidor, previniendo la exfiltración de datos y ataques")
-    print("BadUSB. Los teclados y ratones USB NO se ven afectados.")
+    print_info("Esta medida impide que se conecten dispositivos de almacenamiento USB al servidor,\n" \
+    "previniendo la exfiltración de datos y ataques BadUSB. Los teclados y ratones USB NO se ven afectados.")
     print()
 
     #Comprobar si ya existe la regla
@@ -318,9 +316,9 @@ install usb-storage /bin/false
 
 
     print()
-    print_correcto("PASO 3 COMPLETADO: Almacenamiento USB deshabilitado.")
-    print("            Los pendrives y discos USB ya no serán reconocidos.")
-    print("            Teclados y ratones USB siguen funcionando con normalidad.")
+    print_correcto("Almacenamiento USB deshabilitado.")
+    print_info("Los pendrives y discos USB ya no serán reconocidos.")
+    print_info("Teclados y ratones USB siguen funcionando con normalidad.")
 
 
 #=========================================================================================================
@@ -342,8 +340,8 @@ def paso4_reactivar_usb():
     print("[PASO 4]: Reactivar almacenamiento USB (reversión)")
     print("="*100)
     print()
-    print("Esta opción revierte el bloqueo de USB y permite volver a")
-    print("conectar dispositivos de almacenamiento USB al servidor.")
+    print_info("Esta opción revierte el bloqueo de USB y permite volver a\n" \
+    "conectar dispositivos de almacenamiento USB al servidor.")
     print()
     print_aviso("Solo usa esta opción si necesitas conectar un")
     print("         dispositivo USB temporalmente.")
@@ -387,9 +385,8 @@ def paso4_reactivar_usb():
         registrar_errores("Paso 4", "El módulo 'usb_storage' no se cargó tras modprobe")
 
     print()
-    print_correcto("PASO 4 COMPLETADO: Almacenamiento USB reactivado.")
-    print("                               Los pendrives y discos USB serán")
-    print("                               reconocidos de nuevo.")
+    print_correcto("Almacenamiento USB reactivado.")
+    print_info("Los pendrives y discos USB serán reconocidos de nuevo.")
     print()
     print_aviso("RECUERDA DESHABILITAR USB CUANDO TERMINES.")
 

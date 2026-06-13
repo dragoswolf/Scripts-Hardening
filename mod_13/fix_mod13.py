@@ -407,7 +407,7 @@ def paso1_configurar():
     print("[PASO 1]: Configurar directorio de backups y cifrado")
     print("="*100)
     print_info("Crea el directorio de backups con permisos restrictivos y configura la contraseña\n" \
-    "de cifrado GPG.")
+    "           de cifrado GPG.")
     print()
 
     paso="Paso 1"
@@ -461,7 +461,7 @@ def paso2_configurar_extras():
     """
     print()
     print("="*100)
-    print("[PASO 2]: Configurar rutas extra para backup [OPCIONAL]")
+    print("[PASO 2]: Configurar rutas extra para backup")
     print("="*100)
     print_info("Paso opcional para añadir rutas adicionales a las copias de seguridad.")
     print()
@@ -653,9 +653,9 @@ def paso4_programar_cron():
     print("[PASO 4]: Programar backup automático")
     print("="*100)
     print_info("Crea el script de backup para cron y la entrada en cron.d.\n" \
-    "Se crea backup completo mensual (día 1 de cada mes) y\n" \
-    "un diferencial semanal (domingos). Todos los backups se realizan\n" \
-    "a las 02:00.")
+    "           Se crea backup completo mensual (día 1 de cada mes) y\n" \
+    "           un diferencial semanal (domingos). Todos los backups se realizan\n" \
+    "           a las 02:00.")
     print()
 
     paso="Paso 4"
@@ -705,7 +705,7 @@ def paso5_verificar_integridad():
     print("[PASO 5]: Verificar integridad de backups")
     print("="*100)
     print_info("Verifica la integridad de los backups existentes comprobando los hashes SHA-256 y\n" \
-    "realizando un test de descifrado.")
+    "           realizando un test de descifrado.")
     print()
 
     paso="Paso 5"
@@ -787,8 +787,8 @@ def paso6_restaurar():
     print("[PASO 6]: Restaurar backups")
     print("="*100)
     print_info("Restaura backups de forma interactiva.\n" \
-    "Sistema:           Obligatorio\n" \
-    "Usuarios y extra:  Opcionales")
+    "           Sistema:           Obligatorio\n" \
+    "           Usuarios y extra:  Opcionales")
     print()
 
     paso="Paso 6"
@@ -880,11 +880,11 @@ def mostrar_menu():
     print()
     print(" Pasos disponibles:")
     print("     1. Configurar directorio y cifrado.")
-    print("     2. Configurar rutas extra.")
+    print("     2. Configurar rutas extra. [OPCIONAL]")
     print("     3. Ejecutar backup manual (completo).")
     print("     4. Programar backup automático (cron).")
-    print("     5. Verificar integridad de backups.")
-    print("     6. Restaurar backups.")
+    print("     5. Verificar integridad de backups. [OPCIONAL]")
+    print("     6. Restaurar backups. [OPCIONAL]")
     print()
     print("     q. Salir")
     print()

@@ -140,7 +140,7 @@ def paso1_instalar_apparmor():
     print("[PASO 1]: Verificar que AppArmor está instalado y activo")
     print("="*100)
     print_info("Verifica que AppArmor y sus utilidades están instalados,\n" \
-    "está activo y el módulo del kernel está cargado.")
+    "           está activo y el módulo del kernel está cargado.")
     print()
 
     paso="Paso 1"
@@ -197,8 +197,8 @@ def paso2_perfiles_adicionales():
     print("="*100)
     print("[PASO 2]: Instalar perfiles adicionales de AppArmor")
     print("="*100)
-    print("Instala los paquetes de perfiles adicionales de AppArmor y los pone\n" \
-    "en modo enforce.")
+    print_info("Instala los paquetes de perfiles adicionales de AppArmor y los pone\n" \
+    "           en modo enforce.")
     print()
 
     paso="Paso 2"
@@ -267,7 +267,7 @@ def paso3_enforce_perfiles():
     print("[PASO 3]: Poner todos los perfiles en modo enforce")
     print("="*100)
     print_info("Cambia todos los perfiles que estén en modo complain (solo registro)\n" \
-    "a modo enforce (bloqueo activo de accesos no permitidos)")
+    "           a modo enforce (bloqueo activo de accesos no permitidos)")
     print()
 
     paso="Paso 2"

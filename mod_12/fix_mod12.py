@@ -151,7 +151,7 @@ def paso1_instalar_clamav():
     print("[PASO 1]: Instalar ClamAV y sus componentes.")
     print("="*100)
     print_info("Instala ClamAV y su demonio de actualización de firmas para detección\n" \
-    "de malware en el servidor.")
+    "           de malware en el servidor.")
     print()
 
     paso="Paso 1"
@@ -202,7 +202,7 @@ def paso2_configurar_clamav():
     print("[PASO 2]: Actualizar ClamAV y programar escaneos periódicos.")
     print("="*100)
     print_info("Actualiza la base de datos de ClamAV y crea un script cron para escaneo semanal\n" \
-    "automático del sistema.")
+    "           automático del sistema.")
     print()
 
     paso="Paso 2"
@@ -285,7 +285,7 @@ def paso3_instalar_rkhunter():
     print("[PASO 3]: Instalar RKHunter y sus componentes.")
     print("="*100)
     print_info("Instala RKHunter para detección de rootkits, puertas traseras y exploits locales\n" \
-    "mediante examen de binarios y permisos del sistema.")
+    "           mediante examen de binarios y permisos del sistema.")
     print()
 
     paso="Paso 3"
@@ -358,7 +358,7 @@ def paso4_configurar_rkhunter():
     print("[PASO 4]: Actualizar RKHunter y programar escaneo.")
     print("="*100)
     print_info("Actualiza la base de datos de RKHunter y crea un script en cron.weekly\n" \
-    "para escaneo automático semanal.")
+    "           para escaneo automático semanal.")
     print()
 
     paso="Paso 4"
