@@ -64,13 +64,13 @@ def mostrar_menu():
     print("     IMPLEMENTACIÓN: Módulo 1 - Seguridad en Acceso al Hardware -  Ubuntu Server 24.04.4 LTS")
     print("="*100)
     print()
-    print("     Opciones:")
-    print("         1. Proteger el gestor de arranque GRUB con contraseña.")
-    print("         2. Enmascarar Ctrl+Alt+Delete.")
-    print("         3. Deshabilitar USB.")
-    print("         4. Rehabilitar USB. [OPCIONAL]")
+    print(" Opciones:")
+    print("     1. Proteger el gestor de arranque GRUB con contraseña.")
+    print("     2. Enmascarar Ctrl+Alt+Delete.")
+    print("     3. Deshabilitar USB.")
+    print("     4. Rehabilitar USB. [OPCIONAL]")
     print()
-    print("         q. Salir.")
+    print("     q. Salir.")
 #=========================================================================================================
 
 
