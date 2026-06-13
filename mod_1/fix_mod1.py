@@ -30,7 +30,11 @@ from utils import(
     comprobar_root,
     ejecutar_comando,
     volver_al_menu,
-    pedir_input_doble
+    pedir_input_doble,
+    print_aviso,
+    print_correcto,
+    print_error,
+    print_info
 )
 
 #=========================================================================================================
@@ -99,14 +103,14 @@ def paso1_proteger_grub():
             contenidoActual=f.read()
         #Si ya existe la directiva "set superusers", GRUB ya está protegida
         if "set superusers" in contenidoActual:
-            print("[INFO]: GRUB ya tiene una configuración de superusuario")
+            print_info("GRUB ya tiene una configuración de superusuario")
             respuesta=input("Desea sobreescribirla? (s/n): ").strip().lower()
             if respuesta!="s":
-                print("[INFO]: PASO 1 OMITIDO. La configuración actual se mantiene.")
+                print_info("PASO 1 OMITIDO. La configuración actual se mantiene.")
                 return
     except FileNotFoundError:
         #Si el fichero no existe, lo crearemos más adelante
-        print("[AVISO]: No se encontró /etc/grub.d/40_custom. Se creará automáticamente.")
+        print_aviso("No se encontró /etc/grub.d/40_custom. Se creará automáticamente.")
     
     #Se pide el nombre de superusuario para GRUB. Este superuser se usará para autenticarse
     print()
@@ -167,7 +171,7 @@ password_pbkdf2 {nombreGrub} {hashLinea}
             f.write(contenidoGrub)
         #0o755 son permisos en octal (0o)
         os.chmod(GRUB_CUSTOM_FILE, 0o755)
-        print(f"[CORRECTO]: Configuración escrita en {GRUB_CUSTOM_FILE}")
+        print_correcto(f"Configuración escrita en {GRUB_CUSTOM_FILE}")
     except PermissionError:
         registrar_errores("Paso 1", f"Sin permisos para escribir en {GRUB_CUSTOM_FILE}")
         return
@@ -177,7 +181,7 @@ password_pbkdf2 {nombreGrub} {hashLinea}
     ejecutar_comando(["update-grub"], "actualizar GRUB", "Paso 1")
 
     print()
-    print("[CORRECTO]: PASO 1 COMPLETADO: GRUB protegido con contraseña.")
+    print_correcto("PASO 1 COMPLETADO: GRUB protegido con contraseña.")
     print(f"                              Usuario GRUB: {nombreGrub}")
     print("                               Al editar entradas de GRUB (tecla 'e'), se pedirá autenticación.")
 
@@ -209,21 +213,21 @@ def paso2_deshabilitar_ctrl_alt_del():
 
     if estadoActual=="masked":
         #Si ya está enmascarado, no hay nada que hacer
-        print("[INFO]: Ctrl+alt+delete ya está deshabilitado.")
+        print_info("Ctrl+alt+delete ya está deshabilitado.")
         return
     
     #Si no está enmascarado el target, lo enmascaramos
     #systemctl mask crea un enlace simbólico a /dev/null, haciendo que
     #el target sea imposible de activar (ni manual ni automáticamente)
-    print("[INFO]: Deshabilitando ctrl-alt-del.target...")
+    print_info("Deshabilitando ctrl-alt-del.target...")
     ejecutar_comando(["systemctl", "mask", "ctrl-alt-del.target"], "enmascarar ctrl-alt-del.target", "Paso 2")
 
     #Recargamos systemd mediante daemon-reload.
-    print("[INFO]: Recargando configuración de systemd...")
+    print_info("Recargando configuración de systemd...")
     ejecutar_comando(["systemctl", "daemon-reload"], "recargar systemd", "Paso 2")
 
     print()
-    print("[CORRECTO]: PASO 2 COMPLETADO: Ctrl+alt+del deshabilitado.")
+    print_correcto("PASO 2 COMPLETADO: Ctrl+alt+del deshabilitado.")
     print()
 
 #=========================================================================================================
@@ -259,17 +263,17 @@ def paso3_deshabilitar_usb():
             with open(USB_MODPROBE_FILE, "r") as f:
                 contenido=f.read()
             if "blacklist usb-storage" in contenido:
-                print(f"[INFO]: La regla ya existe en {USB_MODPROBE_FILE}.")
+                print_info(f"La regla ya existe en {USB_MODPROBE_FILE}.")
                 print("[CORRECTO] PASO 3: No se requieren cambios en la configuración.")
                 #A pesar de todo, verificamos si el módulo está cargado.
                 resultado=subprocess.run(["lsmod"], capture_output=True, text=True)
 
                 if "usb_storage" in resultado.stdout:
                     #Si está cargado, lo descargamos de memoria
-                    print("[INFO]: El módulo usb_storage aún está cargado en memoria.")
-                    print("[INFO]: Descargando módulo...")
+                    print_info("El módulo usb_storage aún está cargado en memoria.")
+                    print_info("Descargando módulo...")
                     ejecutar_comando(["modprobe", "-r", "usb-storage"], "descargar módulo usb_storage", "Paso 3")
-                    print("[CORRECTO]: Módulo descargado de memoria.")
+                    print_correcto("Módulo descargado de memoria.")
                 return
         except PermissionError:
             registrar_errores("Paso 3", f"Sin permisos para leer {USB_MODPROBE_FILE}")
@@ -277,7 +281,7 @@ def paso3_deshabilitar_usb():
     #Creamos el fichero de configuración de modprobe
     #La directiva "blacklist" evita la carga automática del módulo
     #La directiva "install ... /bin/false" impide también la carga manual
-    print(f"[INFO]: Creando regla de bloqueo en {USB_MODPROBE_FILE}...")
+    print_info(f"Creando regla de bloqueo en {USB_MODPROBE_FILE}...")
     contenidoModprobe="""
 blacklist usb-storage
 install usb-storage /bin/false
@@ -286,7 +290,7 @@ install usb-storage /bin/false
     try:
         with open(USB_MODPROBE_FILE, "w") as f:
             f.write(contenidoModprobe)
-        print(f"[CORRECTO]: Regla de bloqueo creada en {USB_MODPROBE_FILE}")
+        print_correcto(f"Regla de bloqueo creada en {USB_MODPROBE_FILE}")
     except PermissionError:
         registrar_errores("Paso 3", f"Sin permisos para escribir en {USB_MODPROBE_FILE}")
         return
@@ -295,9 +299,9 @@ install usb-storage /bin/false
     #"initramfs" es la imagen de arranque inicial. update-initramfs regenera esta
     #imagen incluyendo nuestra configuración de modprobe, de forma que el bloqueo de
     #USB se aplique desde el primer momento del arranque
-    print("[INFO]: Actualizando initframfs (puede tardar unos segundos)...")
+    print_info("Actualizando initframfs (puede tardar unos segundos)...")
     ejecutar_comando(["update-initramfs", "-u"],"actualizar initramfs", "Paso 3")
-    print("[CORRECTO]: initramfs actualizado.")
+    print_correcto("initramfs actualizado.")
 
     #Descargamos el módulo si está cargado
     #"lsmod" lista los módulos del kernel actualmente cargados.
@@ -305,15 +309,15 @@ install usb-storage /bin/false
     if "usb_storage" in resultado.stdout:
         #Si el módulo está cargado, lo descargamos inmediatamente
         #modprobe -r descarga (remove) un módulo del kernel
-        print("[INFO]: El módulo usb_storage está cargado. Descargando... Si diese error, los cambios se aplicarán tras un reinicio del sistema.")
+        print_info("El módulo usb_storage está cargado. Descargando... Si diese error, los cambios se aplicarán tras un reinicio del sistema.")
         ejecutar_comando(["modprobe","-r","usb_storage"],"descargar módulo usb_storage", "Paso 3")
-        print("[CORRECTO]: Módulo usb_storage descargado de memoria")
+        print_correcto("Módulo usb_storage descargado de memoria")
     else:
-        print("[INFO]: El módulo usb_storage no esta cargado.")
+        print_info("El módulo usb_storage no esta cargado.")
 
 
     print()
-    print("[CORRECTO]: PASO 3 COMPLETADO: Almacenamiento USB deshabilitado.")
+    print_correcto("PASO 3 COMPLETADO: Almacenamiento USB deshabilitado.")
     print("            Los pendrives y discos USB ya no serán reconocidos.")
     print("            Teclados y ratones USB siguen funcionando con normalidad.")
 
@@ -340,7 +344,7 @@ def paso4_reactivar_usb():
     print("Esta opción revierte el bloqueo de USB y permite volver a")
     print("conectar dispositivos de almacenamiento USB al servidor.")
     print()
-    print("[AVISO]: Solo usa esta opción si necesitas conectar un")
+    print_aviso("Solo usa esta opción si necesitas conectar un")
     print("         dispositivo USB temporalmente.")
     print("         Se recomienda volver a deshabilitar USB después.")
     print()
@@ -349,27 +353,27 @@ def paso4_reactivar_usb():
     confirmacion= input("¿Estás seguro de que deseas reactivar USB? (s/n)").strip().lower()
 
     if confirmacion!="s":
-        print("[INFO]: Operación cancelada. USB sigue deshabilitado.")
+        print_info("Operación cancelada. USB sigue deshabilitado.")
         return
     
     #Eliminar el fichero de bloqueo de modprobe
     if os.path.isfile(USB_MODPROBE_FILE):
         try:
             os.remove(USB_MODPROBE_FILE)
-            print(f"[CORRECTO]: Fichero de bloqueo eliminado: {USB_MODPROBE_FILE}")
+            print_correcto(f"Fichero de bloqueo eliminado: {USB_MODPROBE_FILE}")
         except PermissionError:
             registrar_errores("Paso 4", f"Sin permisos para eliminar {USB_MODPROBE_FILE}")
             return
     else:
-        print(f"[INFO]: {USB_MODPROBE_FILE} no existe (USB puede que ya esté activado)")
+        print_info(f"{USB_MODPROBE_FILE} no existe (USB puede que ya esté activado)")
 
     #Actualizamos initramfs, regenerando la imagen de arranque sin la regla de bloqueo de USB
-    print("[INFO]: Actualizando initramfs...")
+    print_info("Actualizando initramfs...")
     ejecutar_comando(["update-initramfs", "-u"], "actualizar initramfs", "Paso 4")
-    print("[CORRECTO]: initramfs actualizado.")
+    print_correcto("initramfs actualizado.")
     
     #Cargamos el módulo usb_storage. "modprobe" carga un módulo del kernel en memoria inmediatamente
-    print("[INFO]: Cargando módulo usb_storage en memoria...")
+    print_info("Cargando módulo usb_storage en memoria...")
     ejecutar_comando(["modprobe","usb_storage"], "cargar módulo usb_storage", "Paso 4")
 
     #Verificar que el módulo USB está en memoria. Si diese error es posible
@@ -377,16 +381,16 @@ def paso4_reactivar_usb():
     resultado=subprocess.run(["lsmod"], capture_output=True, text=True)
 
     if "usb_storage" in resultado.stdout:
-        print("[CORRECTO]: Módulo 'usb_storage' cargado correctamente.")
+        print_correcto("Módulo 'usb_storage' cargado correctamente.")
     else:
         registrar_errores("Paso 4", "El módulo 'usb_storage' no se cargó tras modprobe")
 
     print()
-    print("[CORRECTO]: PASO 4 COMPLETADO: Almacenamiento USB reactivado.")
+    print_correcto("PASO 4 COMPLETADO: Almacenamiento USB reactivado.")
     print("                               Los pendrives y discos USB serán")
     print("                               reconocidos de nuevo.")
     print()
-    print("[AVISO]: RECUERDA DESHABILITAR USB CUANDO TERMINES.")
+    print_aviso("RECUERDA DESHABILITAR USB CUANDO TERMINES.")
 
 
 #=========================================================================================================
@@ -425,7 +429,7 @@ def main():
                 print("\n[INFO]: Saliendo del script.")
                 sys.exit(0)
             case _:
-                print("[ERROR]: Opción no válida. Inténtelo de nuevo.")
+                print_error("Opción no válida. Inténtelo de nuevo.")
 
 
 #=========================================================================================================
