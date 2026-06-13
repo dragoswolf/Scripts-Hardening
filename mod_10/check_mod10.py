@@ -1,9 +1,21 @@
 #!/usr/bin/env python3
-
 #=========================================================================================================
 # check_mod10.py - Script de auditoría para el módulo 10 - Configuración y Supervisión de Logs
 #=========================================================================================================
-
+# Este script implementa las siguientes medidas de seguridad:
+#
+#   Paso 1: Verificar que rsyslog está instalado y activo
+#   Paso 2: Verificar persistencia de journald
+#   Paso 3: Verificar permisos de ficheros de log
+#   Paso 4: Verificar configuración de logrotate
+#
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Los errores se registran en /var/log/hardening/modulo10_check.log
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#=========================================================================================================
 
 import os
 import sys
@@ -14,14 +26,15 @@ from utils import(configurar_logging,
                   resultado_ok,
                   resultado_warn,
                   mostrar_resumen,
-                  volver_al_menu,
                   ejecutar_comando_check,
                   leer_fichero,
                   contadores,
                   comprobar_root,
                   verificar_permisos)
 
-
+#=========================================================================================================
+# CONSTANTES
+#=========================================================================================================
 LOG_FILE="/var/log/hardening/modulo10_check.log"
 
 JOURNALD_CONF="/etc/systemd/journald.conf"
@@ -36,13 +49,12 @@ FICHEROS_LOG={
     "/var/log/dpkg.log":{"permisos":"640", "propietario":"root", "grupo":"adm"},
     "/var/log/ufw.log":{"permisos":"640", "propietario":"syslog", "grupo":"adm"},
 }
-
+#=========================================================================================================
 
 def verificar_paso1():
     """
     Verifica que rsyslog está instalado, activo y habilitado en el arranque.
     """
-
     print()
     print("="*100)
     print("[PASO 1]: Verificar rsyslog instalado y activo.")

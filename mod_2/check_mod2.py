@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 #============================================================================================================
 # check_mod2.py - Script de verificación: Hardening General del SO
 #============================================================================================================
@@ -18,8 +17,9 @@
 #
 # Este script no modifica nada en el sistema. Solo lee y comprueba
 #
-# IMPORTANTE: Debe ejecutarse como root (sudo) para poder leer todos los ficheros de configuración
-#             necesarios.
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Los errores se registran en /var/log/hardening/modulo2_check.log
 #
 # Autor: Dragos George Stan
 # TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
@@ -50,7 +50,7 @@ from utils import(
 #============================================================================================================
 
 # Fichero de log para este módulo
-LOG_FILE="/var/log/hardening/check_mod2.log"
+LOG_FILE="/var/log/hardening/modulo2_check.log"
 
 # Directorio de scripts dinámicos del MOTD
 MOTD_DIR="/etc/update-motd.d"

@@ -1,4 +1,21 @@
 #!/usr/bin/env python3
+#=========================================================================================================
+# check_mod8.py - Script de auditoría para el módulo 8 - AppArmor (Mandatory Access Control)
+#=========================================================================================================
+# Este script implementa las siguientes medidas de seguridad:
+#
+#   Paso 1: Verificar que AppArmor está instalado y activo
+#   Paso 2: Auditar todos los perfiles en modo enforce
+#   Paso 3: Auditar perfiles adicionales de AppArmor
+#
+#
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Los errores se registran en /var/log/hardening/modulo8_check.log
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#=========================================================================================================
 
 import os
 import sys
@@ -8,10 +25,17 @@ from utils import (configurar_logging, resultado_fail, resultado_ok, mostrar_res
                    contadores, ejecutar_comando_check, comprobar_root)
 
 
+
+#=========================================================================================================
+# CONSTANTES
+#=========================================================================================================
+
 LOG_FILE="/var/log/hardening/modulo8_check.log"
 
 PAQUETES_BASE=["apparmor", "apparmor-utils"]
 PAQUETES_PERFILES=["apparmor-profiles", "apparmor-profiles-extra"]
+#=========================================================================================================
+
 
 def verificar_paso1():
     print()

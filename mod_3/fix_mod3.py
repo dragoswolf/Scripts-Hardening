@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 #============================================================================================================
 # fix_mod3.py -  Script de hardening: Usuarios y Grupos
 #============================================================================================================
@@ -19,6 +18,7 @@
 #
 # IMPORTANTE: Este script debe ejecutarse como root (sudo)
 #
+# Los errores se registran en /var/log/hardening/modulo2_fix.log
 # Autor: Dragos George Stan
 # TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
 #============================================================================================================
@@ -111,7 +111,7 @@ FICHEROS_INIT=[
     ".tcshrc", 
     ".zshrc"
 ]
-
+#============================================================================================================
 
 def paso1_auditar_passwd():
     """

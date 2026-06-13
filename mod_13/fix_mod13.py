@@ -1,8 +1,22 @@
 #!/usr/bin/env python3
-
 #=========================================================================================================
 # fix_mod13.py - Script de fortificación para el módulo 13 - Copias de seguridad
 #=========================================================================================================
+# Este script implementa las siguientes medidas de seguridad:
+#
+#   Paso 1: Verificar que rsyslog está instalado y activo
+#   Paso 2: Configurar persistencia de journald
+#   Paso 3: Asegurar permisos de ficheros de log
+#   Paso 4: Configurar logrotate
+#
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Los errores se registran en /var/log/hardening/modulo13_fix.log
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#=========================================================================================================
+
 
 import os
 import sys
@@ -392,6 +406,8 @@ def paso1_configurar():
     print("="*100)
     print("[PASO 1]: Configurar directorio de backups y cifrado")
     print("="*100)
+    print_info("Crea el directorio de backups con permisos restrictivos y configura la contraseña\n" \
+    "de cifrado GPG.")
     print()
 
     paso="Paso 1"
@@ -445,8 +461,9 @@ def paso2_configurar_extras():
     """
     print()
     print("="*100)
-    print("[PASO 2]: Configurar rutas extra para backup")
+    print("[PASO 2]: Configurar rutas extra para backup [OPCIONAL]")
     print("="*100)
+    print_info("Paso opcional para añadir rutas adicionales a las copias de seguridad.")
     print()
 
     paso="Paso 2"
@@ -541,6 +558,7 @@ def paso3_backup_manual():
     print("="*100)
     print("[PASO 3]: Ejecutar backup manual (completo)")
     print("="*100)
+    print_info("Ejecuta un backup completo de los tres conjuntos: sistema, usuarios y extra.")
     print()
 
     paso="Paso 3"
@@ -634,6 +652,10 @@ def paso4_programar_cron():
     print("="*100)
     print("[PASO 4]: Programar backup automático")
     print("="*100)
+    print_info("Crea el script de backup para cron y la entrada en cron.d.\n" \
+    "Se crea backup completo mensual (día 1 de cada mes) y\n" \
+    "un diferencial semanal (domingos). Todos los backups se realizan\n" \
+    "a las 02:00.")
     print()
 
     paso="Paso 4"
@@ -675,12 +697,15 @@ def paso4_programar_cron():
 
 def paso5_verificar_integridad():
     """
-    Verifica la integridad de los backups existentes comprobando los hashes SHA-256 y realizando un test de descifrado.
+    Verifica la integridad de los backups existentes comprobando los hashes SHA-256 
+    y realizando un test de descifrado.
     """
     print()
     print("="*100)
     print("[PASO 5]: Verificar integridad de backups")
     print("="*100)
+    print_info("Verifica la integridad de los backups existentes comprobando los hashes SHA-256 y\n" \
+    "realizando un test de descifrado.")
     print()
 
     paso="Paso 5"
@@ -761,6 +786,9 @@ def paso6_restaurar():
     print("="*100)
     print("[PASO 6]: Restaurar backups")
     print("="*100)
+    print_info("Restaura backups de forma interactiva.\n" \
+    "Sistema:           Obligatorio\n" \
+    "Usuarios y extra:  Opcionales")
     print()
 
     paso="Paso 6"

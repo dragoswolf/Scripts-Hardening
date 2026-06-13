@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 #============================================================================================================
 # fix_mod4.py -  Script de hardening: PAM (Pluggable Authentication Modules)
 #============================================================================================================
@@ -13,6 +12,8 @@
 #   Paso 6: Configurar pam_limits (límites de recursos)
 #
 # IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Los errores se registran en /var/log/hardening/modulo4_fix.log
 #
 # Autor: Dragos George Stan
 # TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04

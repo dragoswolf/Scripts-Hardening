@@ -1,9 +1,29 @@
 #!/usr/bin/env python3
-
 #=========================================================================================================
 # check_mod13.py - Script de verificación para el módulo 13 - Copias de seguridad
 #=========================================================================================================
-
+# Este script implementa las siguientes medidas de seguridad:
+#
+#   Paso 1: Configurar directorio de backups y cifrado GPG
+#   Paso 2: Configurar rutas extra para backup
+#   Paso 3: Ejecutar backup manual (completo)
+#   Paso 4: Programar backup automático (completo mensual + diferencial)
+#   Paso 5: Verificar integridad de backups
+#   Paso 6: Restaurar backups
+#
+#   Estrategia de backup:
+#       - 3 backups serparados: sistema, usuarios, extra
+#       - Completo mensual y diferencial semanal
+#       - Cifrado GPG simétrico (más fácil de administrar)
+#       - Rotación: últimos 4 completos
+#
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Los errores se registran en /var/log/hardening/modulo13_check.log
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#=========================================================================================================
 import os
 import sys
 import glob
@@ -28,13 +48,13 @@ from utils import (configurar_logging,
 # CONSTANTES
 #=========================================================================================================
 
-LOG_FILE= "/var/log/hardening/modulo13_fix.log"
+LOG_FILE= "/var/log/hardening/modulo13_check.log"
 
 BACKUP_DIR ="/var/backups/hardening"
 BACKUP_CONF="/etc/hardening/backup.conf"
 GPG_KEY_FILE = "/etc/hardening/backup.key"
 CRON_BACKUP = "/etc/cron.d/hardening-backup"
-
+#=========================================================================================================
 
 
 def verificar_paso1():

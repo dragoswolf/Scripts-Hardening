@@ -1,9 +1,20 @@
 #!/usr/bin/env python3
-
 #=========================================================================================================
-# fix_mod11.py - Script de fortificación para el módulo 11 - Configuración y Supervisión de Logs
+# check_mod11.py - Script de auditoría para el módulo 11 - Configuración y Supervisión de Logs
 #=========================================================================================================
-
+# Este script implementa las siguientes medidas de seguridad:
+#
+#   Paso 1: Verificar que AIDE está instalado
+#   Paso 2: Verificar que la base de datos de AIDE existe
+#   Paso 3: Verificar que la verificación automática con cron está programada
+#
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Los errores se registran en /var/log/hardening/modulo11_check.log
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#=========================================================================================================
 import os
 import sys
 import time
@@ -26,7 +37,7 @@ from utils import (configurar_logging,
 # CONSTANTES
 #=========================================================================================================
 
-LOG_FILE="/var/log/hardening/modulo11_fix.log"
+LOG_FILE="/var/log/hardening/modulo11_check.log"
 
 AIDE_CONF="/etc/aide/aide.conf"
 AIDE_DB="/var/lib/aide/aide.db"
@@ -37,7 +48,6 @@ ALTERNATIVAS_CRON=[
     "/etc/cron.daily/aide",
     "/etc/cron.d/aide",
 ]
-
 
 #=========================================================================================================
 

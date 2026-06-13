@@ -1,5 +1,20 @@
 #!/usr/bin/env python3
-
+#=========================================================================================================
+# check_mod9.py - Script de auditoría para el módulo 9 - Firewall (UFW)
+#=========================================================================================================
+# Este script implementa las siguientes medidas de seguridad:
+#
+#   Paso 1: Verificar que UFW está instalado, activo y con política correcta
+#   Paso 2: Verifica que SSH está permitido en el firewall
+#   Paso 3: Verifica que el logging está activo
+#
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Los errores se registran en /var/log/hardening/modulo9_check.log
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#=========================================================================================================
 
 import os
 import sys
@@ -11,13 +26,17 @@ from utils import (configurar_logging, comprobar_root, ejecutar_comando,
                    resultado_fail, resultado_ok, resultado_warn, mostrar_resumen,
                    contadores)
 
-
+#=========================================================================================================
+# CONSTANTES
+#=========================================================================================================
 LOG_FILE="/var/log/hardening/modulo9_check.log"
 
 SSHD_CONFIG="/etc/ssh/sshd_config"
+#=========================================================================================================
 
-
-#Funciones auxiliares
+#=========================================================================================================
+# FUNCIONES AUXILIARES
+#=========================================================================================================
 def obtener_puerto_ssh():
     """
     Lee el puerto SSH configurado en sshd_config.
@@ -39,6 +58,8 @@ def obtener_puerto_ssh():
                 return partes[1]
             
     return "22"
+
+#=========================================================================================================
 
 def verificar_paso1():
     """

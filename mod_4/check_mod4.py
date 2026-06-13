@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-
 #============================================================================================================
-# Check_mod4.py -  Script de hardening: Auditar PAM (Pluggable Authentication Modules)
+# check_mod4.py -  Script de verificación para el módulo 4 - PAM (Pluggable Authentication Modules)
 #============================================================================================================
 # Este script implementa las siguientes medidas de seguridad en Ubuntu Server:
 #
@@ -13,6 +12,8 @@
 #   Paso 6: Auditar límites de recursos
 #
 # IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Los errores se registran en /var/log/hardening/modulo4_check.log
 #
 # Autor: Dragos George Stan
 # TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04

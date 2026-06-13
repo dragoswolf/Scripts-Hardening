@@ -1,9 +1,21 @@
 #!/usr/bin/env python3
-
 #=========================================================================================================
 # fix_mod10.py - Script de fortificación para el módulo 10 - Configuración y Supervisión de Logs
 #=========================================================================================================
-
+# Este script implementa las siguientes medidas de seguridad:
+#
+#   Paso 1: Verificar que rsyslog está instalado y activo
+#   Paso 2: Configurar persistencia de journald
+#   Paso 3: Asegurar permisos de ficheros de log
+#   Paso 4: Configurar logrotate
+#
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Los errores se registran en /var/log/hardening/modulo10_fix.log
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#=========================================================================================================
 
 import os
 import sys
@@ -27,7 +39,9 @@ from utils import (configurar_logging,
                    print_error,
                    print_info)
 
-
+#=========================================================================================================
+# CONSTANTES
+#=========================================================================================================
 LOG_FILE="/var/log/hardening/modulo10_fix.log"
 
 JOURNALD_CONF="/etc/systemd/journald.conf"
@@ -63,6 +77,8 @@ LOGROTATE_CONTENIDO="""
 \tendscript
 }
 """
+#=========================================================================================================
+
 
 def paso1_rsylog():
     """
@@ -72,6 +88,8 @@ def paso1_rsylog():
     print("="*100)
     print("[PASO 1]: Verificar rsyslog instalado y activo.")
     print("="*100)
+    print_info("Verifica que rsyslog está instalado y activo como sistema\n" \
+    "centralizado de logs. Si no lo está, lo instala y habilita para el arranque")
     print()
 
     paso="Paso 1"
@@ -128,6 +146,8 @@ def paso2_persistencia_journald():
     print("="*100)
     print("[PASO 2]: Configurar persistencia de journald.")
     print("="*100)
+    print_info("Configurar journald para almacenar los logs de forma persistene en\n" \
+    "/var/log/journal/ con límites de tamaño y tiempo de retención configurados.")
     print()
 
     paso="Paso 2"
@@ -260,17 +280,20 @@ def paso3_permisos_logs():
     print("="*100)
     print("[PASO 3]: Asegurar permisos de ficheros de log.")
     print("="*100)
+    print_info("Verifica y corrige los permisos de los ficheros de log\n" \
+    "principales para que no sean legibles por usuarios no autorizados.")
     print()
 
     paso="Paso 3"
 
+    # 3a. Buscar los ficheros
     for fichero, config in FICHEROS_LOG.items():
         nombre=os.path.basename(fichero)
 
         if not os.path.isfile(fichero):
             print_info(f"{nombre} no existe (se omite).")
             continue
-
+        # 3b. Cambiar permisos para los ficheros
         if cambiar_permisos(fichero, 
                          permisos=int(config["permisos"], 8),
                          propietario=pwd.getpwnam(config["propietario"]).pw_uid,
@@ -289,6 +312,8 @@ def paso4_logrotate():
     print("="*100)
     print("[PASO 4]: Configurar logrotate.")
     print("="*100)
+    print_info("Configura logrotate para los ficheros de log con rotación semanal,\n" \
+    "12 semanas de retención, compresión y creación con permisos seguros.")
     print()
 
     paso="Paso 4"
@@ -368,8 +393,8 @@ def mostrar_menu():
         
 
 def main():
-    configurar_logging(LOG_FILE)
     comprobar_root()
+    configurar_logging(LOG_FILE)
 
     while True:
         mostrar_menu()
@@ -392,7 +417,7 @@ def main():
                 print("\n[INFO]: Saliendo del script.")
                 sys.exit(0)
             case _:
-                print("[ERROR]: Opción no válida. Inténtelo de nuevo.")
+                print_error("Opción no válida. Inténtelo de nuevo.")
 
 
 if __name__=="__main__":

@@ -1,8 +1,20 @@
 #!/usr/bin/env python3
-
-
 #=========================================================================================================
 # fix_mod12.py - Script de fortificación para el módulo 12 - Antimalware
+#=========================================================================================================
+# Este script implementa las siguientes medidas de seguridad:
+#
+#   Paso 1: Instalar ClamAV
+#   Paso 2: Actualizar ClamAV y programar escaneo automático
+#   Paso 3: Instalar RKHunter
+#   Paso 4: Actualizar RKHunter y programar escaneo automático
+#
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Los errores se registran en /var/log/hardening/modulo12_fix.log
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
 #=========================================================================================================
 
 
@@ -139,6 +151,8 @@ def paso1_instalar_clamav():
     print("="*100)
     print("[PASO 1]: Instalar ClamAV y sus componentes.")
     print("="*100)
+    print_info("Instala ClamAV y su demonio de actualización de firmas para detección\n" \
+    "de malware en el servidor.")
     print()
 
     paso="Paso 1"
@@ -188,6 +202,8 @@ def paso2_configurar_clamav():
     print("="*100)
     print("[PASO 2]: Actualizar ClamAV y programar escaneos periódicos.")
     print("="*100)
+    print_info("Actualiza la base de datos de ClamAV y crea un script cron para escaneo semanal\n" \
+    "automático del sistema.")
     print()
 
     paso="Paso 2"
@@ -265,11 +281,12 @@ def paso3_instalar_rkhunter():
     """
     Instala RKhunter y actualiza su base de datos de propiedades
     """
-
     print()
     print("="*100)
     print("[PASO 3]: Instalar RKHunter y sus componentes.")
     print("="*100)
+    print_info("Instala RKHunter para detección de rootkits, puertas traseras y exploits locales\n" \
+    "mediante examen de binarios y permisos del sistema.")
     print()
 
     paso="Paso 3"
@@ -337,11 +354,12 @@ def paso4_configurar_rkhunter():
     """
     Actualiza la base de datos de RKHunter y crea un script cron para el escaneo semanal automático.
     """
-
     print()
     print("="*100)
     print("[PASO 4]: Actualizar RKHunter y programar escaneo.")
     print("="*100)
+    print_info("Actualiza la base de datos de RKHunter y crea un script en cron.weekly\n" \
+    "para escaneo automático semanal.")
     print()
 
     paso="Paso 4"

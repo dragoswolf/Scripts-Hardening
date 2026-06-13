@@ -1,5 +1,26 @@
 #!/usr/bin/env python3
-
+#=========================================================================================================
+# check_mod7.py - Script de fortificación para el módulo 7 - Parámetros del kernel
+#=========================================================================================================
+# Este script implementa las siguientes medidas de seguridad:
+#
+#   Paso 1: Auditar protección SYN cookies
+#   Paso 2: Auditar enrutamiento de origen IP
+#   Paso 3: Auditar redirecciones ICMP
+#   Paso 4: Auditar contra mensajes ICMP erróneos
+#   Paso 5: Auditar Exec-Shield
+#   Paso 6: Auditar registro de paquetes marcianos
+#   Paso 7: Auditar echo boradcasts ICMP
+#   Paso 8: Auditar IPv6
+#
+#
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Los errores se registran en /var/log/hardening/modulo7_check.log
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#=========================================================================================================
 
 import os
 import sys
@@ -10,9 +31,17 @@ from utils import (configurar_logging, resultado_ok, resultado_fail, resultado_w
                    comprobar_root)
 
 
-LOG_FILE="/var/log/hardening/modulo7_check.log"
 
-# Función auxiliar
+#=========================================================================================================
+# CONSTANTES
+#=========================================================================================================
+LOG_FILE="/var/log/hardening/modulo7_check.log"
+#=========================================================================================================
+
+
+#=========================================================================================================
+# FUNCIONES AUXILIARES
+#=========================================================================================================
 def verificar_sysctl(parametro, valorEsperado, paso="General", nivel="fail"):
     """
     Verifica que un parámetro sysctl tiene el valor esperado.
@@ -42,6 +71,8 @@ def verificar_sysctl(parametro, valorEsperado, paso="General", nivel="fail"):
             resultado_warn(f"{parametro} = {valorActual} "
                            f"(recomendado: {valorEsperado})")
             
+#=========================================================================================================
+
 
 def verificar_paso1():
     print()

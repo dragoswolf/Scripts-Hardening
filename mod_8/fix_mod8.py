@@ -1,4 +1,22 @@
 #!/usr/bin/env python3
+#=========================================================================================================
+# fix_mod8.py - Script de fortificación para el módulo 8 - AppArmor (Mandatory Access Control)
+#=========================================================================================================
+# Este script implementa las siguientes medidas de seguridad:
+#
+#   Paso 1: Verificar que AppArmor está instalado y activo
+#   Paso 2: Poner todos los perfiles en modo enforce
+#   Paso 3: Instalar perfiles adicionales de AppArmor
+#
+#
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Los errores se registran en /var/log/hardening/modulo8_fix.log
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#=========================================================================================================
+
 
 import os
 import sys
@@ -9,17 +27,27 @@ from utils import (configurar_logging,
                    comprobar_root,
                    ejecutar_comando, 
                    ejecutar_comando_check, 
-                   volver_al_menu)
+                   volver_al_menu,
+                   print_aviso,
+                   print_correcto,
+                   print_error,
+                   print_info)
 
+
+#=========================================================================================================
+# CONSTANTES
+#=========================================================================================================
 
 LOG_FILE="/var/log/hardening/modulo8_fix.log"
 
 PAQUETES_BASE=["apparmor", "apparmor-utils"]
 PAQUETES_PERFILES=["apparmor-profiles", "apparmor-profiles-extra"]
+#=========================================================================================================
 
 
-# Funciones auxiliares
-
+#=========================================================================================================
+# FUNCIONES AUXILIARES
+#=========================================================================================================
 def obtener_estado_apparmor():
     """
     Obtiene un resumen dele stado de AppArmor usando aa-status.
@@ -68,6 +96,8 @@ def obtener_estado_apparmor():
     
     return estado
 
+
+
 def obtener_perfiles_complain():
     """
     Obtiene la lista de perfiles de AppArmor que están en modo complain.
@@ -98,19 +128,25 @@ def obtener_perfiles_complain():
                     perfiles.append(nombre)
 
     return perfiles
-
+#=========================================================================================================
 
 def paso1_instalar_apparmor():
+    """
+    Verifica que AppArmor y sus utilidades están instalados, el servicio está activo
+    y el módulo del kernel está cargado.
+    """
     print()
     print("="*100)
     print("[PASO 1]: Verificar que AppArmor está instalado y activo")
     print("="*100)
+    print_info("Verifica que AppArmor y sus utilidades están instalados,\n" \
+    "está activo y el módulo del kernel está cargado.")
     print()
 
     paso="Paso 1"
 
+    # 1a. Verificar/instalar paquetes base
     paquetesFaltantes=[]
-
     for paquete in PAQUETES_BASE:
         rc, _, _=ejecutar_comando_check(["dpkg", "-s", paquete])
 
@@ -118,48 +154,56 @@ def paso1_instalar_apparmor():
             paquetesFaltantes.append(paquete)
 
     if paquetesFaltantes:
-        print(f"[INFO]: Instalando paquetes: {', '.join(paquetesFaltantes)}")
+        print_info(f"Instalando paquetes: {', '.join(paquetesFaltantes)}")
         ejecutar_comando(["apt-get", "install", "-y"] + paquetesFaltantes, "instalar paquetes base de AppArmor", paso, mostrarSalida=True)
         print()
     else:
-        print(f"[CORRECTO]: Paquetes base instalados: {', '.join(PAQUETES_BASE)}")
+        print_correcto(f"Paquetes base instalados: {', '.join(PAQUETES_BASE)}")
 
+    # 1b. Verificar que el servicio está activo.
     rc, _, _=ejecutar_comando_check(["systemctl", "is-active", "--quiet", "apparmor"])
-
     if rc!=0:
-        print("[INFO]: Activando servicio AppArmor...")
+        print_info("Activando servicio AppArmor...")
         ejecutar_comando(["systemctl", "enable", "--now", "apparmor"], "activar servicio AppArmor", paso)
     else:
-        print("[CORRECTO]: Servicio 'apparmor' activo.")
+        print_correcto("Servicio 'apparmor' activo.")
     
+    # 1c. Verificar que el módulo del kernel está cargado
     rc, salida, _=ejecutar_comando_check(["aa-enabled"])
-
     if rc==0 and "yes" in salida.lower():
-        print("[CORRECTO]: AppArmor habilitado en el kernel.")
+        print_correcto("AppArmor habilitado en el kernel.")
     else:
-        print("[AVISO]: AppArmor no está habilitado en el kernel.")
-        print("         Puede ser necesario añadir 'apparmor=1' y 'security=apparmor'"
-              "         a los parámetros del kernel en GRUB y reiniciar el sistema.")
+        print_aviso("AppArmor no está habilitado en el kernel.")
+        print_info("Puede ser necesario añadir 'apparmor=1' y 'security=apparmor'" \
+        " a los parámetros del kernel en GRUB y reiniciar el sistema.")
         registrar_errores(paso, "AppArmor no habilitado en el kernel")
 
     print()
 
+    # 1d. Mostrar resumen
     estado=obtener_estado_apparmor()
     if estado:
-        print(f"[INFO]: Perfiles cargados:  {estado['loaded']}")
-        print(f"        En modo enforce:    {estado['enforce']}")
-        print(f"        En modo complain:   {estado['complain']}")
+        print_info(f"Perfiles cargados:  {estado['loaded']}")
+        print_info(f"En modo enforce:    {estado['enforce']}")
+        print_info(f"En modo complain:   {estado['complain']}")
 
 
 def paso2_perfiles_adicionales():
+    """
+    Instala los paquetes de perfiles adicionales de AppArmor y los pone en 
+    modo enforce.
+    """
     print()
     print("="*100)
-    print("[PASO 3]: Instalar perfiles adicionales de AppArmor")
+    print("[PASO 2]: Instalar perfiles adicionales de AppArmor")
     print("="*100)
+    print("Instala los paquetes de perfiles adicionales de AppArmor y los pone\n" \
+    "en modo enforce.")
     print()
 
-    paso="Paso 3"
+    paso="Paso 2"
 
+    # 2a. Verificar/instalar paquetes de perfiles
     paquetesFaltantes=[]
     for paquete in PAQUETES_PERFILES:
         rc, _, _=ejecutar_comando_check(["dpkg", "-s", paquete])
@@ -167,30 +211,31 @@ def paso2_perfiles_adicionales():
             paquetesFaltantes.append(paquete)
 
     if paquetesFaltantes:
-        print(f"[INFO]: Instalando: {', '.join(paquetesFaltantes)}")
+        print_info(f"Instalando: {', '.join(paquetesFaltantes)}")
         ejecutar_comando(["apt-get", "install", "-y"] + paquetesFaltantes, "instalando perfiles adicionales de AppArmor", paso, mostrarSalida=True)
         print()
     else:
-        print(f"[CORRECTO]: Paquetes de perfiles ya instalados: "
+        print_correcto(f"Paquetes de perfiles ya instalados: "
               f"{', '.join(PAQUETES_PERFILES)}")
     
+    # 2b. Poner los nuevos perfiles en modo enforce
     print()
-    print("[INFO]: Poniendo perfiles nuevos en modo enforce...")
+    print_info("Poniendo perfiles nuevos en modo enforce...")
     print()
 
     perfilesComplain=obtener_perfiles_complain()
     
     if not perfilesComplain:
-        print("[CORRECTO]: Todos los perfiles están en modo enforce.")
+        print_correcto("Todos los perfiles están en modo enforce.")
     else:
         errores=0
         for perfil in perfilesComplain:
             rc, _, stderr=ejecutar_comando_check(["aa-enforce", perfil])
 
             if rc != 0:
-                print(f"[CORRECTO]: {perfil} -> enforce")
+                print_correcto(f"{perfil} -> enforce")
             else:
-                print(f"[ERROR]: No se pudo cambiar {perfil}:"
+                print_error(f"No se pudo cambiar {perfil}:"
                       f"{stderr.strip()}")
                 registrar_errores(paso, f"No se pudo cambiar {perfil} a enforce: {stderr.strip()}")
                 errores+=1
@@ -199,56 +244,63 @@ def paso2_perfiles_adicionales():
         cambios=len(perfilesComplain) - errores
 
         if cambios >0:
-            print(f"[CORRECTO]: {cambios} perfil(es) adicional(es) en modo enforce.")
+            print_correcto(f"{cambios} perfil(es) adicional(es) en modo enforce.")
 
     print()
     estado=obtener_estado_apparmor()
 
+    # 2c. Mostrar estado final
     if estado:
-        print(f"[INFO]: Perfiles cargados:  {estado['loaded']}")
-        print(f"        En modo enforce:    {estado['enforce']}")
-        print(f"        En modo complain:   {estado['complain']}")
+        print_info(f"Perfiles cargados:  {estado['loaded']}")
+        print_info(f"En modo enforce:    {estado['enforce']}")
+        print_info(f"En modo complain:   {estado['complain']}")
 
 
 
 def paso3_enforce_perfiles():
+    """
+    Cambia todos los perfiles que estén en modo complain (solo registro) 
+    a modo enforce (bloqueo activo de accesos no permitidos)
+    """
     print()
     print("="*100)
-    print("[PASO 2]: Poner todos los perfiles en modo enforce")
+    print("[PASO 3]: Poner todos los perfiles en modo enforce")
     print("="*100)
+    print_info("Cambia todos los perfiles que estén en modo complain (solo registro)\n" \
+    "a modo enforce (bloqueo activo de accesos no permitidos)")
     print()
 
     paso="Paso 2"
 
+    # 3a. Obtener perfiles en complain
     perfilesComplain=obtener_perfiles_complain()
 
     if not perfilesComplain:
-        print("[CORRECTO]: Todos los perfiles ya están en modo enforce.")
+        print_correcto("Todos los perfiles ya están en modo enforce.")
         return
     
-    print(f"[INFO]: {len(perfilesComplain)} perfil(es) en modo complain.")
+    print_info(f"{len(perfilesComplain)} perfil(es) en modo complain.")
     
     for perfil in perfilesComplain:
         print(f"    - {perfil}")
     print()
 
+    # 3b. Cambiar cada perfil a enforce
     errores=0
-
     rc, salida, stderr=ejecutar_comando_check(["bash","-c","aa-enforce /etc/apparmor.d/*"])
 
     if rc==0:
-        print("[CORRECTO]: Todos los perfiles cambiados a enforce")
+        print_correcto("Todos los perfiles cambiados a enforce")
     else:
-        print(f"[ERROR]: {stderr.strip()}")
+        print_error(f"{stderr.strip()}")
         errores+=1
 
-
-
+    # 3c. Mostrar resumen
     print()
     if errores==0:
-        print(f"[CORRECTO]: {len(perfilesComplain)} perfil(es) cambiados a modo enforce.")
+        print_correcto(f"{len(perfilesComplain)} perfil(es) cambiados a modo enforce.")
     else:
-        print(f"[AVISO]: {errores} perfil(es) no se pudieron cambiar.")
+        print_aviso(f"{errores} perfil(es) no se pudieron cambiar.")
 
 
 
@@ -290,7 +342,7 @@ def main():
                 print_info("Saliendo del script.")
                 sys.exit(0)
             case _:
-                print("[ERROR]: Opción no válida. Inténtelo de nuevo.")
+                print_error("Opción no válida. Inténtelo de nuevo.")
 
 
 if __name__=="__main__":

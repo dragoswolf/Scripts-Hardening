@@ -18,6 +18,8 @@
 #
 # IMPORTANTE: Este script debe ejecutarse como root (sudo)
 #
+# Los errores se registran en /var/log/hardening/modulo2_fix.log
+#
 # Autor: Dragos George Stan
 # TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
 #============================================================================================================
@@ -48,7 +50,7 @@ from utils import (configurar_logging,
 # CONSTANTES
 #============================================================================================================
 # Fichero de log para este módulo
-LOG_FILE="/var/log/hardening/fix_mod2.log"
+LOG_FILE="/var/log/hardening/modulo2_fix.log"
 
 # Directorio de scripts dinámicos del MOTD
 MOTD_DIR="/etc/update-motd.d"

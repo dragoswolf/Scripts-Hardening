@@ -1,5 +1,23 @@
 #!/usr/bin/env python3
-
+#=========================================================================================================
+# check_mod6.py - Script de fortificación para el módulo 6 - Sistemas de ficheros
+#=========================================================================================================
+# Este script implementa las siguientes medidas de seguridad:
+#
+#   Paso 1: Aduditar y deshabilitar binarios SUID/SGID innecesarios
+#   Paso 2: Auditoría del filesystem (sticky bit, ficheros huérfanos, 
+#           ficheros world-writtable)
+#   Paso 3: Auditar opciones de montaje (/tmp, /dev/shm)
+#   Paso 4: Auditar ficheros críticos con chattr
+#
+#
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Los errores se registran en /var/log/hardening/modulo6_check.log
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
+#=========================================================================================================
 
 import os
 import sys
@@ -7,9 +25,12 @@ import stat
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from utils import (configurar_logging, comprobar_root, resultado_fail, resultado_ok,
-                   resultado_warn, mostrar_resumen, contadores, volver_al_menu, ejecutar_comando_check)
+                   resultado_warn, mostrar_resumen, contadores, volver_al_menu, ejecutar_comando_check, print_info)
 
 
+#=========================================================================================================
+# CONSTANTES
+#=========================================================================================================
 LOG_FILE="/var/log/hardening/modulo6_check.log"
 
 WHITELIST_SUID=[
@@ -56,6 +77,7 @@ FICHEROS_CRITICOS=[
     "/etc/gshadow",
     "/etc/fstab",
 ]
+#=========================================================================================================
 
 
 def verificar_paso1():
@@ -67,7 +89,7 @@ def verificar_paso1():
 
     paso="Paso 1"
 
-    print("[INFO]: Buscando binarios con bit SUID...")
+    print_info("Buscando binarios con bit SUID...")
 
     rc, salida, _ = ejecutar_comando_check(["find", "/", "-xdev", "-type", "f", "-perm", "4000",
                                             "-not", "-path", "/proc/*", "-not", "-path", "/sys/*"])
@@ -84,7 +106,7 @@ def verificar_paso1():
     else:
         resultado_ok(f"Todos los binarios SUID ({len(suidEncontrados)}) están en la whitelist.")
 
-    print("[INFO]: Buscando binarios con bit SGID...")
+    print_info("Buscando binarios con bit SGID...")
 
     rc, salida, _ = ejecutar_comando_check(["find", "/", "-xdev", "-type", "f", "-perm", "-2000",
                                             "-not", "-path", "/proc/*", "-not", "-path", "/sys/*"])

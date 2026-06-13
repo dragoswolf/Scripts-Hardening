@@ -1,7 +1,19 @@
 #!/usr/bin/env python3
-
 #=========================================================================================================
-# fix_mod10.py - Script de fortificación para el módulo 10 - Configuración y Supervisión de Logs
+# fix_mod11.py - Script de fortificación para el módulo 11 - Detección de Intrusos de Host (AIDE)
+#=========================================================================================================
+# Este script implementa las siguientes medidas de seguridad:
+#
+#   Paso 1: Instalar AIDE
+#   Paso 2: Inicializar la base de datos de AIDE
+#   Paso 3: Programar verificación automática con cron
+#
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Los errores se registran en /var/log/hardening/modulo11_fix.log
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
 #=========================================================================================================
 
 import os
@@ -82,11 +94,11 @@ def paso1_instalar_aide():
     """
     Instala el paquete AIDE si no está presente.
     """
-
     print()
     print("="*100)
     print("[PASO 1]: Instalar AIDE.")
     print("="*100)
+    print_info("Instala AIDE si no está presente.")
     print()
 
     paso="Paso 1"
@@ -134,11 +146,12 @@ def paso2_inicializar_db():
     Inicializa la base de datos de AIDE. Si ya existe una base de datos,
     pregunta al usuario si desea regenerarla.
     """
-
     print()
     print("="*100)
     print("[PASO 2]: Inicializar/regenerar Base de Datos.")
     print("="*100)
+    print("Inicializa la base de datos de AIDE. Si ya existe una base de datos,\n" \
+    "pregunta al usuario si desea regenerarla.")
     print()
 
     paso="Paso 2"
@@ -218,6 +231,8 @@ def paso3_programar_cron():
     print("="*100)
     print("[PASO 3]: Programar verificación automática con cron.")
     print("="*100)
+    print_info("Crea un script en cron.daily para ejecutar la verificación de AIDE automáticamente\n" \
+    "cada día.")
     print()
 
     paso="Paso 3"

@@ -1,7 +1,20 @@
 #!/usr/bin/env python3
-
 #=========================================================================================================
 # check_mod12.py - Script de verificación para el módulo 12 - Antimalware
+#=========================================================================================================
+# Este script implementa las siguientes medidas de seguridad:
+#
+#   Paso 1: Verificar que ClamAV está instalado y operativo
+#   Paso 2: Verificar el escaneo automático de ClamAV
+#   Paso 3: Verificar que RKHunter está instalado y operativo
+#   Paso 4: Verificar programar escaneo automático de RKHunter
+#
+# IMPORTANTE: Este script debe ejecutarse como root (sudo)
+#
+# Los errores se registran en /var/log/hardening/modulo12_check.log
+#
+# Autor: Dragos George Stan
+# TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
 #=========================================================================================================
 
 import os

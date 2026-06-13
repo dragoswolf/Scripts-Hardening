@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 #=========================================================================================================
 # check_mod1.py - Script de verificación para Módulo 1: Seguridad en Acceso al Hardware
 #=========================================================================================================
@@ -53,7 +52,7 @@ GRUB_CFG_FILE= "/boot/grub/grub.cfg"
 USB_MODPROBE_FILE="/etc/modprobe.d/usb-storage.conf"
 
 #Directorio y fichero de logs
-LOG_FILE="/var/log/hardening/modulo1_fix.log"
+LOG_FILE="/var/log/hardening/modulo1_check.log"
 
 #=========================================================================================================
 
