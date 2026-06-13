@@ -379,7 +379,7 @@ def paso4_logrotate():
 def mostrar_menu():
     print()
     print("="*100)
-    print("HARDENING: CONFIGURACIÓN Y SUPERVISIÓN DE LOGS.")
+    print("MÓDULO 10: CONFIGURACIÓN Y SUPERVISIÓN DE LOGS.")
     print("="*100)
     print()
     print(" Pasos disponibles:")

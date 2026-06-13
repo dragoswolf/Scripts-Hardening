@@ -521,7 +521,7 @@ def mostar_menu():
     print("     8. Habilitar StrictModes")
     print("     9. Deshabilitar PermitUserEnvironment")
     print("     10. Habilitar PrintLastLog")
-
+    print("     11. Configurar Banner SSH")
     print()
     print("     q. Salir")
     print()
@@ -565,6 +565,9 @@ def main():
                 volver_al_menu()
             case "10":
                 paso10_print_last_log()
+                volver_al_menu()
+            case "11":
+                paso11_banner_ssh()
                 volver_al_menu()
             case "q":
                 print_info("Saliendo del script.")

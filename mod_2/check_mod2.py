@@ -33,7 +33,6 @@ import subprocess
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from utils import(
     configurar_logging,
-    registrar_errores,
     comprobar_root,
     resultado_fail,
     resultado_ok,
@@ -60,7 +59,6 @@ MOTD_FILE="/etc/motd"
 # Banners de inicio de sesión
 ISSUE_FILE="/etc/issue"
 ISSUE_NET_FILE="/etc/issue.net"
-SSHD_CONFIG_FILE="/etc/ssh/sshd_config"
 
 # Configuración de APT para verificación GPG
 APT_CONF_DIR="/etc/apt/apt.conf.d"
@@ -230,23 +228,6 @@ def verificar_paso2():
     else:
         resultado_warn(f"[ERROR]: No se encontró {ISSUE_NET_FILE}.")
 
-    contenidoSshd=leer_fichero(SSHD_CONFIG_FILE)
-
-    if contenidoSshd is not None:
-        bannerConfigurado=False
-        for linea in contenidoSshd.splitlines():
-            lineaLimpia=linea.strip()
-            if lineaLimpia.startswith("#"):
-                continue
-            if lineaLimpia.lower().startswith("banner"):
-                bannerConfigurado=True
-                resultado_ok(f"[CORRECTO]: SSH tiene banner configurado: {lineaLimpia}")
-                break
-
-        if not bannerConfigurado:
-            resultado_fail("[ERROR]: SSH no tiene la directiva 'Banner' configurada.")
-    else:
-        resultado_warn(f"[AVISO]: No se pudo leer {SSHD_CONFIG_FILE}.")
 
 
 def verificar_paso3():

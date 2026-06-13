@@ -4,18 +4,10 @@
 #=========================================================================================================
 # Este script implementa las siguientes medidas de seguridad:
 #
-#   Paso 1: Configurar directorio de backups y cifrado GPG
-#   Paso 2: Configurar rutas extra para backup
-#   Paso 3: Ejecutar backup manual (completo)
-#   Paso 4: Programar backup automático (completo mensual + diferencial)
-#   Paso 5: Verificar integridad de backups
-#   Paso 6: Restaurar backups
-#
-#   Estrategia de backup:
-#       - 3 backups serparados: sistema, usuarios, extra
-#       - Completo mensual y diferencial semanal
-#       - Cifrado GPG simétrico (más fácil de administrar)
-#       - Rotación: últimos 4 completos
+#   Paso 1: Verificar directorio de backups y cifrado GPG
+#   Paso 2: Verificar que existen backups recientes
+#   Paso 3: Verificar backup automático programado
+#   Paso 4: Verificar integridad del último backup
 #
 # IMPORTANTE: Este script debe ejecutarse como root (sudo)
 #
@@ -277,7 +269,7 @@ def main():
     verificar_paso4()
 
 
-    mostrar_resumen("check_mod13.py")
+    mostrar_resumen("fix_mod13.py")
 
     if contadores["checksFail"]>0:
         sys.exit(1)

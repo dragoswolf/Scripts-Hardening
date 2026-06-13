@@ -69,6 +69,7 @@ def mostrar_menu():
     print("         2. Enmascarar Ctrl+Alt+Delete.")
     print("         3. Deshabilitar USB.")
     print("         4. Rehabilitar USB.")
+    print()
     print("         q. Salir.")
 #=========================================================================================================
 

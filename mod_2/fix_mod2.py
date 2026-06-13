@@ -60,7 +60,6 @@ MOTD_FILE="/etc/motd"
 # Banners de inicio de sesión
 ISSUE_FILE="/etc/issue"
 ISSUE_NET_FILE="/etc/issue.net"
-SSHD_CONFIG_FILE="/etc/ssh/sshd_config"
 
 # Configuración de APT
 APT_CONF_DIR="/etc/apt/apt.conf.d"
@@ -814,20 +813,20 @@ def mostrar_menu():
     print("MÓDULO 2: Hardening General del Sistema Operativo - Ubuntu Server 24.04")
     print("="*100)
     print()
-    print("Pasos disponibles:")
-    print("1. Personalizar MOTD")
-    print("2. Configurar banners de inicio de sesión")
-    print("3. Eliminar paquetes innecesarios")
-    print("4. Actualizar kernel y sistema")
-    print("5. Verificación de integridad de paquetes (GPG)")
-    print("6. Actualizaciones automáticas de seguridad")
-    print("7. Deshabilitar servicios innecesarios")
-    print("8. Documentar servicios autorizados")
-    print("9. Habilitar NTP/Chronyd")
-    print("10. Restringir cronjobs")
-    print("11. Asegurar contraseñas y cuentas")
+    print("     Pasos disponibles:")
+    print("         1. Personalizar MOTD")
+    print("         2. Configurar banners de inicio de sesión")
+    print("         3. Eliminar paquetes innecesarios")
+    print("         4. Actualizar kernel y sistema")
+    print("         5. Verificación de integridad de paquetes (GPG)")
+    print("         6. Actualizaciones automáticas de seguridad")
+    print("         7. Deshabilitar servicios innecesarios")
+    print("         8. Documentar servicios autorizados")
+    print("         9. Habilitar NTP/Chronyd")
+    print("         10. Restringir cronjobs")
+    print("         11. Asegurar contraseñas y cuentas")
     print()
-    print("q. Salir")
+    print("         q. Salir")
     print()
 
 def main():

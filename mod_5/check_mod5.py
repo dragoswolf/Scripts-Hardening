@@ -14,6 +14,7 @@
 #   Paso 8: Verificar StrictModes
 #   Paso 9: Verificar PermitUserEnvironment
 #   Paso 10: Verificar PrintLastLog
+#   Paso 11: Verificar Banner SSH configurado
 #
 #
 # IMPORTANTE: Este script debe ejecutarse como root (sudo)
@@ -80,6 +81,10 @@ def obtener_directiva_ssh(directiva, contenido):
 def verificar_paso1(contenido):
     """
     Verifica que el puerto SSH no es e estándar (22)
+
+    Args:
+        contenido (str):    Cadena de configuración que se le añade
+                            al fichero de configuración SSH
     """
     print()
     print("="*100)
@@ -109,6 +114,10 @@ def verificar_paso1(contenido):
 def verificar_paso2(contenido):
     """
     Verifica que AllowUsers está configurado para restringir acceso SSH
+
+    Args:
+        contenido (str):    Cadena de configuración que se le añade
+                            al fichero de configuración SSH    
     """
     print()
     print("="*100)
@@ -132,6 +141,10 @@ def verificar_paso2(contenido):
 def verificar_paso3(contenido):
     """
     Verifica que la autenticación GSSAPI está habilitada
+
+    Args:
+        contenido (str):    Cadena de configuración que se le añade
+                            al fichero de configuración SSH
     """
     print()
     print("="*100)
@@ -154,6 +167,10 @@ def verificar_paso3(contenido):
 def verificar_paso4(contenido):
     """
     Verifica que LoginGraceTime tiene un valor bajo (<= 60 segundos)
+
+    Args:
+        contenido (str):    Cadena de configuración que se le añade
+                            al fichero de configuración SSH
     """
     print()
     print("="*100)
@@ -199,6 +216,10 @@ def verificar_paso4(contenido):
 def verificar_paso5(contenido):
     """
     Verifica que los timeouts de sesión SSH están configurados.
+
+    Args:
+        contenido (str):    Cadena de configuración que se le añade
+                            al fichero de configuración SSH
     """
     print()
     print("="*100)
@@ -244,6 +265,10 @@ def verificar_paso5(contenido):
 def verificar_paso6(contenido):
     """
     Verifica que HostbasedAuthentication está deshabilitado
+
+    Args:
+        contenido (str):    Cadena de configuración que se le añade
+                            al fichero de configuración SSH
     """
     print()
     print("="*100)
@@ -266,6 +291,10 @@ def verificar_paso6(contenido):
 def verificar_paso7(contenido):
     """
     Verifica que IgnoreRhosts está habilitado
+
+    Args:
+        contenido (str):    Cadena de configuración que se le añade
+                            al fichero de configuración SSH
     """
     print()
     print("="*100)
@@ -288,6 +317,10 @@ def verificar_paso7(contenido):
 def verificar_paso8(contenido):
     """
     Verifica que StrictModes está habilitado.
+
+    Args:
+        contenido (str):    Cadena de configuración que se le añade
+                            al fichero de configuración SSH
     """
     print()
     print("="*100)
@@ -310,6 +343,10 @@ def verificar_paso8(contenido):
 def verificar_paso9(contenido):
     """
     Verifica que PermitUserEnvironment está deshabilitado
+
+    Args:
+        contenido (str):    Cadena de configuración que se le añade
+                            al fichero de configuración SSH
     """
     print()
     print("="*100)
@@ -333,6 +370,10 @@ def verificar_paso9(contenido):
 def verificar_paso10(contenido):
     """
     Verifica que PrintLastLog está habilitado
+
+    Args:
+        contenido (str):    Cadena de configuración que se le añade
+                            al fichero de configuración SSH
     """
     print()
     print("="*100)
@@ -351,6 +392,33 @@ def verificar_paso10(contenido):
     else:
         resultado_fail(f"PrintLastLog = {valor.lower()} (no se muestra la última conexión al usuario)", paso)
 
+
+def verificar_paso11(contenido):
+    """
+    Verifica que la directiva Banner apunta a /etc/issue.net
+    y que el fichero existe.
+    """
+    print()
+    print("="*100)
+    print("[PASO 11]: Verificar Banner SSH.")
+    print("="*100)
+    print()
+
+    paso="Paso 11"
+
+
+    if not os.path.isfile("/etc/issue.net"):
+        resultado_fail("/etc/issue.net no existe. Ejecuta el módulo 2, paso 2 para crearlo.", paso)
+        return
+    
+    valor=obtener_directiva_ssh("Banner", contenido)
+
+    if valor is None:
+        resultado_fail("La directiva 'Banner' no está configurada en sshd_config.", paso)
+    elif valor=="/etc/issue.net":
+        resultado_ok("Banner = /etc/issue.net")
+    else:
+        resultado_warn(f"Banner = {valor} (esperado /etc/issue.net)")
 
 
 
@@ -375,7 +443,7 @@ def main():
     contenido=leer_fichero(SSHD_CONFIG, paso="General")
     if contenido is None:
         resultado_fail(f"No se pudo leer {SSHD_CONFIG}", "General")
-        mostrar_resumen("fix_mod5.py")
+        mostrar_resumen("check_mod5.py")
         volver_al_menu()
         return
     
@@ -394,6 +462,7 @@ def main():
     verificar_paso8(contenido)
     verificar_paso9(contenido)
     verificar_paso10(contenido)
+    verificar_paso11(contenido)
     verificar_permisos(SSHD_CONFIG, "600", 0, 0, paso="General")
 
 

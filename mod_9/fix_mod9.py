@@ -400,7 +400,7 @@ def paso5_activar_logging():
 def mostar_menu():
     print()
     print("="*100)
-    print("Hardening: Firewall.")
+    print("MÓDULO 9: Firewall.")
     print("="*100)
     print()
     print(" Pasos disponibles:")

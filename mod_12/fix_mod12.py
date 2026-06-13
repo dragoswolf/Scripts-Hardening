@@ -11,7 +11,7 @@
 #
 # IMPORTANTE: Este script debe ejecutarse como root (sudo)
 #
-# Los errores se registran en /var/log/hardening/modulo12_fix.log
+# Los errores se registran en /var/log/hardening/modulo12_check.log
 #
 # Autor: Dragos George Stan
 # TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
@@ -25,7 +25,6 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from utils import (configurar_logging,
-                   registrar_errores,
                    comprobar_root,
                    ejecutar_comando,
                    ejecutar_comando_check,

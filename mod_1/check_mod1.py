@@ -250,7 +250,7 @@ def main():
     verificar_paso3()   #USB deshabilitado
 
     #Mostrar resumen final con contadores
-    mostrar_resumen()
+    mostrar_resumen("fix_mod1.py")
 
     #Devolver código de salida según resultado
     #0 = todo bien, 1= hay fallos
