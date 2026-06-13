@@ -5,9 +5,9 @@
 # Este script implementa las siguientes medidas de seguridad en Ubuntu Server:
 #
 #   Paso 1: Actualizar kernel y sistema
-#   Paso 2: Personalizar MOTD para eliminar información sensible
-#   Paso 3: Configurar banners de inicio de sesión
-#   Paso 4: Eliminar paquetes innecesarios u huérfanos
+#   Paso 2: Eliminar paquetes innecesarios u huérfanos
+#   Paso 3: Personalizar MOTD para eliminar información sensible
+#   Paso 4: Configurar banners de inicio de sesión
 #   Paso 5: Configurar verificación de integridad de paquetes (GPG)
 #   Paso 6: Configurar actualizaciones automáticas de seguridad
 #   Paso 7: Detener y deshabilitar servicios innecesarios
@@ -183,90 +183,7 @@ def paso1_actualizar_sistema():
     print_info("Sistema actualizado.")
 
 
-def paso2_personalizar_motd():
-    """
-    Personaliza el MOTD para eliminar información sensible del sistema.
-    Deshabilita los scripts dinámicos por defecto y crea un banner legal.
-
-    Proceso:
-        1. Quitar permisos de ejecución a todos los scripts por defecto
-        2. Crear un script personalizado con aviso legal
-        3. Vaciar /etc/motd estático
-    """
-    print()
-    print("="*100)
-    print("[PASO 1]: Personalizar MOTD (Message of the Day)")
-    print("="*100)
-    print_info("Esta medida elimina la información del sistema que Ubuntu muestra tras\n" \
-    "           el login (versión SO, kernel, paquetes pendientes) y la sustituye por un aviso legal.")
-    print()
-
-    # 1a. Deshabilitar scripts dinámicos por defecto
-    if os.path.isdir(MOTD_DIR):
-        print_info(f"Deshabilitando scripts dinámicos en {MOTD_DIR}...")
-        for fichero in os.listdir(MOTD_DIR):
-            rutaCompleta=os.path.join(MOTD_DIR, fichero)
-            if os.path.isfile(rutaCompleta):
-                statActual=os.stat(rutaCompleta)
-                nuevosPermisos=statActual.st_mode & ~0o111
-                os.chmod(rutaCompleta, nuevosPermisos)
-        print_correcto("Scripts por defecto deshabilitados.")
-    else:
-        print_aviso(f"Directorio {MOTD_DIR} no encontrado.")
-
-    # 1b. Crear script MOTD personalizado
-    rutaScriptCustom=os.path.join(MOTD_DIR, "01-banner-custom")
-    print_info(f"Creando script personalizado en {rutaScriptCustom}...")
-    if escribir_fichero(rutaScriptCustom, TEXTO_MOTD_SCRIPT, 0o700, "Paso 1"):
-        print_correcto(f"Script personalizado creado con permisos de ejecución.")
-
-    # 1c. Vaciar /etc/motd estático
-    print_info(f"Vaciando {MOTD_FILE}...")
-    if escribir_fichero(MOTD_FILE, "", 0o644, "Paso 1"):
-        print_correcto(f"{MOTD_FILE} vaciado.")
-
-    print()
-    print_info("PASO 1 COMPLETADO.")
-    print_info("Los scripts por defecto están deshabilitados.")
-    print_info("Se mostrará un aviso legal tras el login.")
-
-
-def paso3_configurar_banners():
-    """
-    Configura los banners de /etc/issue y /etc/issue.net para eliminar información sensible y añadir
-    un aviso legal.
-
-    Proceso:
-        1. Sobreescribir /etc/issue con banner legal
-        2. Sobreescribir /etc/issue.net con banner legal
-    """
-    print()
-    print("="*100)
-    print("[PASO 2]: Configurar banners de inicio de sesión")
-    print("="*100)
-    print_info("Esta medida elimina la información del sistema que\n" \
-    "           Ubuntu muestra ANTES del login (consola local).")
-    print()
-
-    # 2a. Sobrescribir /etc/issue
-    print_info(f"Escribiendo banner legal en {ISSUE_FILE}...")
-    if escribir_fichero(ISSUE_FILE, TEXTO_BANNER, 0o644):
-        print_correcto(f"{ISSUE_FILE} configurado.")
-    
-    # 2b. Sobrescribir /etc/issue.net
-    print_info(f"Escribiendo banner legal en {ISSUE_NET_FILE}...")
-    if escribir_fichero(ISSUE_NET_FILE, TEXTO_BANNER, 0o644):
-        print_correcto(f"{ISSUE_NET_FILE} configurado.")
-
-    print()
-    print_info("PASO 2 COMPLETADO.")
-    print_info("Banners de inicio de sesión configurados.")
-    print_info("Se muestra un aviso legal en consola local y SSH.")
-    print()
-
-
-
-def paso4_eliminar_paquetes():
+def paso2_eliminar_paquetes():
     """
     Elimina paquetes huérfanos y paquetes comúnmente innecesarios en un servidor.
 
@@ -317,9 +234,91 @@ def paso4_eliminar_paquetes():
     print_correcto("Limpieza de huérfanos completada.")
 
     print()
-    print_info("PASO 3 COMPLETADO.")
     print_info("Paquetes innecesarios eliminados.")
     print()
+
+
+def paso3_personalizar_motd():
+    """
+    Personaliza el MOTD para eliminar información sensible del sistema.
+    Deshabilita los scripts dinámicos por defecto y crea un banner legal.
+
+    Proceso:
+        1. Quitar permisos de ejecución a todos los scripts por defecto
+        2. Crear un script personalizado con aviso legal
+        3. Vaciar /etc/motd estático
+    """
+    print()
+    print("="*100)
+    print("[PASO 1]: Personalizar MOTD (Message of the Day)")
+    print("="*100)
+    print_info("Esta medida elimina la información del sistema que Ubuntu muestra tras\n" \
+    "           el login (versión SO, kernel, paquetes pendientes) y la sustituye por un aviso legal.")
+    print()
+
+    # 1a. Deshabilitar scripts dinámicos por defecto
+    if os.path.isdir(MOTD_DIR):
+        print_info(f"Deshabilitando scripts dinámicos en {MOTD_DIR}...")
+        for fichero in os.listdir(MOTD_DIR):
+            rutaCompleta=os.path.join(MOTD_DIR, fichero)
+            if os.path.isfile(rutaCompleta):
+                statActual=os.stat(rutaCompleta)
+                nuevosPermisos=statActual.st_mode & ~0o111
+                os.chmod(rutaCompleta, nuevosPermisos)
+        print_correcto("Scripts por defecto deshabilitados.")
+    else:
+        print_aviso(f"Directorio {MOTD_DIR} no encontrado.")
+
+    # 1b. Crear script MOTD personalizado
+    rutaScriptCustom=os.path.join(MOTD_DIR, "01-banner-custom")
+    print_info(f"Creando script personalizado en {rutaScriptCustom}...")
+    if escribir_fichero(rutaScriptCustom, TEXTO_MOTD_SCRIPT, 0o700, "Paso 1"):
+        print_correcto(f"Script personalizado creado con permisos de ejecución.")
+
+    # 1c. Vaciar /etc/motd estático
+    print_info(f"Vaciando {MOTD_FILE}...")
+    if escribir_fichero(MOTD_FILE, "", 0o644, "Paso 1"):
+        print_correcto(f"{MOTD_FILE} vaciado.")
+
+    print()
+    print_info("PASO 1 COMPLETADO.")
+    print_info("Los scripts por defecto están deshabilitados.")
+    print_info("Se mostrará un aviso legal tras el login.")
+
+
+def paso4_configurar_banners():
+    """
+    Configura los banners de /etc/issue y /etc/issue.net para eliminar información sensible y añadir
+    un aviso legal.
+
+    Proceso:
+        1. Sobreescribir /etc/issue con banner legal
+        2. Sobreescribir /etc/issue.net con banner legal
+    """
+    print()
+    print("="*100)
+    print("[PASO 2]: Configurar banners de inicio de sesión")
+    print("="*100)
+    print_info("Esta medida elimina la información del sistema que\n" \
+    "           Ubuntu muestra ANTES del login (consola local).")
+    print()
+
+    # 2a. Sobrescribir /etc/issue
+    print_info(f"Escribiendo banner legal en {ISSUE_FILE}...")
+    if escribir_fichero(ISSUE_FILE, TEXTO_BANNER, 0o644):
+        print_correcto(f"{ISSUE_FILE} configurado.")
+    
+    # 2b. Sobrescribir /etc/issue.net
+    print_info(f"Escribiendo banner legal en {ISSUE_NET_FILE}...")
+    if escribir_fichero(ISSUE_NET_FILE, TEXTO_BANNER, 0o644):
+        print_correcto(f"{ISSUE_NET_FILE} configurado.")
+
+    print()
+    print_info("PASO 2 COMPLETADO.")
+    print_info("Banners de inicio de sesión configurados.")
+    print_info("Se muestra un aviso legal en consola local y SSH.")
+    print()
+
 
 
 def paso5_configurar_gpg():
@@ -794,10 +793,10 @@ def mostrar_menu():
     print("="*100)
     print()
     print(" Pasos disponibles:")
-    print("     1. Personalizar MOTD")
-    print("     2. Configurar banners de inicio de sesión")
-    print("     3. Eliminar paquetes innecesarios")
-    print("     4. Actualizar kernel y sistema")
+    print("     1. Actualizar kernel y sistema")
+    print("     2. Eliminar paquetes innecesarios")
+    print("     3. Personalizar MOTD")
+    print("     4. Configurar banners de inicio de sesión")
     print("     5. Verificación de integridad de paquetes (GPG)")
     print("     6. Actualizaciones automáticas de seguridad")
     print("     7. Deshabilitar servicios innecesarios")
@@ -819,16 +818,16 @@ def main():
 
         match opcion:
             case "1":
-                paso1_personalizar_motd()
+                paso1_actualizar_sistema()
                 volver_al_menu()
             case "2":
-                paso2_configurar_banners()
+                paso2_eliminar_paquetes()
                 volver_al_menu()
             case "3":
-                paso3_eliminar_paquetes()
+                paso3_personalizar_motd()
                 volver_al_menu()
             case "4":
-                paso4_actualizar_sistema()
+                paso4_configurar_banners()
                 volver_al_menu()
             case "5":
                 paso5_configurar_gpg()
