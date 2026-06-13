@@ -35,7 +35,8 @@ from datetime import datetime
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from utils import (configurar_logging, 
                    comprobar_root,
-                   ejecutar_comando, 
+                   ejecutar_comando,
+                   ejecutar_comando_check, 
                    volver_al_menu, 
                    escribir_fichero, 
                    leer_fichero,
@@ -147,7 +148,7 @@ def paso1_actualizar_sistema():
 
     print()
     print("="*100)
-    print("[PASO 4]: Actualizar kernel y sistema.")
+    print("[PASO 1]: Actualizar kernel y sistema.")
     print("="*100)
     print()
     print_info("Esta medida aplica todos los parches de seguridad disponibles\n" \
@@ -194,7 +195,7 @@ def paso2_eliminar_paquetes():
     """
     print()
     print("="*100)
-    print("[PASO 3]: Eliminar paquetes innecesarios u huérfanos")
+    print("[PASO 2]: Eliminar paquetes innecesarios u huérfanos")
     print("="*100)
     print_info("Esta medida reduce la superficie de ataque eliminando software\n" \
     "       que no es necesario para la función del servidor.")
@@ -250,7 +251,7 @@ def paso3_personalizar_motd():
     """
     print()
     print("="*100)
-    print("[PASO 1]: Personalizar MOTD (Message of the Day)")
+    print("[PASO 3]: Personalizar MOTD (Message of the Day)")
     print("="*100)
     print_info("Esta medida elimina la información del sistema que Ubuntu muestra tras\n" \
     "       el login (versión SO, kernel, paquetes pendientes) y la sustituye por un aviso legal.")
@@ -281,7 +282,6 @@ def paso3_personalizar_motd():
         print_correcto(f"{MOTD_FILE} vaciado.")
 
     print()
-    print_info("PASO 1 COMPLETADO.")
     print_info("Los scripts por defecto están deshabilitados.")
     print_info("Se mostrará un aviso legal tras el login.")
 
@@ -297,7 +297,7 @@ def paso4_configurar_banners():
     """
     print()
     print("="*100)
-    print("[PASO 2]: Configurar banners de inicio de sesión")
+    print("[PASO 4]: Configurar banners de inicio de sesión")
     print("="*100)
     print_info("Esta medida elimina la información del sistema que\n" \
     "       Ubuntu muestra ANTES del login (consola local).")
@@ -339,6 +339,7 @@ def paso5_configurar_gpg():
     "       provenientes de repositorios no autenticados.")
     print()
 
+    
     # 5a. Crear fichero de refuerzo GPG
     contenidoGpg=(
         'APT::Get::AllowUnauthenticated "false";\n'
@@ -477,13 +478,15 @@ def paso7_deshabilitar_servicios():
     "       servicios que no son necesarios para la función del servidor.")
     print()
 
+    paso="Paso 7"
+
     # 7a. Comprobar si el servicio existe
     for servicio in SERVICIOS_INNECESARIOS:
-        resultado=subprocess.run(["systemctl", "is-enabled", servicio], capture_output=True, text=True)
-        estado=resultado.stdout.strip()
+        rc, salida, stderr=ejecutar_comando_check(["systemctl", "is-enabled", servicio])
+        estado=salida.strip()
 
-        if "could not be found" in resultado.stderr or resultado.returncode==1 and estado=="":
-            print_info(f"{servicio} no está instalado.")
+        if "could not be found" in stderr or "No such file" in stderr:
+            print_info(f"{servicio} no está instalado. Se omite.")
             continue
 
         if estado=="masked":
@@ -491,19 +494,19 @@ def paso7_deshabilitar_servicios():
             continue
         
         # 7b. Detener el servicio si está activo
-        resultadoActivo=subprocess.run(["systemctl", "is-active", servicio], capture_output=True, text=True)
+        rc, salida,_=ejecutar_comando_check(["systemctl", "is-active", servicio])
 
-        if resultadoActivo.stdout.strip()=="active":
+        if salida.strip()=="active":
             print_info(f"Deteniendo {servicio}...")
-            ejecutar_comando(["systemctl", "stop", servicio], f"detener {servicio}", "Paso 7")
+            ejecutar_comando(["systemctl", "stop", servicio], f"detener {servicio}", paso)
 
         # 7c. Deshabilitar el servicio
         print_info(f"Deshabilitando {servicio}...")
-        ejecutar_comando(["systemctl", "disable", servicio], f"deshabilitar {servicio}", "Paso 7")
+        ejecutar_comando(["systemctl", "disable", servicio], f"deshabilitar {servicio}", paso)
 
         # 7d. Enmascararlo para mayor protección
         print_info(f"Enmascarando {servicio}...")
-        ejecutar_comando(["systemctl", "mask", servicio], f"enmascarar {servicio}", "Paso 7")
+        ejecutar_comando(["systemctl", "mask", servicio], f"enmascarar {servicio}", paso)
 
         print_correcto(f"{servicio} detenido, deshabilitado y enmascarado.")
     
