@@ -587,11 +587,10 @@ def verificar_paso10():
                 break
                 
 
-    if not encontrado:
-        resultado_warn("SSH: PermitRootLogin no está definido (por defecto permite login).")
+        if not encontrado:
+            resultado_warn("SSH: PermitRootLogin no está definido (por defecto permite login).")
 
     codigoRet, salida, _=ejecutar_comando_check(["getent", "group", "sudo"])
-    
     if codigoRet==0:
         campos=salida.strip().split(":")
         miembros=campos[3] if len(campos) >3 and campos[3] else ""

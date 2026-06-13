@@ -724,7 +724,7 @@ def paso11_asegurar_contrasenas():
     print("="*100)
     print()
     print_info("Esta medida asegura que no existen cuentas con contraseñas vacías o por defecto,\n" \
-    "           y que las cuentas de servicio no pueden iniciar sesión interactivamente.")
+    "       y que las cuentas de servicio no pueden iniciar sesión interactivamente.")
     print()
 
     # 11a. Detectar y bloquear cuentas con contraseña vacía
@@ -792,7 +792,7 @@ def mostrar_menu():
     """
     print()
     print("="*100)
-    print("MÓDULO 2: Hardening General del Sistema Operativo - Ubuntu Server 24.04")
+    print("MÓDULO 2: Hardening General del Sistema Operativo")
     print("="*100)
     print()
     print(" Pasos disponibles:")

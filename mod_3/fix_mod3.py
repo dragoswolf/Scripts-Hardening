@@ -246,7 +246,7 @@ def paso3_configurar_sudo():
             print_info("Contenido actual:")
             print(contenidoActual)
         
-        respuesta=input("¿Sobreescribir con la configuración recomendada? (s/n)").strip().lower()
+        respuesta=input("¿Sobreescribir con la configuración recomendada? (s/n): ").strip().lower()
 
         if respuesta!="s":
             print_info("No se realizaron cambios")
@@ -717,7 +717,7 @@ def paso11_permisos_home():
 def mostar_menu():
     print()
     print("="*100)
-    print("Hardening: Usuarios y Grupos")
+    print("MÓDULO 3: Usuarios y Grupos")
     print("="*100)
     print()
     print(" Pasos disponibles:")
