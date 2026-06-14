@@ -676,9 +676,11 @@ def main():
     verificar_paso15(contenido)
     verificar_paso16(contenido)
     
-    print("#=========================================================================================================")
+    print()
+    print("="*100)
     print("Verificando permisos de sshd_config.")
-    print("#=========================================================================================================")
+    print("="*100)
+    print()
 
     verificar_permisos(SSHD_CONFIG, "600", 0, 0, paso="General")
 
