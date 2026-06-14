@@ -485,7 +485,7 @@ def paso7_deshabilitar_servicios():
         rc, salida, stderr=ejecutar_comando_check(["systemctl", "is-enabled", servicio])
         estado=salida.strip()
 
-        if "could not be found" in stderr or "No such file" in stderr:
+        if rc!=0 and estado not in ("disabled", "masked", "enabled", "static", "indirect", "generated"):
             print_info(f"{servicio} no está instalado. Se omite.")
             continue
 
