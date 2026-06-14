@@ -152,6 +152,8 @@ def paso1_instalar_apparmor():
 
         if rc!=0:
             paquetesFaltantes.append(paquete)
+        else:
+            print_correcto(f"Paquetes {paquete} instalado.")
 
     if paquetesFaltantes:
         print_info(f"Instalando paquetes: {', '.join(paquetesFaltantes)}")
@@ -218,38 +220,15 @@ def paso2_perfiles_adicionales():
         print_correcto(f"Paquetes de perfiles ya instalados: "
               f"{', '.join(PAQUETES_PERFILES)}")
     
-    # 2b. Poner los nuevos perfiles en modo enforce
+
     print()
-    print_info("Poniendo perfiles nuevos en modo enforce...")
+    print_info("Ejecuta el paso 3 para poner todos los módulos en modo 'enforce'.")
     print()
 
-    perfilesComplain=obtener_perfiles_complain()
-    
-    if not perfilesComplain:
-        print_correcto("Todos los perfiles están en modo enforce.")
-    else:
-        errores=0
-        for perfil in perfilesComplain:
-            rc, _, stderr=ejecutar_comando_check(["aa-enforce", perfil])
 
-            if rc != 0:
-                print_correcto(f"{perfil} -> enforce")
-            else:
-                print_error(f"No se pudo cambiar {perfil}:"
-                      f"{stderr.strip()}")
-                registrar_errores(paso, f"No se pudo cambiar {perfil} a enforce: {stderr.strip()}")
-                errores+=1
-            
-        print()
-        cambios=len(perfilesComplain) - errores
-
-        if cambios >0:
-            print_correcto(f"{cambios} perfil(es) adicional(es) en modo enforce.")
-
+    # 2b. Mostrar estado final
     print()
     estado=obtener_estado_apparmor()
-
-    # 2c. Mostrar estado final
     if estado:
         print_info(f"Perfiles cargados:  {estado['loaded']}")
         print_info(f"En modo enforce:    {estado['enforce']}")

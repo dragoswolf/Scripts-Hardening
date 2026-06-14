@@ -679,15 +679,9 @@ def main():
     print()
     print("="*100)
     print("Verificando permisos de sshd_config.")
+    verificar_permisos(SSHD_CONFIG, "600", 0, 0, paso="General")
     print("="*100)
     print()
-
-    verificar_permisos(SSHD_CONFIG, "600", 0, 0, paso="General")
-
-
-
-
-
 
     mostrar_resumen("fix_mod5.py")
 

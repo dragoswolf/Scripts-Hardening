@@ -217,7 +217,7 @@ def paso2_auditoria_filesystem():
 
     # 2b. Ficheros sin propietario válido
     print()
-    print("Buscando icheros sin propietario válido (huérfanos)...")
+    print_info("Buscando ficheros sin propietario válido (huérfanos)...")
     print()
 
     rc, salida, _=ejecutar_comando_check(["find", "/", "-xdev", "-nouser", "-o", "-nogroup", "-not", 
@@ -236,8 +236,8 @@ def paso2_auditoria_filesystem():
 
         print()
         print_info("Revisa estos ficheros manualmente.")
-        print("        Puedes asignarles un propietario con:")
-        print("        sudo chown root:root <fichero>")
+        print_info("Puedes asignarles un propietario con:")
+        print_info("sudo chown root:root <fichero>")
     else:
         print_correcto("No hay ficheros sin propietario válido.")
 
@@ -432,7 +432,7 @@ def paso4_chattr_ficheros():
     print("¿Qué deseas hacer?")
     print()
     print(" 1) Bloquear - Protege contra modificaciones")
-    print(" 2) Desbloquear - Permite gestión de usuarios/grupos")
+    print(" 2) Desbloquear - Permite gestión discos y drives)")
     print(" 0) Saltar este paso")
     print()
 
