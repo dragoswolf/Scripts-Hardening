@@ -700,6 +700,11 @@ def mostar_menu():
     print("     9. Deshabilitar PermitUserEnvironment")
     print("     10. Habilitar PrintLastLog")
     print("     11. Configurar Banner SSH")
+    print("     12. Deshabilitar contraseñas vacías en SSH")
+    print("     13. Deshabilitar login root por SSH")
+    print("     14. Configurar LogLevel")
+    print("     15. Configurar límites de conexión")
+    print("     16. Configurar algoritmos criptográficos.")
     print()
     print("     q. Salir")
     print()
@@ -746,6 +751,21 @@ def main():
                 volver_al_menu()
             case "11":
                 paso11_banner_ssh()
+                volver_al_menu()
+            case "12":
+                paso12_permit_emtpy_passwords()
+                volver_al_menu()
+            case "13":
+                paso13_permit_root_login()
+                volver_al_menu()
+            case "14":
+                paso14_log_level()
+                volver_al_menu()
+            case "15":
+                paso15_limites_conexion()
+                volver_al_menu()
+            case "16":
+                paso16_algoritmos_criptograficos()
                 volver_al_menu()
             case "q":
                 print_info("Saliendo del script.")
