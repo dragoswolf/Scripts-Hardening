@@ -15,11 +15,12 @@
 #   Paso 9: Deshabilitar PermitUserEnvironment
 #   Paso 10: Habilitar PrintLastLog
 #   Paso 11: Configurar Banner SSH
+#   Paso 12: Deshabilitar contraseñas vacías en SSH
+#   Paso 13: Deshabilitar login root por SSH
+#   Paso 14: Configurar LogLevel
+#   Paso 15: Configurar límites de conexión
+#   Paso 16: Configurar algoritmos criptográficos
 #
-# NOTA: Algunas medidas relacionadas con SSH se configuran en otros
-# módulos, pero tiene más sentido dejarlos en esos otros módulos:
-#   - PermitEmptyPasswords -> Módulo 3 - Seguridad en Usuarios (paso 7)
-#   - PermitRootLogin -> Módulo 3 - Seguridad en usuarios (paso 10)
 #
 # IMPORTANTE: Este script debe ejecutarse como root (sudo)
 #
@@ -497,7 +498,7 @@ def paso11_banner_ssh():
     """
     print()
     print("="*100)
-    print("[PASO 10]: Habilitar PrintLastLog")
+    print("[PASO 11]: Configurar Banner SSH")
     print("="*100)
     print_info("Configurar el banner SSH para mostrar a la hora de\n" \
     "autenticarse.")
@@ -515,6 +516,169 @@ def paso11_banner_ssh():
     # 11b. Configurar la directiva Banner
     if configurar_directiva_ssh("Banner", "/etc/issue.net", paso):
         recargar_ssh(paso)
+
+def paso12_permit_emtpy_passwords():
+    """
+    Configura PermitEmptyPasswords para impedir el login SSH con cuentas sin contraseña.
+    """
+    print()
+    print("="*100)
+    print("[PASO 12]: Deshabilitar contraseñas vacías en SSH.")
+    print("="*100)
+    print_info("Impide que los usuarios con contraseña vacía puedan\n" \
+    "       conectarse por SSH.")
+    print()
+
+    paso="Paso 12"
+
+    if configurar_directiva_ssh("PermitEmptyPasswords","no", paso):
+        recargar_ssh(paso)
+
+
+def paso13_permit_root_login():
+    """
+    Configura PermitRootLogin para impedir el acceso directo como root por SSH
+    """
+    print()
+    print("="*100)
+    print("[PASO 13]: Deshabilitar login root por SSH.")
+    print("="*100)
+    print_info("Impide el acceso directo como root por SSH.\n" \
+    "       Los administradores deben conectarse con su cuenta personal\n" \
+    "       y usar sudo para tareas de root.")
+    print()
+
+    paso="Paso 13"
+
+    if configurar_directiva_ssh("PermitRootLogin", "no", paso):
+        recargar_ssh(paso)
+
+
+def paso14_log_level():
+    """
+    Configura LogLevel a INFO para registrar eventos de autenticación
+    """
+    print()
+    print("="*100)
+    print("[PASO 14]: Deshabilitar login root por SSH.")
+    print("="*100)
+    print_info("Establece el nivel de log de SSH a INFO para registrar eventos de\n" \
+    "       autenticación en los logs del sistema.")
+    print()
+
+    paso="Paso 14"
+
+    if configurar_directiva_ssh("LogLevel", "INFO", paso):
+        recargar_ssh(paso)
+
+
+def paso15_limites_conexion():
+    """
+    Configura MaxAuthTries, MaxSessions y MaxStartups para limitar intentos de 
+    autenticación y conexiones simultáneas
+    """
+    print()
+    print("="*100)
+    print("[PASO 15]: Configurar límites de conexión.")
+    print("="*100)
+    print_info("Limita los intentos de autenticación, sesiones simultáneas y\n" \
+    "       conexiones pendientes de autenticar para reducir la efectividad" \
+    "       de ataques de fuerza bruta.")
+    print()
+
+    paso="Paso 15"
+
+    correctos=0
+
+    # 15a. MaxAuthTries
+    print_info("Máximo de intentos de autenticación por conexión. (MaxAuthTries)")
+    if configurar_directiva_ssh("MaxAuthTries", "4", paso):
+        print_correcto("MaxAuthTries configurado.")
+        correctos+=1
+    
+    # 15b. MaxSessions
+    print_info("Máximo de sesiones multiplexadas por conexión. (MaxSessions)")
+    if configurar_directiva_ssh("MaxSessions", "10", paso):
+        print_correcto("MaxSessions configurado.")
+        correctos+=1
+
+    # 15c. MaxStartups
+    print_info("Límite de conexiones sin autenticar. (MaxStartups)")
+    if configurar_directiva_ssh("MaxStartups", "10:30:60", paso):
+        print_correcto("MaxStartups configurado.")
+        correctos+=1
+    
+    if correctos==3:
+        recargar_ssh(paso)
+
+
+def paso16_algoritmos_criptograficos():
+    """
+    "Configura los algoritmos de cifrado, intercambio de claves y MACs permitidos,
+    descartando los considerados débiles u obsoletos.
+    """
+    print()
+    print("="*100)
+    print("[PASO 16]: Configurar algoritmos criptográficos.")
+    print("="*100)
+    print_info("Restringe los algoritmos criptográficos de SSH a los\n" \
+    "       considerados seguros, descartando cifrados débiles.")
+    print()
+
+    paso="Paso 16"
+
+    correctos=0
+
+    # 16a. Cifrados simétricos
+    print_info("Configurando cifrados simétricos permitidos...")
+    ciphers=",".join([
+        "aes128-ctr",
+        "aes192-ctr",
+        "aes256-ctr",
+        "aes128-gcm@openssh.com",
+        "aes256-gcm@openssh.com",
+        "chacha20-poly1305@openssh.com"
+    ])
+    if configurar_directiva_ssh("Ciphers", ciphers, paso):
+        print_correcto("Algoritmos de cifrado simétrico configurados.")
+        correctos+=1
+
+    # 16b. Algoritmos de intercambio de claves
+    print_info("Configurando algoritmos de intercambio de claves...")
+    kex=",".join([
+        "curve25519-sha256",
+        "curve25519-sha256@libssh.org",
+        "diffie-hellman-group14-sha256",
+        "diffie-hellman-group16-sha512",
+        "diffie-hellman-group18-sha512",
+        "diffie-hellman-group-exchange-sha256",
+        "ecdh-sha2-nistp256",
+        "ecdh-sha2-nistp384",
+        "ecdh-sha2-nistp521",
+    ])
+    if configurar_directiva_ssh("KexAlgorithms", kex, paso):
+        print_correcto("Algoritmos de intercambio de claves configurados.")
+        correctos+=1
+
+
+    # 16c. Algoritmos de integridad
+    print_info("Configurando algoritmos de integridad...")
+    macs=",".join([
+        "hmac-sha2-256-etm@openssh.com",
+        "hmac-sha2-512-etm@openssh.com",
+        "hmac-sha2-256",
+        "hmac-sha2-512",
+        "umac-128-etm@openssh.com",
+        "umac-128@openssh.com"
+    ])
+    if configurar_directiva_ssh("MACs", macs, paso):
+        print_correcto("Algoritmos de integridad configurados.")
+        correctos+=1
+    
+    if correctos==3:
+        recargar_ssh(paso)
+    print()
+
 
 
         
