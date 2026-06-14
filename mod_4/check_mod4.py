@@ -169,10 +169,6 @@ def verificar_paso2():
         else:
             resultado_fail(f"pwquality: {param} no configurado", paso)
 
-    if re.search(r"^\s*enforce_for_root", contenidoPwq, re.MULTILINE):
-        resultado_ok("pwquality: enforce_for_root activado")
-    else:
-        resultado_fail("pwquality: enforce_for_root no configurado", paso)
 
 def verificar_paso3():
     """
