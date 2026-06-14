@@ -307,7 +307,8 @@ def paso2_allow_users():
                 if 1000<=uid<65535:
                     usuariosHumanos.append(campos[0])
         if usuariosHumanos:
-            print(f"\n[INFO]: Usuarios humanos del sistema: {', '.join(usuariosHumanos)}")
+            print()
+            print_info(f"Usuarios humanos del sistema: {', '.join(usuariosHumanos)}")
 
     print()
     print_aviso("Si no incluyes tu usuario, perderás acceso SSH.")

@@ -4,17 +4,22 @@
 #=========================================================================================================
 # Este script implementa las siguientes medidas de seguridad:
 #
-#   Paso 1: Verificar el puerto SSH
-#   Paso 2: Verificar acceso por usuarios (AllowUsers/DenyUsers)
-#   Paso 3: Verificar autenticación GSSAPI
-#   Paso 4: Verificar LoginGraceTime
-#   Paso 5: Verificar ClientAliveInterval y ClientAliveCountMax
-#   Paso 6: Verificar HostbasedAuthentication
-#   Paso 7: Verificar IgnoreRhosts
-#   Paso 8: Verificar StrictModes
-#   Paso 9: Verificar PermitUserEnvironment
-#   Paso 10: Verificar PrintLastLog
-#   Paso 11: Verificar Banner SSH configurado
+#   Paso 1:     Verificar el puerto SSH
+#   Paso 2:     Verificar acceso por usuarios (AllowUsers/DenyUsers)
+#   Paso 3:     Verificar autenticación GSSAPI
+#   Paso 4:     Verificar LoginGraceTime
+#   Paso 5:     Verificar ClientAliveInterval y ClientAliveCountMax
+#   Paso 6:     Verificar HostbasedAuthentication
+#   Paso 7:     Verificar IgnoreRhosts
+#   Paso 8:     Verificar StrictModes
+#   Paso 9:     Verificar PermitUserEnvironment
+#   Paso 10:    Verificar PrintLastLog
+#   Paso 11:    Verificar Banner SSH configurado
+#   Paso 12:    Verificar PermitEmptyPasswords
+#   Paso 13:    Verificar PermitRootLogin
+#   Paso 14:    Verificar LogLevel
+#   Paso 15:    Verificar límites de conexión
+#   Paso 16:    Verificar algoritmos criptográficos
 #
 #
 # IMPORTANTE: Este script debe ejecutarse como root (sudo)
@@ -47,6 +52,38 @@ from utils import (configurar_logging,
 SSHD_CONFIG="/etc/ssh/sshd_config"
 
 LOG_FILE="/var/log/hardening/modulo5_check.log"
+
+CIPHERS_INSEGUROS=[
+    "3des-cbc",
+    "aes128-cbc",
+    "aes192-cbc",
+    "aes256-cbc",
+    "blowfish-cbc",
+    "cast128-cbc",
+    "arcfour",
+    "arcfour128",
+    "arcfour256"
+]
+
+KEX_INSEGUROS = [
+    "diffie-hellman-group1-sha1",
+    "diffie-hellman-group14-sha1",
+    "diffie-hellman-group-exchange-sha1"
+]
+
+MACS_INSEGUROS = [
+    "hmac-md5", 
+    "hmac-md5-96", 
+    "hmac-md5-etm@openssh.com",
+    "hmac-md5-96-etm@openssh.com", 
+    "hmac-sha1", 
+    "hmac-sha1-96",
+    "hmac-sha1-etm@openssh.com", 
+    "hmac-sha1-96-etm@openssh.com",
+    "umac-64@openssh.com", 
+    "umac-64-etm@openssh.com"
+]
+
 #=========================================================================================================
 
 #Función auxiliar
@@ -76,6 +113,20 @@ def obtener_directiva_ssh(directiva, contenido):
             return None
     return None
 
+def verificar_algoritmos(tipoAlgo, listaCifrado, contenido, paso):
+
+    valor=obtener_directiva_ssh(tipoAlgo, contenido)
+    if valor is None:
+        resultado_warn(f"{tipoAlgo} no configurado.")
+    else:
+        cifrados=[c.strip() for c in valor.split(",")]
+        inseguros=[c for c in cifrados if c in listaCifrado]
+
+        if inseguros:
+            resultado_fail(f"{tipoAlgo} inseguros detectados: {', '.join(inseguros)}", paso)
+        else:
+            resultado_ok(f"{tipoAlgo}: {len(cifrados)} algoritmo(s) seguro(s).")
+
 
 #Medidas de seguridad
 def verificar_paso1(contenido):
@@ -83,8 +134,7 @@ def verificar_paso1(contenido):
     Verifica que el puerto SSH no es e estándar (22)
 
     Args:
-        contenido (str):    Cadena de configuración que se le añade
-                            al fichero de configuración SSH
+        contenido (str):    Contenido del fichero de configuración de SSH
     """
     print()
     print("="*100)
@@ -116,8 +166,7 @@ def verificar_paso2(contenido):
     Verifica que AllowUsers está configurado para restringir acceso SSH
 
     Args:
-        contenido (str):    Cadena de configuración que se le añade
-                            al fichero de configuración SSH    
+        contenido (str):    Contenido del fichero de configuración de SSH
     """
     print()
     print("="*100)
@@ -143,8 +192,7 @@ def verificar_paso3(contenido):
     Verifica que la autenticación GSSAPI está habilitada
 
     Args:
-        contenido (str):    Cadena de configuración que se le añade
-                            al fichero de configuración SSH
+        contenido (str):    Contenido del fichero de configuración de SSH
     """
     print()
     print("="*100)
@@ -169,8 +217,7 @@ def verificar_paso4(contenido):
     Verifica que LoginGraceTime tiene un valor bajo (<= 60 segundos)
 
     Args:
-        contenido (str):    Cadena de configuración que se le añade
-                            al fichero de configuración SSH
+        contenido (str):    Contenido del fichero de configuración de SSH
     """
     print()
     print("="*100)
@@ -218,8 +265,7 @@ def verificar_paso5(contenido):
     Verifica que los timeouts de sesión SSH están configurados.
 
     Args:
-        contenido (str):    Cadena de configuración que se le añade
-                            al fichero de configuración SSH
+        contenido (str):    Contenido del fichero de configuración de SSH
     """
     print()
     print("="*100)
@@ -267,8 +313,7 @@ def verificar_paso6(contenido):
     Verifica que HostbasedAuthentication está deshabilitado
 
     Args:
-        contenido (str):    Cadena de configuración que se le añade
-                            al fichero de configuración SSH
+        contenido (str):    Contenido del fichero de configuración de SSH
     """
     print()
     print("="*100)
@@ -293,8 +338,7 @@ def verificar_paso7(contenido):
     Verifica que IgnoreRhosts está habilitado
 
     Args:
-        contenido (str):    Cadena de configuración que se le añade
-                            al fichero de configuración SSH
+        contenido (str):    Contenido del fichero de configuración de SSH
     """
     print()
     print("="*100)
@@ -319,8 +363,7 @@ def verificar_paso8(contenido):
     Verifica que StrictModes está habilitado.
 
     Args:
-        contenido (str):    Cadena de configuración que se le añade
-                            al fichero de configuración SSH
+        contenido (str):    Contenido del fichero de configuración de SSH
     """
     print()
     print("="*100)
@@ -345,8 +388,7 @@ def verificar_paso9(contenido):
     Verifica que PermitUserEnvironment está deshabilitado
 
     Args:
-        contenido (str):    Cadena de configuración que se le añade
-                            al fichero de configuración SSH
+        contenido (str):    Contenido del fichero de configuración de SSH
     """
     print()
     print("="*100)
@@ -372,8 +414,7 @@ def verificar_paso10(contenido):
     Verifica que PrintLastLog está habilitado
 
     Args:
-        contenido (str):    Cadena de configuración que se le añade
-                            al fichero de configuración SSH
+        contenido (str):    Contenido del fichero de configuración de SSH
     """
     print()
     print("="*100)
@@ -397,6 +438,9 @@ def verificar_paso11(contenido):
     """
     Verifica que la directiva Banner apunta a /etc/issue.net
     y que el fichero existe.
+
+    Args:
+        contenido (str):    Contenido del fichero de configuración de SSH
     """
     print()
     print("="*100)
@@ -419,6 +463,171 @@ def verificar_paso11(contenido):
         resultado_ok("Banner = /etc/issue.net")
     else:
         resultado_warn(f"Banner = {valor} (esperado /etc/issue.net)")
+
+
+def verificar_paso12(contenido):
+    """
+    Verifica que PermitEmptypasswords está deshabilitado.
+
+    Args:
+        contenido (str):    Contenido del fichero de configuración de SSH
+    """
+    print()
+    print("="*100)
+    print("[PASO 12]: Verificar PermitEmptyPasswords.")
+    print("="*100)
+    print()
+
+    paso="Paso 12"
+
+    valor=obtener_directiva_ssh("PermitEmptyPasswords", contenido)
+
+    if valor is None:
+        #Por defecto es "no"
+        resultado_ok("PermitEmptyPasswords no configurado (por defecto es no).")
+    elif valor.lower()=="no":
+        resultado_ok("PermitEmptyPasswords = no")
+    else:
+        resultado_fail("PermitEmptyPasswords no es 'no'.\n" \
+        "       Es posible que se permitan contraseñas vacías por SSH", paso)
+
+
+def verificar_paso12(contenido):
+    """
+    Verifica que PermitRootLogin está deshabilitado
+
+    Args:
+        contenido (str):    Contenido del fichero de configuración de SSH
+    """
+    print()
+    print("="*100)
+    print("[PASO 13]: Verificar PermitRootLogin.")
+    print("="*100)
+    print()
+
+    paso="Paso 13"
+
+    valor=obtener_directiva_ssh("PermitRootLogin", contenido)
+
+    if valor is None:
+        resultado_warn("PermitRootLogin no configurado explícitamente.")
+    elif valor.lower() == "no":
+        resultado_ok("PermitRootLogin = no")
+    elif valor.lower()== "prohibit-password":
+        resultado_warn("PermitRootLogin = prohibit password (recomendado 'no')")
+    else:
+        resultado_fail(f"PermitRootLogin = {valor} (acceso root por SSH permitido)", paso)
+
+
+def verificar_paso14(contenido):
+    """
+    Verifica que LogLevel está configurado a INFO o superior
+
+    Args:
+        contenido (str):    Contenido del fichero de configuración de SSH
+    """
+    print()
+    print("="*100)
+    print("[PASO 14]: Verificar LogLevel.")
+    print("="*100)
+    print()
+
+    paso="Paso 14"
+
+    valor=obtener_directiva_ssh("LogLevel", contenido)
+
+    nivelesAceptables=["INFO", "VERBOSE"]
+
+    if valor is None:
+        resultado_ok("LogLevel no configurado (por defecto: INFO)")
+    elif valor.upper() in nivelesAceptables:
+        resultado_ok(f"LogLevel = {valor}")
+    else:
+        resultado_fail(f"LogLevel = {valor} (esperado INFO o VERBOSE)", paso)
+
+
+def verificar_paso15(contenido):
+    """
+    Verifica límites de conexión
+
+    Args:
+        contenido (str):    Contenido del fichero de configuración de SSH
+    """
+    print()
+    print("="*100)
+    print("[PASO 15]: Verificar límites de conexión.")
+    print("="*100)
+    print()
+
+    paso="Paso 15"
+
+    listaAlgos={
+        "Cipher": CIPHERS_INSEGUROS,
+        "KexAlgorithm": KEX_INSEGUROS,
+        "MACs": MACS_INSEGUROS
+    }
+
+    for algo, lista in listaAlgos:
+        verificar_algoritmos(algo, lista, contenido, paso)
+
+
+def verificar_paso16(contenido):
+    """
+    Verifica límites de conexión
+
+    Args:
+        contenido (str):    Contenido del fichero de configuración de SSH
+    """
+    print()
+    print("="*100)
+    print("[PASO 15]: Verificar límites de conexión.")
+    print("="*100)
+    print()
+
+    paso="Paso 16"
+
+
+    # 16a Ciphers
+    valor=obtener_directiva_ssh("Ciphers", contenido)
+    if valor is None:
+        resultado_warn("Ciphers no configurado.")
+    else:
+        cifrados=[c.strip() for c in valor.split(",")]
+        inseguros=[c for c in cifrados if c in CIPHERS_INSEGUROS]
+
+        if inseguros:
+            resultado_fail(f"Ciphers inseguros detectados: {', '.join(inseguros)}", paso)
+        else:
+            resultado_ok(f"Ciphers: {len(cifrados)} algoritmo(s) seguro(s).")
+
+    # 16b. KexAlgorithms
+    valor=obtener_directiva_ssh("KexAlgorithms", contenido)
+    if valor is None:
+        resultado_warn("KexAlgorithms no configurado.")
+    else:
+        kex=[k.strip() for k in valor.split(",")]
+        inseguros=[k for k in kex if k in KEX_INSEGUROS]
+
+        if inseguros:
+            resultado_fail(f"KexAlgorithms inseguros detectados: {', '.join(inseguros)}", paso)
+        else:
+            resultado_ok(f"KexAlgorithms: {len(cifrados)} algoritmo(s) seguro(s).")
+
+
+    # 16c MACs
+    valor=obtener_directiva_ssh("MACs", contenido)
+    if valor is None:
+        resultado_warn("MACs no configurado.")
+    else:
+        macs=[m.strip() for m in valor.split(",")]
+        inseguros=[m for m in macs if m in MACS_INSEGUROS]
+
+        if inseguros:
+            resultado_fail(f"MACs inseguros detectados: {', '.join(inseguros)}", paso)
+        else:
+            resultado_ok(f"MACs: {len(cifrados)} algoritmo(s) seguro(s).")
+
+
 
 
 
