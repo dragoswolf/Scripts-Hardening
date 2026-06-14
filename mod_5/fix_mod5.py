@@ -198,6 +198,9 @@ def paso1_cambiar_puertos():
             print_correcto("OpenSSH server instalado correctamente. Inicializando el demonio...")
             if ejecutar_comando(["systemctl", "start", "ssh"], "instalar servicio SSH", paso):
                 print_correcto("Servicio SSH inicializado correctamente.")
+                print_info("Habilitando servicio SSH...")
+                if ejecutar_comando(["systemctl", "enable", "ssh"], "habilitar ssh", paso):
+                    print_correcto("Servicio SSH habilitado correctamente.")
             else:
                 print_error("Error al iniciar el servicio SSH.")
             print()

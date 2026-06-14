@@ -153,7 +153,7 @@ def paso1_instalar_apparmor():
         if rc!=0:
             paquetesFaltantes.append(paquete)
         else:
-            print_correcto(f"Paquetes {paquete} instalado.")
+            print_correcto(f"Paquete {paquete} instalado.")
 
     if paquetesFaltantes:
         print_info(f"Instalando paquetes: {', '.join(paquetesFaltantes)}")
