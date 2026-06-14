@@ -616,8 +616,8 @@ def verificar_paso16(contenido):
     paso="Paso 16"
 
     listaAlgos={
-        "Cipher": CIPHERS_INSEGUROS,
-        "KexAlgorithm": KEX_INSEGUROS,
+        "Ciphers": CIPHERS_INSEGUROS,
+        "KexAlgorithms": KEX_INSEGUROS,
         "MACs": MACS_INSEGUROS
     }
 
