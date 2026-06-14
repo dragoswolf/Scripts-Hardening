@@ -492,7 +492,7 @@ def verificar_paso12(contenido):
         "       Es posible que se permitan contraseñas vacías por SSH", paso)
 
 
-def verificar_paso12(contenido):
+def verificar_paso13(contenido):
     """
     Verifica que PermitRootLogin está deshabilitado
 
@@ -672,6 +672,11 @@ def main():
     verificar_paso9(contenido)
     verificar_paso10(contenido)
     verificar_paso11(contenido)
+    verificar_paso12(contenido)
+    verificar_paso13(contenido)
+    verificar_paso14(contenido)
+    verificar_paso15(contenido)
+    verificar_paso16(contenido)
     verificar_permisos(SSHD_CONFIG, "600", 0, 0, paso="General")
 
 
