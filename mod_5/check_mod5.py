@@ -561,71 +561,69 @@ def verificar_paso15(contenido):
 
     paso="Paso 15"
 
-    listaAlgos={
-        "Cipher": CIPHERS_INSEGUROS,
-        "KexAlgorithm": KEX_INSEGUROS,
-        "MACs": MACS_INSEGUROS
-    }
+    # 15a. MaxAuthTries
+    valor=obtener_directiva_ssh("MaxAuthTries", contenido)
+    if valor is None:
+        resultado_warn("MaxAuthTries no configurado.")
+    else:
+        try:
+            num=int(valor)
+            if num<=4:
+                resultado_ok(f"MaxAuthTries = {num}")
+            else:
+                resultado_fail(f"MaxAuthTries = {num} (esperado <= 4).", paso)
+        except ValueError:
+            resultado_warn(f"MaxAuthTries = {valor} (valor no numérico).")
 
-    for algo, lista in listaAlgos:
-        verificar_algoritmos(algo, lista, contenido, paso)
+    # 15b. MaxSessions
+    valor=obtener_directiva_ssh("MaxSessions", contenido)
+    if valor is None:
+        resultado_warn("MaxSessions no configurado.")
+    else:
+        try:
+            num=int(valor)
+            if num<=10:
+                resultado_ok(f"MaxSessions = {num}")
+            else:
+                resultado_fail(f"MaxSessions = {num} (esperado <= 10)", paso)
+        except ValueError:
+            resultado_warn(f"MaxSessions = {valor} (valor no numérico)")
+
+    # 15c. MaxStartups
+    valor=obtener_directiva_ssh("MaxStartups", contenido)
+    if valor is None:
+        resultado_warn("MaxStartups no configurado.")
+    else:
+        resultado_ok(f"MaxStartups = {valor}")
+
+
 
 
 def verificar_paso16(contenido):
     """
-    Verifica límites de conexión
+    Verifica que los algoritmos criptográficos configurados no incluyen
+    ninguno considerado inseguro
 
     Args:
         contenido (str):    Contenido del fichero de configuración de SSH
     """
     print()
     print("="*100)
-    print("[PASO 15]: Verificar límites de conexión.")
+    print("[PASO 16]: Verificar algoritmos criptográficos.")
     print("="*100)
     print()
 
     paso="Paso 16"
 
+    listaAlgos={
+        "Cipher": CIPHERS_INSEGUROS,
+        "KexAlgorithm": KEX_INSEGUROS,
+        "MACs": MACS_INSEGUROS
+    }
 
-    # 16a Ciphers
-    valor=obtener_directiva_ssh("Ciphers", contenido)
-    if valor is None:
-        resultado_warn("Ciphers no configurado.")
-    else:
-        cifrados=[c.strip() for c in valor.split(",")]
-        inseguros=[c for c in cifrados if c in CIPHERS_INSEGUROS]
+    for algo, lista in listaAlgos.items():
+        verificar_algoritmos(algo, lista, contenido, paso)
 
-        if inseguros:
-            resultado_fail(f"Ciphers inseguros detectados: {', '.join(inseguros)}", paso)
-        else:
-            resultado_ok(f"Ciphers: {len(cifrados)} algoritmo(s) seguro(s).")
-
-    # 16b. KexAlgorithms
-    valor=obtener_directiva_ssh("KexAlgorithms", contenido)
-    if valor is None:
-        resultado_warn("KexAlgorithms no configurado.")
-    else:
-        kex=[k.strip() for k in valor.split(",")]
-        inseguros=[k for k in kex if k in KEX_INSEGUROS]
-
-        if inseguros:
-            resultado_fail(f"KexAlgorithms inseguros detectados: {', '.join(inseguros)}", paso)
-        else:
-            resultado_ok(f"KexAlgorithms: {len(cifrados)} algoritmo(s) seguro(s).")
-
-
-    # 16c MACs
-    valor=obtener_directiva_ssh("MACs", contenido)
-    if valor is None:
-        resultado_warn("MACs no configurado.")
-    else:
-        macs=[m.strip() for m in valor.split(",")]
-        inseguros=[m for m in macs if m in MACS_INSEGUROS]
-
-        if inseguros:
-            resultado_fail(f"MACs inseguros detectados: {', '.join(inseguros)}", paso)
-        else:
-            resultado_ok(f"MACs: {len(cifrados)} algoritmo(s) seguro(s).")
 
 
 
@@ -678,6 +676,9 @@ def main():
     verificar_paso15(contenido)
     verificar_paso16(contenido)
     verificar_permisos(SSHD_CONFIG, "600", 0, 0, paso="General")
+
+
+
 
 
 
