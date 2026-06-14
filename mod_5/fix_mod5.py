@@ -186,7 +186,18 @@ def paso1_cambiar_puertos():
 
     paso="Paso 1"
 
-    # 1a. Mostrar el puerto actual
+    # 1a. Comprueba si SSH está instalado, de lo contrario, lo instala
+    if not os.path.isfile(SSHD_CONFIG):
+        print_info("OpenSSH Server no está instalado. Instalando...")
+        if not ejecutar_comando(["apt", "install", "-y", "openssh-server"], "instalar openssh-server", paso, mostrarSalida=True):
+            if not os.path.isfile(SSHD_CONFIG):
+                print_error("No se pudo instalar OpenSSH server.")
+                return
+        else:
+            print_correcto("OpenSSH server instalado correctamente.")
+            print()
+
+    # 1b. Mostrar el puerto actual
     contenido=leer_fichero(SSHD_CONFIG, paso=paso)
     if contenido is None:
         registrar_errores(paso, f"No se pudo leer {SSHD_CONFIG}.")
