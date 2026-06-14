@@ -194,7 +194,11 @@ def paso1_cambiar_puertos():
                 print_error("No se pudo instalar OpenSSH server.")
                 return
         else:
-            print_correcto("OpenSSH server instalado correctamente.")
+            print_correcto("OpenSSH server instalado correctamente. Inicializando el demonio...")
+            if ejecutar_comando(["systemctl", "start", "ssh"], "instalar servicio SSH", paso):
+                print_correcto("Servicio SSH inicializado correctamente.")
+            else:
+                print_error("Error al iniciar el servicio SSH.")
             print()
 
     # 1b. Mostrar el puerto actual
@@ -253,8 +257,8 @@ def paso1_cambiar_puertos():
     if configurar_directiva_ssh("Port", str(puerto), paso):
         recargar_ssh(paso)
         print()
-        print(f"[IMPORTANTE]: Recuerda conectarte con: ssh -p {puerto} usuario@servidor")
-        print(f"[IMPORTANTE]: Actualiza las reglas del firewall si es necesario.")
+        print_info(f"Recuerda conectarte con: ssh -p {puerto} usuario@servidor")
+        print_info(f"Actualiza las reglas del firewall si es necesario.")
 
 
 def paso2_allow_users():
