@@ -404,7 +404,7 @@ def paso6_envejecimiento_contrasenas():
     print("="*100)
     print("[PASO 6]: Envejecimiento de contraseñas en usuarios existentes.")
     print("="*100)
-    print_info("Aplica con chge la política de caducidad a los usuarios existentes.")
+    print_info("Aplica con chage la política de caducidad a los usuarios existentes.")
     print()
 
     contenido=leer_fichero(PASSWD_FILE, paso="Paso 6")
@@ -433,7 +433,7 @@ def paso6_envejecimiento_contrasenas():
 
     # 6b. Aplicar cambios a usuarios humanos
     for usuario in usuariosHumanos:
-        if ejecutar_comando(["chage", "-m", "90", "-M", "7", "-W", "14", usuario], f"aplicar política de contraseñas a {usuario}", paso="Paso 6"):
+        if ejecutar_comando(["chage", "-M", "90", "-m", "7", "-W", "14", usuario], f"aplicar política de contraseñas a {usuario}", paso="Paso 6"):
             print_correcto(f"Política aplicada a {usuario}")
 
 
@@ -445,8 +445,8 @@ def paso7_cuentas_sin_contrasena():
     print("="*100)
     print("[PASO 7]: Deshabilitar cuentas sin contraseña.")
     print("="*100)
-    print_info("Busca cuentas con contraseña vacñia en /etc/shadow y las bloquea.\n" \
-    "       También verifica que SSH no permita contraseñas vacías")
+    print_info("Busca cuentas con contraseña vacía en /etc/shadow y las bloquea.\n" \
+    "       También verifica que SSH no permita contraseñas vacías.")
     print()
 
     contenido=leer_fichero(SHADOW_FILE, paso="Paso 7")
