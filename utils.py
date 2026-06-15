@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 #=======================================================================================================
-#Funciones comunes para los scripts de hardening
+# Funciones comunes para los scripts de hardening
 #=======================================================================================================
-#Este módulo centraliza las funciones auxiliares que se repiten en los scripts de verificación
-#y correción de cada módulo.
+# Este módulo centraliza las funciones auxiliares que se repiten en los scripts de verificación
+# y correción de cada módulo.
 #
 # USO:
 #   Desde cualquier script de módulo
@@ -57,7 +57,7 @@ def print_correcto(mensaje):
     """
     print(f"{_VERDE}[CORRECTO]{_RESET} {mensaje}")
 
-def print_error(mensaje):
+def print_error(mensaje, paso=None):
     """
     Imprime un mensaje con etiqueta [ERROR] en rojo.
     
@@ -65,6 +65,9 @@ def print_error(mensaje):
         mensaje(str): Mensaje a imprimir.
     """
     print(f"{_ROJO}[ERROR]{_RESET} {mensaje}")
+    if paso:
+        registrar_errores(paso, mensaje)
+
 
 def print_info(mensaje):
     """
@@ -111,8 +114,6 @@ def registrar_errores(paso, mensaje):
     """
     textoLog=f"[{paso}] {mensaje}"
     logging.error(textoLog)
-    print_error(mensaje)
-
 
 
 # ASEGURAR USO DE SUDO
@@ -180,13 +181,13 @@ def ejecutar_comando(comando, descripcion, paso="General", capturarSalida=False,
         mensajeError=(f"Fallo al {descripcion}: " 
                         f"Comando: {' '.join(comando)} | " 
                         f"Error: {errorTexto}")
-        registrar_errores(paso, mensajeError)
+        print_error(mensajeError, paso)
         return False
     except FileNotFoundError:
         #Si el ejecutable no existe en el sistema.
         mensajeError=(f"Comando no encontrado: {comando[0]}. " 
                         f"Asegúrate de que está instalado.")
-        registrar_errores(paso, mensajeError)
+        print_error(mensajeError, paso)
         return False
 
 
@@ -218,10 +219,10 @@ def escribir_fichero(ruta, contenido, permisos=None, paso="General"):
             os.chmod(ruta, permisos)
         return True
     except PermissionError:
-        registrar_errores(paso, f"[ERROR]: Sin permisos para escribir en {ruta}")
+        print_error(f"Sin permisos para escribir en {ruta}.", paso)
         return False
     except Exception as e:
-        registrar_errores(paso, f"[ERROR]: No se puede escribir en {ruta}: {e}")
+        print_error(f"No se puede escribir en {ruta}: {e}", paso)
         return False
     
 def leer_fichero(ruta, paso="General"):
@@ -242,10 +243,11 @@ def leer_fichero(ruta, paso="General"):
             return f.read()
     except FileNotFoundError:
         #El fichero no existe en el sistema
+        print_error(f"El fichero {ruta} no existe.", paso)
         return None
     except PermissionError:
         #No tenemos permisos para leer el fichero
-        registrar_errores   (paso, f"[ERROR]: Sin permisos para leer {ruta}")
+        print_error(f"Sin permisos para leer {ruta}.", paso)
         return None
 
 
@@ -279,13 +281,13 @@ def cambiar_permisos(ruta, permisos=None, propietario=None, grupo=None, paso="Ge
             os.chown(ruta, uid, gid)
         return True
     except FileNotFoundError:
-        registrar_errores(paso, f"Fichero no encontrado: {ruta}")
+        print_error(f"Fichero no encontrado: {ruta}.", paso)
         return False
     except PermissionError:
-        registrar_errores(paso, f"Sin permisos para modificar {ruta}")
+        print_error(f"Sin permisos para modificar {ruta}.", paso)
         return False
     except Exception as e:
-        registrar_errores(paso, f"No se pudieron cambiar permisos de {ruta}: {e}")
+        print_error(f"No se pudieron cambiar permisos de {ruta}: {e}.", paso)
         return False
 
 def pedir_input_doble(mensaje, ocultar=False):
@@ -452,7 +454,7 @@ def resultado_ok(mensaje):
 
     print(f"    \033[92m[CORRECTO]:\033[0m {mensaje}")
 
-def resultado_fail(mensaje, paso="General"):
+def resultado_fail(mensaje, paso=None):
     """
     Registra una verificación fallida y muestra el resultado en rojo.
     
@@ -465,8 +467,9 @@ def resultado_fail(mensaje, paso="General"):
     contadores["totalChecks"]+=1
     contadores["checksFail"]+=1
 
-    print(f"    \033[91m[ERROR]:\033[0m {mensaje}")
-    registrar_errores(paso, mensaje)
+    print(f"    {_ROJO}[ERROR]:{_RESET} {mensaje}")
+    if paso:
+        registrar_errores(paso, mensaje)
 
 def resultado_warn(mensaje):
     """
