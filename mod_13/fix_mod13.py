@@ -851,10 +851,14 @@ def paso6_restaurar():
         puntoMontaje="/mnt/backup_externo"
         os.makedirs(puntoMontaje, exist_ok=True)
 
-        rc,_,stderr=ejecutar_comando_check(["mount", dispositivo, puntoMontaje])
-        if rc!=0:
-            print_error(f"No se pudo montar {dispositivo}: {stderr.strip()}")
-            return
+        rc, salida,_=ejecutar_comando_check(["mountpoint", "-q", puntoMontaje])
+        if rc==0:
+            print_info(f"{puntoMontaje} ya está montado.")
+        else:
+            rc,_,stderr=ejecutar_comando_check(["mount", dispositivo, puntoMontaje])
+            if rc!=0:
+                print_error(f"No se pudo montar {dispositivo}: {stderr.strip()}")
+                return
         
         print_correcto(f"Dispositivo montado en {puntoMontaje}")
 
