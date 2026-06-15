@@ -22,7 +22,6 @@ import subprocess
 import logging
 import getpass
 import time
-import termios
 
 #=======================================================================================================
 # GLOBALES
@@ -191,22 +190,6 @@ def ejecutar_comando(comando, descripcion, paso="General", capturarSalida=False,
         print_error(mensajeError, paso)
         return False
 
-def limpiar_stdin():
-    try:
-        termios.tcflush(sys.stdin, termios.TCIFLUSH)
-    except:
-        pass
-
-def restaurar_terminal(terminal_original):
-    """
-    Restaura el estado del terminal tras subprocesos que lo corrompen
-    """
-    if terminal_original:
-        try:
-            termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, terminal_original)
-            termios.tcflush(sys.stdin, termios.TCIFLUSH)
-        except:
-            pass
 
 
 def volver_al_menu():

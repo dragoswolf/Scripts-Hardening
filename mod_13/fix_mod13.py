@@ -41,8 +41,6 @@ from utils import (configurar_logging,
                    print_correcto, 
                    print_error,
                    print_info,
-                   limpiar_stdin,
-                   restaurar_terminal
                    )
 
 
@@ -820,13 +818,6 @@ def paso6_restaurar():
 
     paso="Paso 6"
 
-    #Guardar estado original de la terminal
-    try:
-        fd=sys.stdin.fileno()
-        terminal_original=termios.tcgeattr(fd)
-    except:
-        terminal_original=None
-
     # 6a. Verificar requisitos
     if not os.path.isdir(BACKUP_DIR):
         print_error("Directorio de backups no existe.")
@@ -918,6 +909,25 @@ def paso6_restaurar():
     if resp.lower() != "s":
         print_info("Restauración cancelada.")
         return
+    
+
+    restaurarPaquetes=False
+    restaurarUsuarios=False
+    restaurarExtra=False
+    
+    if os.path.isfile(pkgFile):
+        resp=input("¿Restaurar paquetes instalados? (Puede tardar bastante) (s/n): ").strip()
+        restaurarPaquetes(resp.lower()=="s")
+    
+    completosUsr=glob.glob(os.path.join(BACKUP_DIR, "backup_extra_completo_*.tar.gz.gpg"))
+    if completosUsr:
+        resp=input("¿Restaurar datos de usuarios? (s/n): ").strip()
+        restaurarUsuarios=(resp.lower()=="s")
+    
+    completosExt=glob.glob(os.path.join(BACKUP_DIR, "backup_extra_completo_*.tar.gz.gpg"))
+    if completosExt:
+        resp=input("¿Restaurar datos extra? (s/n): ").strip()
+        restaurarExtra=(resp.lower()=="s")
 
 
     # 6b. Restaurar sistema (obligatorio)
@@ -926,36 +936,24 @@ def paso6_restaurar():
     if restaurar_backup("sistema", passphrase):
         # Restaurar paquetes si existe la lista
         pkgFile= "/var/backups/hardening/paquetes_instalados.txt"
-        if os.path.isfile(pkgFile):
+        if os.path.isfile(pkgFile) and restaurarPaquetes:
             print()
-            resp = input("¿Restaurar paquetes instalados? (esto puede tardar bastante tiempo) (s/n): ").strip()
-            if resp.lower()=="s":
-                #Actualizando lista de paquetes
-                print_info("Actualizando lista de paquetes...")
-                subprocess.run(["apt-get", "update", "-y"], stdin=subprocess.DEVNULL)
-                #Instalando paquetes
-                print_info("Restaurando paquetes...")
-                subprocess.run(["bash", "-c", f"dpkg --set-selections < {pkgFile}"], stdin=subprocess.DEVNULL)
+            #Actualizando lista de paquetes
+            print_info("Actualizando lista de paquetes...")
+            ejecutar_comando(["apt-get", "update", "-y"], "actualizar lista de paquetes", paso, mostrarSalida=True)
 
-                os.environ["DEBIAN_FRONTEND"]="noninteractive"
-<<<<<<< HEAD
-                subprocess.run(["apt-get", "-o", "Dpkg::Options::=--force-confold", "-f", "install", "-y"], stdin=subprocess.DEVNULL)
-                rc=subprocess.run(["apt-get", "-o", "Dpkg::Options::=--force-confold", "dselect-upgrade", "-y"], stdin=subprocess.DEVNULL)
+            #Instalando paquetes
+            print_info("Restaurando paquetes...")
+            rc1,_,_=ejecutar_comando_check(["bash", "-c", f"dpkg --set-selections < {pkgFile}"])
 
-                del os.environ["DEBIAN_FRONTEND"]
+            os.environ["DEBIAN_FRONTEND"]="noninteractive"
+            ejecutar_comando(["apt-get", "-o", "Dpkg::Options::=--force-confold", "-f", "install", "-y"], "reparar dependencias", paso, mostrarSalida=True)
+            if rc1!=0 or not ejecutar_comando(["apt-get","-o", "Dpkg::Options::=--force-confold", "dselect-upgrade", "-y"], "restaurar paquetes", paso, mostrarSalida=True):
+                print_error("Error al restaurar paquetes.", paso)
+            else:
+                print_correcto("Paquetes restaurados.")
+            del os.environ["DEBIAN_FRONTEND"]
 
-                if rc.returncode==0:
-=======
-                if rc1!=0 or not ejecutar_comando(["apt-get", "dselect-upgrade", "-y"], "restaurar paquetes", paso, mostrarSalida=True):
-                    print_error("Error al restaurar paquetes.", paso)
-                    del os.environ["DEBIAN_FRONTEND"]
-                else:
->>>>>>> parent of 4333fb7 (Arreglado bug de update de paquetes)
-                    print_correcto("Paquetes restaurados.")
-                else:
-                    print_error("Error al restaurar paquetes", paso)
-
-    limpiar_stdin()
 
     print()
 
@@ -963,7 +961,6 @@ def paso6_restaurar():
     print("[2/3] Restaurando backup de usuarios (/home)...")
     completos_usr = glob.glob(os.path.join(BACKUP_DIR,"backup_usuarios_completo_*.tar.gz.gpg"))
     if completos_usr:
-        restaurar_terminal(terminal_original)
         resp = input("¿Restaurar datos de usuarios? (s/n): ").strip()
         if resp.lower()=="s":
             if restaurar_backup("usuarios", passphrase):
@@ -975,17 +972,13 @@ def paso6_restaurar():
     else:
         print_info("No hay backup de usuarios disponible.")
     print()
-    limpiar_stdin()
 
     # 6d. Restaurar extra (opcional)
     print("[3/3] Restaurando backup rutas adicionales...")
     completos_ext = glob.glob(os.path.join(BACKUP_DIR, "backup_extra_completo_*.tar.gz.gpg"))
     if completos_ext:
-        limpiar_stdin()
-        restaurar_terminal(terminal_original)
         resp = input("¿Restaurar datos extra? (s/n): ").strip()
         if resp.lower()=="s":
-
             if restaurar_backup("extra", passphrase):
                 print_correcto("Backup de datos extra restaurado correctamente.")
             else:
@@ -995,7 +988,6 @@ def paso6_restaurar():
     else:
         print_info("No hay backup extra disponible.")
     
-    limpiar_stdin()
 
     print()
     print_correcto("Restauración finalizada.")
