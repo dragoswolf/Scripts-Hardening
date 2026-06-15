@@ -933,7 +933,7 @@ def paso6_restaurar():
                 rc1,_,_=ejecutar_comando_check(["bash", "-c", f"dpkg --set-selections < {pkgFile}"])
 
                 os.environ["DEBIAN_FRONTEND"]="noninteractive"
-                if rc1!=0 or not ejecutar_comando(["apt-get", "dselect-upgrade", "-y"], "restaurar paquetes", paso, mostrarSalida=True):
+                if rc1!=0 or not ejecutar_comando(["apt-get","-o", "Dpkg::Options::=--force-confold", "dselect-upgrade", "-y"], "restaurar paquetes", paso, mostrarSalida=True):
                     print_error("Error al restaurar paquetes.", paso)
                     del os.environ["DEBIAN_FRONTEND"]
                 else:
