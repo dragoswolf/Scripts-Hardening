@@ -923,7 +923,7 @@ def paso6_restaurar():
                 rc1,_,_=ejecutar_comando_check(["bash", "-c", f"dpkg --set-selections < {pkgFile}"])
 
                 if rc1!=0 or not ejecutar_comando(["apt", "dselect-upgrade", "-y"], "restaurar paquetes", paso, mostrarSalida=True):
-                    print_error("Error al restaurar paquetes.")
+                    print_error("Error al restaurar paquetes.", paso)
                     registrar_errores(paso, "Error al restaurar paquetes")
                 else:
                     print_correcto("Paquetes restaurados.")
