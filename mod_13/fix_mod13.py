@@ -866,19 +866,20 @@ def paso6_restaurar():
 
         # Preguntar nombre carpeta donde están los backups dentro de la unidad externa
         print()
-        carpeta=input("Carpeta de backups en el dispositivo externo (dejar vacío para 'hardening'): ").strip()
+        carpeta=input("Carpeta de backups en el dispositivo externo: ").strip()
         if not carpeta:
-            carpeta="hardening"
+            print_error("No se especificó carpeta.")
+            return
 
         rutaUSB=os.path.join(puntoMontaje, carpeta)
+
+        if os.path.isdir(os.path.join(rutaUSB, "hardening")):
+            rutaUSB=os.path.join(rutaUSB, "hardening")
+            print_info("Subcarpeta 'hardening' detectada automáticamente.")
+
         if not os.path.isdir(rutaUSB):
-            #Busca ficheros en la carpeta indicada
-            backupsEnRaiz=glob.glob(os.path.join(puntoMontaje, "backup_*.tar.gz.gpg"))
-            if backupsEnRaiz:
-                rutaUSB=puntoMontaje
-            else:
-                print_error(f"No se encontraron backups en '{carpeta}' ni en la raíz del dispositivo externo.")
-                return
+            print_error(f"No se encontraron backups en '{carpeta}' en el dispositivo.")
+            return
         
         #Copiar backups al directorio local
         print_info(f"Copiando backups desde {rutaUSB}...")
