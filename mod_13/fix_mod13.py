@@ -911,15 +911,17 @@ def paso6_restaurar():
         return
     
 
+    
+    pkgFile= "/var/backups/hardening/paquetes_instalados.txt"
     restaurarPaquetes=False
     restaurarUsuarios=False
     restaurarExtra=False
     
     if os.path.isfile(pkgFile):
         resp=input("¿Restaurar paquetes instalados? (Puede tardar bastante) (s/n): ").strip()
-        restaurarPaquetes(resp.lower()=="s")
+        restaurarPaquetes=(resp.lower()=="s")
     
-    completosUsr=glob.glob(os.path.join(BACKUP_DIR, "backup_extra_completo_*.tar.gz.gpg"))
+    completosUsr=glob.glob(os.path.join(BACKUP_DIR, "backup_usuarios_completo_*.tar.gz.gpg"))
     if completosUsr:
         resp=input("¿Restaurar datos de usuarios? (s/n): ").strip()
         restaurarUsuarios=(resp.lower()=="s")
@@ -935,7 +937,6 @@ def paso6_restaurar():
     print("[1/3] Restaurando backup de sistema...")
     if restaurar_backup("sistema", passphrase):
         # Restaurar paquetes si existe la lista
-        pkgFile= "/var/backups/hardening/paquetes_instalados.txt"
         if os.path.isfile(pkgFile) and restaurarPaquetes:
             print()
             #Actualizando lista de paquetes
@@ -953,41 +954,39 @@ def paso6_restaurar():
             else:
                 print_correcto("Paquetes restaurados.")
             del os.environ["DEBIAN_FRONTEND"]
+        else:
+            print_aviso("Restauración de paquetes omitida.")
 
 
     print()
 
     # 6c. Restaurar usuarios (opcional)
     print("[2/3] Restaurando backup de usuarios (/home)...")
-    completos_usr = glob.glob(os.path.join(BACKUP_DIR,"backup_usuarios_completo_*.tar.gz.gpg"))
-    if completos_usr:
-        resp = input("¿Restaurar datos de usuarios? (s/n): ").strip()
-        if resp.lower()=="s":
-            if restaurar_backup("usuarios", passphrase):
-                print_correcto("Backup de datos de usuarios restaurada.")
-            else:
-                print_error("Error al restaurar backup de datos de usuarios.")
+    if completosUsr and restaurarUsuarios:
+        if restaurar_backup("usuarios", passphrase):
+            print_correcto("Backup de datos de usuarios restaurada.")
         else:
-            print_info("Backup de usuarios omitido.")
-    else:
+            print_error("Error al restaurar backup de datos de usuarios.")
+    elif not completosUsr:
         print_info("No hay backup de usuarios disponible.")
+    else:
+        print_info("Restauración de usuarios omitida.")
     print()
+
 
     # 6d. Restaurar extra (opcional)
     print("[3/3] Restaurando backup rutas adicionales...")
-    completos_ext = glob.glob(os.path.join(BACKUP_DIR, "backup_extra_completo_*.tar.gz.gpg"))
-    if completos_ext:
-        resp = input("¿Restaurar datos extra? (s/n): ").strip()
-        if resp.lower()=="s":
-            if restaurar_backup("extra", passphrase):
-                print_correcto("Backup de datos extra restaurado correctamente.")
-            else:
-                print_error("Error al restaurar backup de datos extra.")
+    if completosExt and restaurarExtra:
+        if restaurar_backup("extra", passphrase):
+            print_correcto("Backup de datos extra restaurado correctamente.")
         else:
-            print_info("Backup rutas adicionales omitido.")
-    else:
+            print_error("Error al restaurar backup de datos extra.")
+    elif not completosExt:
         print_info("No hay backup extra disponible.")
+    else:
+        print_info("Backup rutas adicionales omitido.")
     
+
 
     print()
     print_correcto("Restauración finalizada.")
