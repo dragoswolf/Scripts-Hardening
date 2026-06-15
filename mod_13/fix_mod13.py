@@ -23,6 +23,7 @@ import sys
 import time
 import glob
 import hashlib
+from getpass import getpass
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from utils import (configurar_logging, 
@@ -890,7 +891,7 @@ def paso6_restaurar():
            
     passphrase = obtener_passphrase()
     if not passphrase:
-        passphrase = input("Contraseña de descifrado: ").strip()
+        passphrase = getpass("Contraseña de descifrado: ").strip()
         if not passphrase:
             print_error("Se necesita contraseña para restaurar.")
             return
