@@ -905,6 +905,7 @@ def paso6_restaurar():
     print_aviso("La restauración sobreescribirá ficheros existentes.")
     print_aviso("Asegúrate de que estás en un sistema recién instalado o que sabes lo que estás haciendo. ")
     print()
+    print_aviso("EL SISTEMA SE REINICIARÁ AUTOMÁTICAMENTE. ASEGURAR QUE NO TIENE PROCESOS EN MARCHA ANTES DE COMENZAR LA RESTAURACIÓN.")
     resp=input("¿Continuar con la restauración? (s/n): ").strip()
     if resp.lower() != "s":
         print_info("Restauración cancelada.")
@@ -954,8 +955,10 @@ def paso6_restaurar():
             else:
                 print_correcto("Paquetes restaurados.")
             del os.environ["DEBIAN_FRONTEND"]
+        elif not restaurarPaquetes:
+            print_info("Restauración de paquetes omitida.")
         else:
-            print_aviso("Restauración de paquetes omitida.")
+            print_error(f"No se han podido restaurar los paquetes. El fichero {pkgFile} no existe.")
 
 
     print()
@@ -990,7 +993,8 @@ def paso6_restaurar():
 
     print()
     print_correcto("Restauración finalizada.")
-    print_info("Es recomendable reiniciar el servidor: sudo systemctl daemon-reload && sudo reboot")
+    print_info("Reiniciando...")
+    ejecutar_comando_check(["bash", "-c", "systemctl daemon-reload && reboot -f"])
     print()
 
 
