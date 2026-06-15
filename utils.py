@@ -197,6 +197,17 @@ def limpiar_stdin():
     except:
         pass
 
+def restaurar_terminal(terminal_original):
+    """
+    Restaura el estado del terminal tras subprocesos que lo corrompen
+    """
+    if terminal_original:
+        try:
+            termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, terminal_original)
+            termios.tcflush(sys.stdin, termios.TCIFLUSH)
+        except:
+            pass
+
 
 def volver_al_menu():
     """

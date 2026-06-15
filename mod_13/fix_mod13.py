@@ -24,6 +24,7 @@ import time
 import glob
 import hashlib
 import subprocess
+import termios
 from getpass import getpass
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -40,7 +41,8 @@ from utils import (configurar_logging,
                    print_correcto, 
                    print_error,
                    print_info,
-                   limpiar_stdin
+                   limpiar_stdin,
+                   restaurar_terminal
                    )
 
 
@@ -818,6 +820,13 @@ def paso6_restaurar():
 
     paso="Paso 6"
 
+    #Guardar estado original de la terminal
+    try:
+        fd=sys.stdin.fileno()
+        terminal_original=termios.tcgeattr(fd)
+    except:
+        terminal_original=None
+
     # 6a. Verificar requisitos
     if not os.path.isdir(BACKUP_DIR):
         print_error("Directorio de backups no existe.")
@@ -947,6 +956,7 @@ def paso6_restaurar():
     print("[2/3] Restaurando backup de usuarios (/home)...")
     completos_usr = glob.glob(os.path.join(BACKUP_DIR,"backup_usuarios_completo_*.tar.gz.gpg"))
     if completos_usr:
+        restaurar_terminal(terminal_original)
         resp = input("¿Restaurar datos de usuarios? (s/n): ").strip()
         if resp.lower()=="s":
             if restaurar_backup("usuarios", passphrase):
@@ -965,8 +975,10 @@ def paso6_restaurar():
     completos_ext = glob.glob(os.path.join(BACKUP_DIR, "backup_extra_completo_*.tar.gz.gpg"))
     if completos_ext:
         limpiar_stdin()
+        restaurar_terminal(terminal_original)
         resp = input("¿Restaurar datos extra? (s/n): ").strip()
         if resp.lower()=="s":
+
             if restaurar_backup("extra", passphrase):
                 print_correcto("Backup de datos extra restaurado correctamente.")
             else:
