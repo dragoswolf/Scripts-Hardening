@@ -927,7 +927,7 @@ def paso6_restaurar():
     print()
 
     # 6c. Restaurar usuarios (opcional)
-    print("[2/3] Backup de usuarios (/home)...")
+    print("[2/3] Restaurando backup de usuarios (/home)...")
     completos_usr = glob.glob(os.path.join(BACKUP_DIR,"backup_usuarios_completo_*.tar.gz.gpg"))
     if completos_usr:
         resp = input("¿Restaurar datos de usuarios? (s/n): ").strip()
@@ -944,7 +944,7 @@ def paso6_restaurar():
     print()
 
     # 6d. Restaurar extra (opcional)
-    print("[3/3] Backup extra...")
+    print("[3/3] Restaurando backup rutas adicionales...")
     completos_ext = glob.glob(os.path.join(BACKUP_DIR, "backup_extra_completo_*.tar.gz.gpg"))
     if completos_ext:
         resp = input("¿Restaurar datos extra? (s/n): ").strip()
@@ -955,7 +955,7 @@ def paso6_restaurar():
                 print_error("Error al restaurar backup de datos extra.")
                 registrar_errores(paso, "Error al restaurar backup de datos extra.")
         else:
-            print_info("Backup extra omitido.")
+            print_info("Backup rutas adicionales omitido.")
     else:
         print_info("No hay backup extra disponible.")
 
