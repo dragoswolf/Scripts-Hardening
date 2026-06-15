@@ -938,12 +938,19 @@ def paso6_restaurar():
                 subprocess.run(["bash", "-c", f"dpkg --set-selections < {pkgFile}"], stdin=subprocess.DEVNULL)
 
                 os.environ["DEBIAN_FRONTEND"]="noninteractive"
+<<<<<<< HEAD
                 subprocess.run(["apt-get", "-o", "Dpkg::Options::=--force-confold", "-f", "install", "-y"], stdin=subprocess.DEVNULL)
                 rc=subprocess.run(["apt-get", "-o", "Dpkg::Options::=--force-confold", "dselect-upgrade", "-y"], stdin=subprocess.DEVNULL)
 
                 del os.environ["DEBIAN_FRONTEND"]
 
                 if rc.returncode==0:
+=======
+                if rc1!=0 or not ejecutar_comando(["apt-get", "dselect-upgrade", "-y"], "restaurar paquetes", paso, mostrarSalida=True):
+                    print_error("Error al restaurar paquetes.", paso)
+                    del os.environ["DEBIAN_FRONTEND"]
+                else:
+>>>>>>> parent of 4333fb7 (Arreglado bug de update de paquetes)
                     print_correcto("Paquetes restaurados.")
                 else:
                     print_error("Error al restaurar paquetes", paso)
