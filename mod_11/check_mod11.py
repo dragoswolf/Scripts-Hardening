@@ -108,8 +108,8 @@ def verificar_paso1():
                     else:
                         resultado_fail(f"Postfix escucha en: {valor}. Debería ser 'loopback-only'.", paso)
                     break
-                else:
-                    resultado_fail(f"Directiva inet-interfaces no encontrada en {POSTFIX_CONF}", paso)
+            else:
+                resultado_fail(f"Directiva inet-interfaces no encontrada en {POSTFIX_CONF}", paso)
     else:
         resultado_ok("Postfix no está instalado. No requiere configuración.")
 
