@@ -919,6 +919,10 @@ def paso6_restaurar():
             print()
             resp = input("¿Restaurar paquetes instalados? (esto puede tardar bastante tiempo) (s/n): ").strip()
             if resp.lower()=="s":
+                #Actualizando lista de paquetes
+                print_info("Actualizando lista de paquetes...")
+                ejecutar_comando(["apt-get", "update", "-y"], "actualizar lista de paquetes", paso, mostrarSalida=True)
+                #Instalando paquetes
                 print_info("Restaurando paquetes...")
                 rc1,_,_=ejecutar_comando_check(["bash", "-c", f"dpkg --set-selections < {pkgFile}"])
 
