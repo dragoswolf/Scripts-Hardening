@@ -911,15 +911,14 @@ def paso6_restaurar():
         return
     
 
-    
-    pkgFile= "/var/backups/hardening/paquetes_instalados.txt"
+
     restaurarPaquetes=False
     restaurarUsuarios=False
     restaurarExtra=False
     
-    if os.path.isfile(pkgFile):
-        resp=input("¿Restaurar paquetes instalados? (Puede tardar bastante) (s/n): ").strip()
-        restaurarPaquetes=(resp.lower()=="s")
+   
+    resp=input("¿Restaurar paquetes instalados? (Puede tardar bastante) (s/n): ").strip()
+    restaurarPaquetes=(resp.lower()=="s")
     
     completosUsr=glob.glob(os.path.join(BACKUP_DIR, "backup_usuarios_completo_*.tar.gz.gpg"))
     if completosUsr:
@@ -937,7 +936,8 @@ def paso6_restaurar():
     print("[1/3] Restaurando backup de sistema...")
     if restaurar_backup("sistema", passphrase):
         # Restaurar paquetes si existe la lista
-        if os.path.isfile(pkgFile) and restaurarPaquetes:
+        pkgFile= "/var/backups/hardening/paquetes_instalados.txt"
+        if restaurarPaquetes and os.path.isfile(pkgFile):
             print()
             #Actualizando lista de paquetes
             print_info("Actualizando lista de paquetes...")
