@@ -876,7 +876,7 @@ def paso6_restaurar():
         #Copiar backups al directorio local
         print_info(f"Copiando backups desde {rutaUSB}...")
         os.makedirs(BACKUP_DIR, exist_ok=True)
-        rc,_, stderr=ejecutar_comando_check(["cp", "-r"] + glob.glob(os.path.join(rutaUSB, "*")) +[BACKUP_DIR])
+        rc,_, stderr=ejecutar_comando_check(["bash", "-c", f"cp -r {rutaUSB}/* {BACKUP_DIR}/"])
         if rc!=0:
             print_error(f"Error al copiar: {stderr.strip()}")
             return
