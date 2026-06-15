@@ -23,6 +23,7 @@ import sys
 import time
 import glob
 import hashlib
+import subprocess
 from getpass import getpass
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -346,9 +347,7 @@ def restaurar_backup(nombre, passphrase):
         True si se restauró correctamente, False en caso de error.
     """
     # Buscar último completo
-    completos=sorted(glob.glob(
-    os.path.join(BACKUP_DIR, f"backup_{nombre}_completo_*.tar.gz.gpg")
-    ))
+    completos=sorted(glob.glob(os.path.join(BACKUP_DIR, f"backup_{nombre}_completo_*.tar.gz.gpg")))
     if not completos:
         print_aviso(f"No hay backup completo de '{nombre}'.")
         return False
@@ -358,18 +357,18 @@ def restaurar_backup(nombre, passphrase):
 
     # Descifrar
     tarFile = ultimo_completo.replace(".gpg", "")
-    rc, _, stderr = ejecutar_comando_check(["gpg", "--batch", "--quiet", "--decrypt", "--passphrase", passphrase,"--output", tarFile, ultimo_completo])
+    rc=subprocess.run(["gpg", "--batch", "--quiet", "--decrypt", "--passphrase", passphrase, "--output", tarFile, ultimo_completo], stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
-    if rc != 0:
-        print_error(f"Fallo al descifrar: {stderr.strip()[:200]}")
+    if rc.returncode != 0:
+        print_error(f"Fallo al descifrar: {rc.stderr.strip()[:200]}")
         return False
 
     # Extraer
-    rc, _, stderr = ejecutar_comando_check(["tar", "--listed-incremental=/dev/null", "--overwrite", "-xzf",tarFile, "-C", "/"])
+    rc=subprocess.run(["tar", "--listed-incremental=/dev/null", "--overwrite", "-xzf", tarFile, "-C", "/"], stdin=subprocess.DEVNULL, capture_output=True, text=True)
     os.remove(tarFile)
 
-    if rc != 0:
-        print_error(f"Fallo al extraer: {stderr.strip()[:200]}")
+    if rc.returncode != 0:
+        print_error(f"Fallo al extraer: {rc.stderr.strip()[:200]}")
         return False
 
     print_correcto("Completo restaurado.")
@@ -383,14 +382,14 @@ def restaurar_backup(nombre, passphrase):
         if ultimo_dif>ultimo_completo:
             print_info(f"Aplicando diferencial: {os.path.basename(ultimo_dif)}")
             tarFile= ultimo_dif.replace(".gpg","")
-            rc,_,_= ejecutar_comando_check(["gpg", "--batch", "--quiet", "--decrypt","--passphrase", passphrase,"--output", tarFile, ultimo_dif])
-            if rc== 0:
-                rc, _,stderr=ejecutar_comando_check(["tar", "--listed-incremental=/dev/null", "--overwrite","-xzf", tarFile, "-C", "/"])
-                if rc==0:
+            rc=subprocess.run(["gpg", "--batch", "--quiet", "--decrypt", "--passphrase", passphrase, "--output", tarFile, ultimo_dif], stdin=subprocess.DEVNULL, capture_output=True, text=True)
+            if rc.returncode== 0:
+                rc=subprocess.run(["tar", "--listed-incremental=/dev/null", "--overwrite", "-xzf", tarFile, "-C", "/"], stdin=subprocess.DEVNULL, capture_output=True, text=True)
+                if rc.returncode==0:
                     os.remove(tarFile)
                     print_correcto("Diferencial aplicado.")
                 else:
-                    print_error(f"Fallo al aplicar el diferencial: {stderr.strip()[:200]}")
+                    print_error(f"Fallo al aplicar el diferencial: {rc.stderr.strip()[:200]}")
             else:
                 print_aviso("No se pudo descifrar el diferencial.")
     return True
@@ -962,6 +961,7 @@ def paso6_restaurar():
     print("[3/3] Restaurando backup rutas adicionales...")
     completos_ext = glob.glob(os.path.join(BACKUP_DIR, "backup_extra_completo_*.tar.gz.gpg"))
     if completos_ext:
+        limpiar_stdin()
         resp = input("¿Restaurar datos extra? (s/n): ").strip()
         if resp.lower()=="s":
             if restaurar_backup("extra", passphrase):
