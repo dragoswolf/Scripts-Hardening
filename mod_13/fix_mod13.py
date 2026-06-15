@@ -913,15 +913,17 @@ def paso6_restaurar():
         pkgFile= "/var/backups/hardening/paquetes_instalados.txt"
         if os.path.isfile(pkgFile):
             print()
-            resp = input("¿Restaurar paquetes instalados? (s/n): ").strip()
+            resp = input("¿Restaurar paquetes instalados? (esto puede tardar bastante tiempo) (s/n): ").strip()
             if resp.lower()=="s":
                 print_info("Restaurando paquetes...")
                 rc1,_,_=ejecutar_comando_check(["bash", "-c", f"dpkg --set-selections < {pkgFile}"])
-                rc2,_,_=ejecutar_comando_check(["apt-get", "dselect-upgrade", "-y"])
-                if rc1!=0 or rc2 !=0:
+
+                #rc2,_,_=ejecutar_comando_check(["apt-get", "dselect-upgrade", "-y"])
+                if rc1!=0 or not ejecutar_comando(["apt", "dselect-upgrade", "-y"], "restaurar paquetes", paso, mostrarSalida=True):
                     print_error("Error al restaurar paquetes.")
                     registrar_errores(paso, "Error al restaurar paquetes")
-                print("Paquetes restaurados.")
+                else:
+                    print("Paquetes restaurados.")
     print()
 
     # 6c. Restaurar usuarios (opcional)
