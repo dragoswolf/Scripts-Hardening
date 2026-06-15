@@ -848,19 +848,25 @@ def paso6_restaurar():
             return
 
         # Montar dispositivo
-        puntoMontaje="/mnt/backup_externo"
-        os.makedirs(puntoMontaje, exist_ok=True)
-
-        rc, salida,_=ejecutar_comando_check(["mountpoint", "-q", puntoMontaje])
-        if rc==0:
-            print_info(f"{puntoMontaje} ya está montado.")
+        puntoMontaje=None
+        rc, salida, _=ejecutar_comando_check(["findmnt", "-n", "-o", "TARGET", dispositivo])
+        if rc==0 and salida.strip():
+            puntoMontaje=salida.strip()
+            print_info(f"Dispositivo ya montado en {puntoMontaje}")
         else:
-            rc,_,stderr=ejecutar_comando_check(["mount", dispositivo, puntoMontaje])
-            if rc!=0:
-                print_error(f"No se pudo montar {dispositivo}: {stderr.strip()}")
-                return
-        
-        print_correcto(f"Dispositivo montado en {puntoMontaje}")
+            puntoMontaje="/mnt/backup_externo"
+            os.makedirs(puntoMontaje, exist_ok=True)
+
+            rc, salida,_=ejecutar_comando_check(["mountpoint", "-q", puntoMontaje])
+            if rc==0:
+                print_info(f"{puntoMontaje} ya está montado.")
+            else:
+                rc,_,stderr=ejecutar_comando_check(["mount", dispositivo, puntoMontaje])
+                if rc!=0:
+                    print_error(f"No se pudo montar {dispositivo}: {stderr.strip()}")
+                    return
+                   
+        print_correcto(f"Dispositivo disponible en {puntoMontaje}")
 
         # Preguntar nombre carpeta donde están los backups dentro de la unidad externa
         print()
@@ -926,10 +932,14 @@ def paso6_restaurar():
                 print_info("Restaurando paquetes...")
                 rc1,_,_=ejecutar_comando_check(["bash", "-c", f"dpkg --set-selections < {pkgFile}"])
 
+                os.environ["DEBIAN_FRONTEND"]="noninteractive"
                 if rc1!=0 or not ejecutar_comando(["apt-get", "dselect-upgrade", "-y"], "restaurar paquetes", paso, mostrarSalida=True):
                     print_error("Error al restaurar paquetes.", paso)
+                    del os.environ["DEBIAN_FRONTEND"]
                 else:
                     print_correcto("Paquetes restaurados.")
+                    del os.environ["DEBIAN_FRONTEND"]
+
     print()
 
     # 6c. Restaurar usuarios (opcional)
