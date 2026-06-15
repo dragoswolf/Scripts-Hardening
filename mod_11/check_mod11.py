@@ -23,14 +23,14 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from utils import (configurar_logging,
                    comprobar_root,
                    ejecutar_comando_check,
-                   volver_al_menu,
                    resultado_fail,
                    resultado_ok,
                    resultado_warn,
                    registrar_errores,
                    contadores,
                    mostrar_resumen,
-                   verificar_antiguedad)
+                   verificar_antiguedad,
+                   leer_fichero)
 
 
 #=========================================================================================================
@@ -40,6 +40,7 @@ from utils import (configurar_logging,
 LOG_FILE="/var/log/hardening/modulo11_check.log"
 
 AIDE_CONF="/etc/aide/aide.conf"
+POSTFIX_CONF="/etc/postfix/main.cf"
 AIDE_DB="/var/lib/aide/aide.db"
 AIDE_DB_NEW="/var/lib/aide/aide.db.new"
 CRON_AIDE="/etc/cron.daily/aide-check"
@@ -94,6 +95,23 @@ def verificar_paso1():
         resultado_ok("Fichero de configuración existe (/etc/aide/aide.conf).")
     else:
         resultado_warn("Fichero /etc/aide/aide.conf no encontrado.")
+
+    # 1e Verificar que Postfix solo escucha en loopback
+    if os.path.isfile(POSTFIX_CONF):
+        contenido=leer_fichero(POSTFIX_CONF)
+        if contenido is not None:
+            for linea in contenido.splitlines():
+                if linea.strip().startswith("inet_interfaces"):
+                    valor=linea.split("=", 1)[1].strip()
+                    if valor == "loopback-only":
+                        resultado_ok("Postfix configurado para escuchar solo en loopback.")
+                    else:
+                        resultado_fail(f"Postfix escucha en: {valor}. Debería ser 'loopback-only'.", paso)
+                    break
+                else:
+                    resultado_fail(f"Directiva inet-interfaces no encontrada en {POSTFIX_CONF}", paso)
+    else:
+        resultado_ok("Postfix no está instalado. No requiere configuración.")
 
 
 def verificar_paso2():
