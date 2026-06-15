@@ -923,18 +923,19 @@ def paso6_restaurar():
             if resp.lower()=="s":
                 #Actualizando lista de paquetes
                 print_info("Actualizando lista de paquetes...")
-                ejecutar_comando(["apt-get", "update", "-y"], "actualizar lista de paquetes", paso, mostrarSalida=True)
+                subprocess.run(["apt-get", "update", "-y"], stdin=subprocess.DEVNULL)
                 #Instalando paquetes
                 print_info("Restaurando paquetes...")
-                rc1,_,_=ejecutar_comando_check(["bash", "-c", f"dpkg --set-selections < {pkgFile}"])
+                subprocess.run(["bash", "-c", f"dpkg --set-selections < {pkgFile}"], stdin=subprocess.DEVNULL)
 
                 os.environ["DEBIAN_FRONTEND"]="noninteractive"
-                if rc1!=0 or not ejecutar_comando(["apt-get","-o", "Dpkg::Options::=--force-confold", "dselect-upgrade", "-y"], "restaurar paquetes", paso, mostrarSalida=True):
-                    print_error("Error al restaurar paquetes.", paso)
-                    del os.environ["DEBIAN_FRONTEND"]
-                else:
+                rc=subprocess.run(["apt-get", "-o", "Dpkg::Options::=--force-confold", "dselect-upgrade", "-y"], stdin=subprocess.DEVNULL)
+                del os.environ["DEBIAN_FRONTEND"]
+
+                if rc.returncode==0:
                     print_correcto("Paquetes restaurados.")
-                    del os.environ["DEBIAN_FRONTEND"]
+                else:
+                    print_error("Error al restaurar paquetes", paso)
 
     limpiar_stdin()
 
