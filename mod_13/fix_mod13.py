@@ -409,7 +409,7 @@ def verificar_gpg(paso="General"):
 
     rc,_,_=ejecutar_comando_check(["which", "gpg"])
     if rc==0:
-        print_correcto["GPG ya está instalado."]
+        print_correcto("GPG ya está instalado.")
         return True
     
     print_info("GPG no está instalado. Instalando gnupg...")
