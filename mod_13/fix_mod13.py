@@ -924,7 +924,6 @@ def paso6_restaurar():
 
                 if rc1!=0 or not ejecutar_comando(["apt", "dselect-upgrade", "-y"], "restaurar paquetes", paso, mostrarSalida=True):
                     print_error("Error al restaurar paquetes.", paso)
-                    registrar_errores(paso, "Error al restaurar paquetes")
                 else:
                     print_correcto("Paquetes restaurados.")
     print()
