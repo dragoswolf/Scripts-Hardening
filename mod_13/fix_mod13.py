@@ -397,6 +397,32 @@ def restaurar_backup(nombre, passphrase):
     return True
 
 
+def verificar_gpg(paso="General"):
+    """
+    Verifica que GPG está instalado y lo instala si no lo está
+
+    Args:
+        paso (str): Paso concreto en el que se ejecuta esta función
+    Return:
+        bool: True si GPG está disponible, False si no se pudo instalar
+    """
+
+    rc,_,_=ejecutar_comando_check(["which", "gpg"])
+    if rc==0:
+        print_correcto["GPG ya está instalado."]
+        return True
+    
+    print_info("GPG no está instalado. Instalando gnupg...")
+    ejecutar_comando(["apt", "install", "-y", "gnupg"], "instalando gnupg", paso, mostrarSalida=True)
+    if rc==0:
+        print_correcto("GPG instalado correctamente.")
+        return True
+    else:
+        print_error("No se pudo instalar GPG")
+        registrar_errores(paso, "No se pudo instalar gnupg")
+        return False
+
+
 
 def paso1_configurar():
     """
@@ -412,23 +438,25 @@ def paso1_configurar():
 
     paso="Paso 1"
 
-    # 1a. Crear directorio de backups 
+    # 1a. Verificar/Instalar GPG
+
+    # 1b. Crear directorio de backups 
     if not os.path.isdir(BACKUP_DIR):
         ejecutar_comando(["mkdir", "-p", BACKUP_DIR], f"crear {BACKUP_DIR}", paso)
         print_correcto(f"Directorio creado: {BACKUP_DIR}")
     else:
         print_correcto(f"Directorio ya existe: {BACKUP_DIR}")
 
-    # 1b. Asegurar permisos
+    # 1c. Asegurar permisos
     cambiar_permisos(BACKUP_DIR, permisos=0o700,propietario=0, grupo=0, paso=paso)
     print_correcto("Permisos 700 (solo root).")
 
-    # 1c. Crear directorio de configuración 
+    # 1d. Crear directorio de configuración 
     confDir = os.path.dirname(BACKUP_CONF)
     if not os.path.isdir(confDir):
         ejecutar_comando(["mkdir", "-p", confDir],f"crear {confDir}",paso)
 
-    # 1d. Configurar clave GPG
+    # 1e. Configurar clave GPG
     print()
     if os.path.isfile(GPG_KEY_FILE):
         print_info("Ya existe una contraseña de cifrado configurada.")
@@ -445,7 +473,7 @@ def paso1_configurar():
     print_info("Atención. Se recomienda una contraseña de mínimo 8 caracteres.")
     passphrase=pedir_input_doble("Contraseña de cifrado", ocultar=True)
     
-    #1e.Guardar clave GPG
+    #1f.Guardar clave GPG
     escribir_fichero(GPG_KEY_FILE, passphrase + "\n", permisos=0o600, paso=paso)
     cambiar_permisos(GPG_KEY_FILE, propietario=0, grupo=0, paso=paso)
     print_correcto("Contraseña de cifrado configurada.")
@@ -796,8 +824,70 @@ def paso6_restaurar():
     # 6a. Verificar requisitos
     if not os.path.isdir(BACKUP_DIR):
         print_error("Directorio de backups no existe.")
-        return
+        print()
+        resp=input("¿Restaurar desde un dispositivo externo? (s/n): ").strip()
+        if resp.lower()!="s":
+            print_info("Restauración cancelada.")
+            return
+        
+        #Mostrar dispositivos disponibles
+        print()
+        print_info("Dispositivos detectados:")
+        print()
 
+        rc, salida,_=ejecutar_comando_check(["lsblk", "-o", "NAME,SIZE,TYPE,MOUNTPOINT,LABEL", "-p"])
+        if rc==0:
+            for linea in salida.splitlines():
+                print(f"    {linea}")
+            print()
+        
+        dispositivo=input("Dispositivo a montar (ej: /dev/sdb1): ").strip()
+        if not dispositivo:
+            print_error("No se especificó dispositivo.")
+            return
+
+        # Montar dispositivo
+        puntoMontaje="/mnt/backup_externo"
+        os.makedirs(puntoMontaje, exist_ok=True)
+
+        rc,_,stderr=ejecutar_comando_check(["mount", dispositivo, puntoMontaje])
+        if rc!=0:
+            print_error(f"No se pudo montar {dispositivo}: {stderr.strip()}")
+            return
+        
+        print_correcto(f"Dispositivo montado en {puntoMontaje}")
+
+        # Preguntar nombre carpeta donde están los backups dentro de la unidad externa
+        print()
+        carpeta=input("Carpeta de backups en el dispositivo externo (dejar vacío para 'hardening'): ").strip()
+        if not carpeta:
+            carpeta="hardening"
+
+        rutaUSB=os.path.join(puntoMontaje, carpeta)
+        if not os.path.isdir(rutaUSB):
+            #Busca ficheros en la carpeta indicada
+            backupsEnRaiz=glob.glob(os.path.join(puntoMontaje, "backup_*.tar.gz.gpg"))
+            if backupsEnRaiz:
+                rutaUSB=puntoMontaje
+            else:
+                print_error(f"No se encontraron backups en '{carpeta}' ni en la raíz del dispositivo externo.")
+                return
+        
+        #Copiar backups al directorio local
+        print_info(f"Copiando backups desde {rutaUSB}...")
+        os.makedirs(BACKUP_DIR, exist_ok=True)
+        rc,_, stderr=ejecutar_comando_check(["cp", "-r"] + glob.glob(os.path.join(rutaUSB, "*")) +[BACKUP_DIR])
+        if rc!=0:
+            print_error(f"Error al copiar: {stderr.strip()}")
+            return
+        
+        if cambiar_permisos(BACKUP_DIR, permisos=0o700, propietario=0, grupo=0, paso=paso) and rc==0:
+            print_correcto(f"Backups copiados a {BACKUP_DIR}")
+            print_info(f"El dispositivo sigue montado. Si desea desmontarlo use 'sudo umount {puntoMontaje}'.")
+
+    if not verificar_gpg(paso):
+        return
+           
     passphrase = obtener_passphrase()
     if not passphrase:
         passphrase = input("Contraseña de descifrado: ").strip()
