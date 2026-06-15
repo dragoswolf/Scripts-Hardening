@@ -27,7 +27,6 @@ from getpass import getpass
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from utils import (configurar_logging, 
-                   registrar_errores, 
                    comprobar_root,
                    ejecutar_comando, 
                    ejecutar_comando_check,
@@ -39,7 +38,8 @@ from utils import (configurar_logging,
                    print_aviso, 
                    print_correcto, 
                    print_error,
-                   print_info
+                   print_info,
+                   limpiar_stdin
                    )
 
 
@@ -269,8 +269,7 @@ def hacer_backup(nombre, rutas, passphrase, tipo="completo"):
     rc, _, stderr = ejecutar_comando_check(comando)
     if rc != 0 and rc != 1:
         # rc=1 es "files changed during archive", aceptable
-        print_error(f"Error al crear tar: {stderr.strip()[:200]}")
-        registrar_errores("Backup", f"Error tar {nombre}: {stderr.strip()[:200]}")
+        print_error(f"Error al crear tar: {stderr.strip()[:200]}", "Backup")
         return None
 
     # Guardar .snar del completo como referencia
@@ -282,8 +281,7 @@ def hacer_backup(nombre, rutas, passphrase, tipo="completo"):
     rc, _, stderr = ejecutar_comando_check(["gpg", "--batch", "--yes", "--symmetric","--cipher-algo", "AES256","--passphrase", passphrase,"--output", gpgFile, tarFile])
 
     if rc != 0:
-        print_error(f"Error al cifrar: {stderr.strip()[:200]}")
-        registrar_errores("Backup", f"Error GPG {nombre}: {stderr.strip()[:200]}")
+        print_error(f"Error al cifrar: {stderr.strip()[:200]}", "Backup")
         return None
 
     # Eliminar tar sin cifrar
@@ -419,8 +417,7 @@ def verificar_gpg(paso="General"):
         print_correcto("GPG instalado correctamente.")
         return True
     else:
-        print_error("No se pudo instalar GPG")
-        registrar_errores(paso, "No se pudo instalar gnupg")
+        print_error("No se pudo instalar GPG", paso)
         return False
 
 
@@ -940,6 +937,8 @@ def paso6_restaurar():
                     print_correcto("Paquetes restaurados.")
                     del os.environ["DEBIAN_FRONTEND"]
 
+    limpiar_stdin()
+
     print()
 
     # 6c. Restaurar usuarios (opcional)
@@ -952,12 +951,12 @@ def paso6_restaurar():
                 print_correcto("Backup de datos de usuarios restaurada.")
             else:
                 print_error("Error al restaurar backup de datos de usuarios.")
-                registrar_errores(paso, "Error al restaurar backup de datos de usuarios.")
         else:
             print_info("Backup de usuarios omitido.")
     else:
         print_info("No hay backup de usuarios disponible.")
     print()
+    limpiar_stdin()
 
     # 6d. Restaurar extra (opcional)
     print("[3/3] Restaurando backup rutas adicionales...")
@@ -969,11 +968,12 @@ def paso6_restaurar():
                 print_correcto("Backup de datos extra restaurado correctamente.")
             else:
                 print_error("Error al restaurar backup de datos extra.")
-                registrar_errores(paso, "Error al restaurar backup de datos extra.")
         else:
             print_info("Backup rutas adicionales omitido.")
     else:
         print_info("No hay backup extra disponible.")
+    
+    limpiar_stdin()
 
     print()
     print_correcto("Restauración finalizada.")
