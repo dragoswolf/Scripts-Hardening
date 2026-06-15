@@ -929,7 +929,9 @@ def paso6_restaurar():
                 subprocess.run(["bash", "-c", f"dpkg --set-selections < {pkgFile}"], stdin=subprocess.DEVNULL)
 
                 os.environ["DEBIAN_FRONTEND"]="noninteractive"
+                subprocess.run(["apt-get", "-o", "Dpkg::Options::=--force-confold", "-f", "install", "-y"], stdin=subprocess.DEVNULL)
                 rc=subprocess.run(["apt-get", "-o", "Dpkg::Options::=--force-confold", "dselect-upgrade", "-y"], stdin=subprocess.DEVNULL)
+
                 del os.environ["DEBIAN_FRONTEND"]
 
                 if rc.returncode==0:
