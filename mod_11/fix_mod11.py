@@ -42,6 +42,7 @@ from utils import (configurar_logging,
 LOG_FILE="/var/log/hardening/modulo11_fix.log"
 
 AIDE_CONF="/etc/aide/aide.conf"
+POSTFIX_CONF="/etc/postfix/main.cf"
 AIDE_DB="/var/lib/aide/aide.db"
 AIDE_DB_NEW="/var/lib/aide/aide.db.new"
 CRON_AIDE="/etc/cron.daily/aide-check"
@@ -121,7 +122,31 @@ def paso1_instalar_aide():
 
         print()
 
-        # 1b. Verificar que el binario existe
+        # 1b. Configurar Postfix (dependencia de AIDE) para solo escuchar en localhost
+        if os.path.isfile(POSTFIX_CONF):
+            print_info("Configurando Postfix para escuchar solo en localhost...")
+            contenido=leer_fichero(POSTFIX_CONF)
+            
+            if contenido is not None:
+                nuevasLineas=[]
+                encontrado=False
+                for linea in contenido.splitlines():
+                    if linea.strip().startswith("inet_interfaces"):
+                        nuevasLineas.append("inet_interfaces = loopback-only")
+                        encontrado=True
+                    else:
+                        nuevasLineas.append(linea)
+                
+                if not encontrado:
+                    nuevasLineas.append("inet_interfaces = loopback-only")
+                
+                escribir_fichero(POSTFIX_CONF, "\n".join(nuevasLineas) + "\n")
+                if not ejecutar_comando(["systemctl", "restart", "postfix"], "reiniciar Postfix", paso):
+                    print_error("Error al reiniciar Postfix.")
+                else:
+                    print_correcto("Postfix configurado correctamente. Solo escucha en loopback.")
+
+        # 1c. Verificar que el binario de AIDE existe
         rc, salida, _= ejecutar_comando_check(["which", "aide"])
         if rc==0:
             print_correcto(f"Binario AIDE encontrado: {salida.strip()}")
