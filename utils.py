@@ -99,6 +99,8 @@ def configurar_logging(logFile):
     #Crea el directorio de logs si no existe
     if not os.path.isdir(logFile):
         os.makedirs(logFile, exist_ok=True)
+    
+    logging.basicConfig(filename=logFile, level=logging.ERROR, format="[%(asctime)s] %(levelname)s: %(message)s", datefmt="%d-%m-%Y %H:%M:%S", force=True)
 
     #Configurar el logger con formato [YYYY-MM-DD HH:MM:SS] ERROR: <mensajeError>
 
