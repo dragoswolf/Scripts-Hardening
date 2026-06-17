@@ -107,10 +107,16 @@ MODULOS=[
     },
     {
         "numero": 13,
-        "nombre": "Copias de seguridad",
+        "nombre": "Fail2Ban",
         "fix": "mod_13/fix_mod13.py",
         "check": "mod_13/check_mod13.py"
     },
+        {
+        "numero": 14,
+        "nombre": "Copias de seguridad",
+        "fix": "mod_14/fix_mod14.py",
+        "check": "mod_14/check_mod14.py"
+    }
 ]
 #=========================================================================================================
 
