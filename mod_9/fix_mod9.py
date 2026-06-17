@@ -34,60 +34,19 @@ from utils import (configurar_logging,
                    print_info,
                    print_aviso,
                    print_correcto,
-                   print_error)
+                   print_error,
+                   obtener_puerto_ssh,
+                   ufw_activo)
 
 
 #=========================================================================================================
 # CONSTANTES
 #=========================================================================================================
 LOG_FILE="/var/log/hardening/modulo9_fix.log"
-
-SSHD_CONFIG="/etc/ssh/sshd_config"
 #=========================================================================================================
 
 
 
-#=========================================================================================================
-# FUNCIONES AUXILIARES
-#=========================================================================================================
-def obtener_puerto_ssh():
-    """
-    Lee el puerto SSH configurado en sshd_config.
-
-    Return:
-        str: Número de puerto SSH configurado
-    """
-
-    contenido=leer_fichero(SSHD_CONFIG)
-
-    if contenido is None:
-        return "22"
-    
-    for linea in contenido.splitlines():
-        limpia=linea.strip()
-        if limpia.startswith("Port ") and not limpia.startswith("#"):
-            partes=limpia.split()
-            if len(partes)>=2 and partes[1].isdigit():
-                return partes[1]
-            
-    return "22"
-
-
-def ufw_activo():
-    """
-    Comprueba si UFW está activo.
-
-    Return:
-        bool: True si UFW está activo, False en caso contrario
-    """
-
-    rc, salida, _=ejecutar_comando_check(["ufw", "status"])
-    if rc==0 and "active" in salida.lower():
-        for linea in salida.splitlines():
-            if "status:" in linea.lower() and "inactive" not in linea.lower():
-                return True
-    return False
-#=========================================================================================================
 
 def paso1_instalar_activa_ufw():
     """

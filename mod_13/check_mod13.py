@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 #=========================================================================================================
-# check_mod13.py - Script de verificación para el módulo 13 - Copias de seguridad
+# check_mod13.py - Script de verificación para el módulo 13 - Fail2Ban
 #=========================================================================================================
 # Este script implementa las siguientes medidas de seguridad:
 #
-#   Paso 1: Verificar directorio de backups y cifrado GPG
-#   Paso 2: Verificar que existen backups recientes
-#   Paso 3: Verificar backup automático programado
-#   Paso 4: Verificar integridad del último backup
+#   Paso 1: Verificar que Fail2Ban está instalado
+#   Paso 2: Verificar que Fail2Ban está activo y habilitado
+#   Paso 3: Verificar que existe jail.local con configuración personalizada
+#   Paso 4: Verificar que el jail SSH está habilitado y funcionando
+#   Paso 5: Verificar que la whitelist está configurada
 #
 # IMPORTANTE: Este script debe ejecutarse como root (sudo)
 #
@@ -16,237 +17,212 @@
 # Autor: Dragos George Stan
 # TFG: Metodología técnica de fortificación integral automatizada para Ubuntu Server 24.04
 #=========================================================================================================
+
 import os
 import sys
-import glob
-import hashlib
 
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from utils import (configurar_logging,
-                   mostrar_resumen,
+                   comprobar_root,
                    ejecutar_comando_check,
                    leer_fichero,
-                   comprobar_root,
-                   contadores,
                    resultado_fail,
                    resultado_ok,
                    resultado_warn,
-                   verificar_permisos,
-                   verificar_antiguedad)
-
+                   mostrar_resumen,
+                   contadores)
 
 #=========================================================================================================
 # CONSTANTES
 #=========================================================================================================
-
-LOG_FILE= "/var/log/hardening/modulo13_check.log"
-
-BACKUP_DIR ="/var/backups/hardening"
-BACKUP_CONF="/etc/hardening/backup.conf"
-GPG_KEY_FILE = "/etc/hardening/backup.key"
-CRON_BACKUP = "/etc/cron.d/hardening-backup"
+LOG_FILE="/var/log/hardening/modulo13_check.log"
+JAIL_LOCAL="/etc/fail2ban/jail.local"
 #=========================================================================================================
-
+# VERIFICACIONES
+#=========================================================================================================
 
 def verificar_paso1():
     """
-    Verifica que el directorio de backups existe con permisos correctos
-    y que la contraseña de cifrado está configurada.
+    Verifica que el paquete Fail2Ban está instalado en el sistema
     """
-
     print()
     print("="*100)
-    print("[PASO 1]: Verificar directorio de backups y cifrado")
+    print("[PASO 1]: Verificar existencia de Fail2Ban.")
     print("="*100)
     print()
-
     paso="Paso 1"
 
-    # 1a. Comprobar la existencia del directorio de backups
-    if os.path.isdir(BACKUP_DIR):
-        resultado_ok(f"Directorio {BACKUP_DIR} existe")
-    else:
-        resultado_fail(f"Directorio {BACKUP_DIR} no existe. Ejecuta el paso 1.", paso)
-        return
-    
-    # 1b. Comprobar permisos del directorio
-    
-    if verificar_permisos(BACKUP_DIR, "700", 0, 0, paso=paso):
-        resultado_ok("Permisos del directorio de respaldo correctos.")
-    else:
-        resultado_fail("Permisos del directorio de respaldo incorrectos.", paso)
+    rc, _, _=ejecutar_comando_check(["dpkg", "-s", "fail2ban"])
+    if rc==0:
+        # obtener la versión
+        rc2, salida,_=ejecutar_comando_check(["fail2ban-clietn", "--version"])
 
-    # 1c. Contraseña de cifrado
-    if os.path.isfile(GPG_KEY_FILE):
-        resultado_ok("Contraseña de cifrado configurada.")
-        if verificar_permisos(GPG_KEY_FILE, "600", 0,0, paso):
-            resultado_ok("Permisos del fichero de cifrado correctos.")
+        if rc2==0:
+            resultado_ok(f"Fail2Ban instalado ({salida.strip()}).")
         else:
-            resultado_fail("Permisos del fichero de cifrado incorrectos.", paso)
+            resultado_ok("Fail2Ban instalado.")
     else:
-        resultado_fail("Contraseña de cifrado no configurada. Ejecuta paso 1.", paso)
+        resultado_fail("Fail2Ban no está instalado", paso)
 
 
 def verificar_paso2():
     """
-    Verifica que existen backups de sistema y usuarios y que son recientes
+    Verifica que el servicio fail2ban está activo y habilitado en el arranque del sistema
     """
     print()
     print("="*100)
-    print("[PASO 2]: Verificar backups existentes")
+    print("[PASO 2]: Verificar que el servicio fail2ban está activo y habilitado.")
     print("="*100)
     print()
-
     paso="Paso 2"
 
-    # 2a. Verificar directorio
-    if not os.path.isdir(BACKUP_DIR):
-        resultado_fail("Directorio de backups no existe.", paso)
-        return
+    # 2a. Verificar si está activo
+    rc, salida, _=ejecutar_comando_check(["systemctl", "is-active", "fail2ban"])
+
+    if rc==0 and "active" in salida.strip():
+        resultado_ok("Servicio fail2ban: activo")
+    else:
+        resultado_fail("Servicio fail2ban: inactivo", paso)
     
-    # 2b. Verificar backups completos y diferenciales
-    for nombre in ["sistema", "usuarios"]:
-        completos=sorted(glob.glob(os.path.join(BACKUP_DIR, f"backup_{nombre}_completo_*.tar.gz.gpg")))
 
-        if completos:
-            ultimo=completos[-1]
-            dias=verificar_antiguedad(ultimo, f"Backup {nombre} completo", mostrarTamano=True)
-            
-            if dias is not None and dias > 35:
-                resultado_warn(f"Backup {nombre} tiene {int(dias)} días. El completo podría no estar ejecutándose.")
-        else:
-            resultado_fail(f"No hay backup completo de '{nombre}'. EJecuta el paso 3.", paso)
-
-        # Buscar diferenciales
-        diferenciales=sorted(glob.glob(os.path.join(BACKUP_DIR, f"backup_{nombre}_diferencial_*.tar.gz.gpg")))
-
-        if diferenciales:
-            ultimo_dif=diferenciales[-1]
-            dias = verificar_antiguedad(ultimo_dif, f"Backup {nombre} diferencial.")
-            if dias is not None and dias >8:
-                resultado_warn(f"Diferencial de {nombre} tiene {int(dias)} días.")
-        else:
-            resultado_warn(f"Sin backup diferencial de '{nombre}'. Se creará en el próximo domingo.")
-        
-
-    # 2c. Verificar extras si están configurados
-    if os.path.isfile(BACKUP_CONF):
-        contenido=leer_fichero(BACKUP_CONF)
-        if contenido:
-            rutasExtra=[l.strip() for l in contenido.splitlines() if l.strip() and not l.strip().startswith("#")]
-            if rutasExtra:
-                completos_ext=glob.glob(os.path.join(BACKUP_DIR, "backup_extra_completo_*.tar.gz.gpg"))
-                if completos_ext:
-                    resultado_ok("Backup extra existe.")
-                else:
-                    resultado_warn("Rutas extra configuradas pero sin backup.")
-
+    # 2b. Verificar si está habilitado en el arranque
+    rc, salida, _=ejecutar_comando_check(["systemctl", "is-enabled", "fail2ban"])
+    if rc==0 and "enabled" in salida.strip():
+        resultado_ok("Servicio fail2ban: habilitado en el arranque")
+    else:
+        resultado_fail("Servicio fail2ban: no habilitado en el arranque", paso)
 
 
 def verificar_paso3():
     """
-    Verifica que el cron de backup está configurado y que el servicio cron está activo.
+    Verifica que existe el fichero jail.local con los parámetros de configuración esperados.
     """
     print()
     print("="*100)
-    print("[PASO 3]: Verificar backup automatico programado.")
+    print("[PASO 3]: Verificar que el servicio fail2ban está activo y habilitado.")
     print("="*100)
     print()
-
     paso="Paso 3"
 
-    # 3a. Comprobar existencia del fichero cron
-    if os.path.isfile(CRON_BACKUP):
-        resultado_ok(f"Cron de backup configurado ({CRON_BACKUP}).")
-    else:
-        resultado_fail("Backup automático no programado. Ejecuta el paso 4.", paso)
-    
-    # 3b. Script de backup existe
-    scriptDir=os.path.dirname(os.path.abspath(__file__))
-    cronScript=os.path.join(scriptDir, "backup_cron.sh")
-    if os.path.isfile(cronScript):
-        resultado_ok("Script de backup existe")
-        if os.access(cronScript, os.X_OK):
-            resultado_ok("Script tiene permisos de ejecución.")
-        else:
-            resultado_fail("Script no tiene permisos de ejecución.", paso)
-    else:
-        resultado_fail("Script de backup no existe.", paso)
+    contenido=leer_fichero(JAIL_LOCAL)
 
+    # 3a. Verificar jail.local
+    if contenido is None:
+        resultado_fail(f"{JAIL_LOCAL} no existe", paso)
+        return
+    resultado_ok(f"{JAIL_LOCAL} existe. Verificando parámetros...")
+
+    # 3b. Verificar parámetros clave
+    parametros={
+        "bantime": False,
+        "findtime": False,
+        "maxretry": False,
+        "banaction": False,
+    }
+
+    for linea in contenido.splitlines():
+        limpia = linea.strip()
+        if limpia.startswith("#"):
+            continue
+        for param in parametros:
+            if limpia.startswith(param):
+                parametros[param] = True
+        
+    for param, encontrado in parametros.items():
+        if encontrado:
+            resultado_ok(f"Parámetro '{param}' configurado.")
+        else:
+            resultado_fail(f"Parámetro '{param}' no encontrado en jail.local.", paso)
     
-    # 3c. Comprobar que el servicio cron existe
-    rc,_,_=ejecutar_comando_check(["systemctl", "is-active", "--quiet", "cron"])
-    if rc == 0:
-        resultado_ok("Servicio cron activo.")
-    else:
-        resultado_fail("Servicio cron no activo.", paso)
+    # 3c. Verificar que banaction usa UFW
+    if "banaction" in contenido:
+        for linea in contenido.splitlines():
+            limpia = linea.strip()
+            if limpia.startswith("banaction") and "ufw" in limpia:
+                resultado_ok("Backend de bloqueo: UFW")
+                break
+        else:
+            resultado_warn("banaction no usa UFW como backend.")
 
 
 def verificar_paso4():
     """
-    Verifica el hash SHA-256 de los últimos backups
+    Verifica que existe el fichero jail.local con los parámetros de configuración esperados.
     """
     print()
     print("="*100)
-    print("[PASO 4]: Verificar integridad del último backup.")
+    print("[PASO 4]: Verificar que el Jail SSH está activo.")
     print("="*100)
     print()
-
     paso="Paso 4"
 
-    # 4a. Verificar directorio
-    if not os.path.isdir(BACKUP_DIR):
-        resultado_fail("Directorio de backups no existe", paso)
+    rc, salida,_=ejecutar_comando_check(["fail2ban-client", "status", "sshd"])
+    if rc==0:
+        resultado_ok("Jail SSH (sshd) está activo")
+
+        #Extraer información del jail
+        for linea in salida.splitlines():
+            limpia=linea.strip()
+            if "Currently banned" in limpia:
+                resultado_ok(f" {limpia}")
+            elif "Total banned" in limpia:
+                resultado_ok(f" {limpia}")
+            elif "File list" in limpia:
+                resultado_ok(f" {limpia}")
+    else:
+        resultado_fail("Jail SSH (sshd) inactivo o no configurado.", paso)
+
+
+def verificar_paso5():
+    """
+    Verifica que la whitelist está configurada en jail.local y contiene al menos localhost.
+    """
+    print()
+    print("="*100)
+    print("[PASO 5]: Verificar que la whitelist está configurada.")
+    print("="*100)
+    print()
+    paso="Paso 5"
+
+    # Comprobar existencia de jail.lock
+    contenido = leer_fichero(JAIL_LOCAL)
+    if contenido is None:
+        resultado_fail("jail.locl no existe. Whitelist no se puede verificar.")
         return
     
-    verificados=0
-    errores =0
+    # 5a. Verificar que existen IPs
+    ignoreip=None
+    for linea in contenido.splitlines():
+        limpia=linea.strip()
+        if limpia.startswith("ignoreip"):
+            ignoreip=limpia.split("=", 1)[1].strip()
+            break
 
-    # 4b. Verificar hash SHA-256 de cada backup
-    for nombre in ["sistema", "usuarios", "extra"]:
-        # buscar último backup
-        todos=sorted(glob.glob(os.path.join(BACKUP_DIR, f"backup_{nombre}_*.tar.gz.gpg")))
+    if ignoreip is None:
+        resultado_fail("ignoreip no configurado en jail.local.", paso)
+        return
+    resultado_ok(f"ignoreip configurado: {ignoreip}")
 
-        if not todos:
-            continue
+    # 5b. Verificar que incluye localhost
+    if "127.0.0.1" in ignoreip or "127.0.0.1" in ignoreip:
+        resultado_ok("Localhost (127.0.0.1) IPv4 en whitelist")
+    else:
+        resultado_warn("Localhost (127.0.0.1) no está en la whitelist.")
 
-        ultimo=todos[-1]
-        hashFile=ultimo +".sha256"
-        nombreCorto=os.path.basename(ultimo)
+    if "::1" in ignoreip:
+        resultado_ok("Localhost (::1) IPv6 en whitelist.")
+    else:
+        resultado_warn("Localhost (::1) IPv6 no está en la whitelist.")
 
-        if not os.path.isfile(hashFile):
-            resultado_warn(f"{nombreCorto}: sin ficheros de hash.")
-            continue
-
-        hashGuardado=leer_fichero(hashFile)
-        if not hashGuardado:
-            resultado_warn(f"{nombreCorto}: fichero de hash vacío.")
-            continue
-
-        hashGuardado=hashGuardado.strip().split()[0]
-
-        try:
-            sha256=hashlib.sha256()
-            with open(ultimo, "rb") as f:
-                for bloque in iter(lambda: f.read(65536), b""):
-                    sha256.update(bloque)
-            hashCalculado=sha256.hexdigest()
-
-            if hashCalculado == hashGuardado:
-                resultado_ok(f"{nombreCorto}: integridad correcta.")
-                verificados+=1
-            else:
-                resultado_fail(f"{nombreCorto}: hash no coinciden. Posible corrupción.", paso)
-                errores+=1
-        except OSError as e:
-            resultado_fail(f"{nombreCorto}: error al leer: {e}", paso)
-            errores+=1
-
-    
-    # 4c. Resumen
-    if verificados==0 and errores == 0:
-        resultado_warn("No hay backups para verificar")
+    # Verificar si hay IPs adicionales (aparte de localhost)
+    ips=ignoreip.split()
+    ipsExtra=[ip for ip in ips if ip not in ("127.0.0.1/8", "127.0.0.1", "::1")]
+    if ipsExtra:
+        resultado_ok(f"IPs adicionales en whitelist: {', '.join(ipsExtra)}")
+    else:
+        resultado_warn("Solo localhost en whitelist. Considerar añadir IPs de administración para evitar\n" \
+        "       bloqueos accidentales.")
 
 
 def main():
@@ -255,18 +231,19 @@ def main():
 
     print()
     print("="*100)
-    print("[AUDITORÍA MÓDULO 13]: COPIAS DE SEGURIDAD")
+    print("[AUDITORÍA MÓDULO 13]: Fail2Ban")
     print("="*100)
     print()
 
     print()
-    print("     Comprobando configuraciones de los pasos 1 al 4...")
+    print("     Comprobando configuraciones de los pasos 1 al 5...")
     print()
 
     verificar_paso1()
     verificar_paso2()
     verificar_paso3()
     verificar_paso4()
+    verificar_paso5()
 
 
     mostrar_resumen("fix_mod13.py")
@@ -279,5 +256,3 @@ def main():
 # =============================================================================
 if __name__ == "__main__":
     main()
-
-

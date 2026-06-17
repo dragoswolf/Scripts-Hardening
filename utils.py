@@ -24,9 +24,10 @@ import getpass
 import time
 
 #=======================================================================================================
-# GLOBALES
+# CONSTANTES
 #=======================================================================================================
 LOG_DIR="/var/log/hardening"
+SSHD_CONFIG="/etc/ssh/sshd_config"
 
 #códigos de colors ANSI
 _RESET="\033[0m"
@@ -192,7 +193,43 @@ def ejecutar_comando(comando, descripcion, paso="General", capturarSalida=False,
         print_error(mensajeError, paso)
         return False
 
+def obtener_puerto_ssh():
+    """
+    Lee el puerto SSH configurado en sshd_config.
 
+    Return:
+        str: Número de puerto SSH configurado o por defecto "22"
+    """
+
+    contenido=leer_fichero(SSHD_CONFIG)
+
+    if contenido is None:
+        return "22"
+    
+    for linea in contenido.splitlines():
+        limpia=linea.strip()
+        if limpia.startswith("Port ") and not limpia.startswith("#"):
+            partes=limpia.split()
+            if len(partes)>=2 and partes[1].isdigit():
+                return partes[1]
+            
+    return "22"
+
+
+def ufw_activo():
+    """
+    Comprueba si UFW está activo.
+
+    Return:
+        bool: True si UFW está activo, False en caso contrario
+    """
+
+    rc, salida, _=ejecutar_comando_check(["ufw", "status"])
+    if rc==0 and "active" in salida.lower():
+        for linea in salida.splitlines():
+            if "status:" in linea.lower() and "inactive" not in linea.lower():
+                return True
+    return False
 
 def volver_al_menu():
     """
