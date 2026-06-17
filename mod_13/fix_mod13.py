@@ -385,7 +385,7 @@ def paso5_gestionar_whitelist():
             cambios=True
             print(f"{ipEliminada} eliminada.")
 
-        elif opcion=="0":
+        elif opcion=="q":
             break
         else:
             print_error("Opción no valida.")
