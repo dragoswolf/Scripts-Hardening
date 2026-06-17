@@ -353,7 +353,7 @@ def paso5_gestionar_whitelist():
             if validar_ip(ip):
                 if ip not in ipsActuales:
                     ipsActuales.append(ip)
-                    cambios=True
+                    modificado=True
                     print_correcto(f"{ip} añadida.")
                 else:
                     print_info(f"{ip} ya está en la whitelist.")
@@ -382,7 +382,7 @@ def paso5_gestionar_whitelist():
                     continue
                     
             ipsActuales.pop(indice)
-            cambios=True
+            modificado=True
             print(f"{ipEliminada} eliminada.")
 
         elif opcion=="q":
@@ -393,7 +393,7 @@ def paso5_gestionar_whitelist():
     print()
 
     # Aplicar cambios si los hubo
-    if cambios:
+    if modificado:
         nuevoIgnoreip="ignoreip = "+" ".join(ipsActuales)
         contenidoNuevo=contenido.replace(lineaIgnoreip, nuevoIgnoreip)
 
