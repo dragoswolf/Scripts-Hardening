@@ -72,7 +72,7 @@ echo "==========================================================================
 echo "Verificación AIDE: $FECHA" >> "$LOG_FILE"
 echo "=========================================================================================================" >> "$LOG_FILE"
 
-/usr/bin/aide --check >> "$LOG_FILE" 2>&1
+/usr/bin/aide --check --config /etc/aide/aide.conf >> "$LOG_FILE" 2>&1
 RESULTADO=$?
 
 if [ $RESULTADO -eq 0 ]; then
