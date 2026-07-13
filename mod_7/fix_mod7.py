@@ -99,7 +99,12 @@ def persistir_sysctl(parametro, valor):
     Return:
         None
     """
-    contenido=leer_fichero(SYSCTL_CONF)
+
+    if os.path.isfile(SYSCTL_CONF):
+        contenido=leer_fichero(SYSCTL_CONF)
+    else:
+        contenido = None
+
     if contenido is None:
         contenido=SYSCTL_CABECERA
 
