@@ -439,14 +439,13 @@ def paso6_envejecimiento_contrasenas():
 
 def paso7_cuentas_sin_contrasena():
     """
-    Busca y bloquea cuentas con contraseña vacía. También verifica PermitEmptyPasswords en SSH
+    Busca y bloquea cuentas con contraseña vacía.
     """
     print()
     print("="*100)
     print("[PASO 7]: Deshabilitar cuentas sin contraseña.")
     print("="*100)
-    print_info("Busca cuentas con contraseña vacía en /etc/shadow y las bloquea.\n" \
-    "       También verifica que SSH no permita contraseñas vacías.")
+    print_info("Busca cuentas con contraseña vacía en /etc/shadow y las bloquea.")
     print()
 
     contenido=leer_fichero(SHADOW_FILE, paso="Paso 7")
@@ -474,41 +473,6 @@ def paso7_cuentas_sin_contrasena():
             ejecutar_comando(["passwd", "-l", cuenta], f"bloqueando cuenta {cuenta}", paso="Paso 7")
             print_correcto(f"Cuenta '{cuenta}' bloqueada con éxito.")
     
-    # 7b. Configurar PermitemptyPasswords en SSH
-    print()
-    contenidoSsh=leer_fichero(SSHD_CONFIG_FILE, paso="Paso 7")
-    if contenidoSsh is not None:
-        lineaEncontrada=False
-        lineaSsh=contenidoSsh.splitlines()
-
-        for i, linea in enumerate(lineaSsh):
-            lineaLimpia=linea.strip()
-            if "PermitEmptyPasswords" in lineaLimpia and not lineaLimpia.startswith("#"):
-                lineaEncontrada=True
-                if "no" in lineaLimpia.lower():
-                    print_correcto("SSH: PermitEmptyPasswords=no.")
-                else:
-                    lineaSsh[i]="PermitEmptyPasswords=no"
-                    escribir_fichero(SSHD_CONFIG_FILE, "\n".join(lineaSsh)+"\n", permisos=0o600, paso="Paso 7")
-                    ejecutar_comando(["systemctl", "reload", "ssh"], "recargar ssh", "Paso 7")
-                    print_correcto("SSH: PermitEmptyPasswords cambiado a no.")
-                break
-
-        if not lineaEncontrada:
-            encontradoComentado=False
-            for i, linea in enumerate(lineaSsh):
-                if "PermitEmptyPasswords" in linea and linea.strip().startswith("#"):
-                    lineaSsh[i]="PermitEmptyPasswords no"
-                    encontradoComentado=True
-                    break
-            if not encontradoComentado:
-                lineaSsh.append("PermitEmptyPasswords no")
-
-        nuevoContenido="\n".join(lineaSsh)+"\n"
-
-        escribir_fichero(SSHD_CONFIG_FILE, nuevoContenido, permisos=0o600, paso="Paso 7")
-        ejecutar_comando(["systemctl", "reload", "ssh"], "recargar sshd", "Paso 7")
-        print_correcto("SSH: PermitEmptyPasswords = no (configurado).")
 
 
 def paso8_bloquear_uid0():
@@ -596,18 +560,18 @@ def paso9_bloqueo_inactivas():
 def paso10_restringir_root():
     """
     Restringe el acceso directo como root:
-    1. Bloquea la contraseña de root
-    2. Configura SSH para prohibir login como root
+    1. Verifica qué usuarios hay en el grupo sudo
+    2. Bloquear contraseña de root
     """
     print()
     print("="*100)
     print("[PASO 10]: Restringir acceso root directo.")
     print("="*100)
-    print_info("Bloquea la contraseña de root y deshabilita su login por SSH.\n" \
+    print_info("Bloquea la contraseña de root.\n" \
     "       Toda administración se realizará exclusivamente a través de sudo.")
     print()
 
-    # 10a. Verificar que hay usuarios en el grupo sudo
+    # 10a. Verificar qué hay usuarios en el grupo sudo
     rc, salida, _=ejecutar_comando_check(["getent", "group", "sudo"])
     if rc==0:
         campos=salida.strip().split(":")
@@ -639,30 +603,7 @@ def paso10_restringir_root():
                 print_correcto("Contraseña de root bloqueada.")
     
     print()
-    # 10c. Configurar SSH PermitRootLogin
-    contenidoSsh=leer_fichero(SSHD_CONFIG_FILE, paso="Paso 10")
 
-    if contenidoSsh is not None:
-        lineaSsh=contenidoSsh.splitlines()
-        modificado=False
-
-        for i, linea in enumerate(lineaSsh):
-            lineaLimpia=linea.strip()
-            if "PermitRootLogin" in lineaLimpia:
-                if lineaLimpia.startswith("#") or "no" not in lineaLimpia.lower().split():
-                    lineaSsh[i]= "PermitRootLogin no"
-                    modificado=True
-                else:
-                    print_correcto("SSH: PermitRootLogin ya está en 'no'.")
-                break
-        else:
-            lineaSsh.append("PermitRootLogin no")
-            modificado=True
-        
-        if modificado:
-            escribir_fichero(SSHD_CONFIG_FILE, "\n".join(lineaSsh)+"\n", permisos=0o777, paso="Paso 10")
-            ejecutar_comando(["systemctl", "reload", "ssh"], "recargar sshd", "Paso 10")
-            print_correcto("SSH: PermitRootLogin = no (configurado y sshd recargado).")
 
 
 def paso11_permisos_home():

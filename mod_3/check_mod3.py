@@ -451,24 +451,6 @@ def verificar_paso7():
         for cuenta in cuentasSinPasswd:
             resultado_fail(f"Cuenta sin contraseña: {cuenta}", paso=paso)
 
-    contenidoSsh=leer_fichero(SSHD_CONFIG_FILE, paso=paso)
-    if contenidoSsh is not None:
-        encontrado=False
-
-        for linea in contenidoSsh.splitlines():
-            lineaLimpia=linea.strip()
-            if lineaLimpia.startswith("#"):
-                continue
-            if "PermitEmptyPasswords" in lineaLimpia:
-                encontrado=True
-                if "no" in lineaLimpia.lower():
-                    resultado_ok("SSH: PermitEmptyPasswords = no.")
-                else:
-                    resultado_fail("SSH: PermitEmptyPasswords no está en 'no'.", paso=paso)
-                break
-
-        if not encontrado:
-            resultado_warn("SSH: PermitEmptyPasswords no está definido (por defecto es 'no').")
 
     
 def verificar_paso8():
@@ -543,7 +525,6 @@ def verificar_paso10():
     """
     Verifica que el acceso directo como root está restringido:
         1. Contraseña de root bloqueada
-        2. SSH: PermitRootLogin = no
     """
     print()
     print("="*100)
@@ -565,30 +546,6 @@ def verificar_paso10():
                 resultado_warn("Root tiene contraseña activa (estado P). Se recomienda bloquearla.")
             else:
                 resultado_warn(f"Estado de root: {estado}.")
-
-    contenidoSsh=leer_fichero(SSHD_CONFIG_FILE, paso=paso)
-    
-    if contenidoSsh is not None:
-        encontrado=False
-
-        for linea in contenidoSsh.splitlines():
-            lineaLimpia=linea.strip()
-            if linea.startswith("#"):
-                continue
-            if "PermitRootLogin" in lineaLimpia:
-                encontrado=True
-                
-                if "no" in lineaLimpia.lower().split():
-                    resultado_ok("SSH: PermitRootLogin = no.")
-                elif "prohibit-password" in lineaLimpia.lower():
-                    resultado_warn("SSH: PermitRootLogin = prohibit-password (mejor que 'yes', pero se recomienda 'no').")
-                else:
-                    resultado_fail("SSH: PermitRootLogin no está en 'no'", paso=paso)
-                break
-                
-
-        if not encontrado:
-            resultado_warn("SSH: PermitRootLogin no está definido (por defecto permite login).")
 
     codigoRet, salida, _=ejecutar_comando_check(["getent", "group", "sudo"])
     if codigoRet==0:
