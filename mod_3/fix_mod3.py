@@ -663,7 +663,7 @@ def mostar_menu():
     print()
     print(" Pasos disponibles:")
     print("     1. Auditar /etc/passwd")
-    print("     2. Auditar grupos y pertenencia")
+    print("     2. Auditar grupos y pertenencia [OPCIONAL]")
     print("     3. Configurar sudo de forma segura")
     print("     4. Proteger /etc/shadow")
     print("     5. Configurar /etc/login.defs")

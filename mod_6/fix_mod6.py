@@ -261,8 +261,8 @@ def paso2_auditoria_filesystem():
             if linea.startswith(dirExcluido+"/"):
                 excluido=True
                 break
-    if not excluido:
-        wwFicheros.append(linea)
+        if not excluido:
+            wwFicheros.append(linea)
 
     if wwFicheros:
         maxMostrar=20
