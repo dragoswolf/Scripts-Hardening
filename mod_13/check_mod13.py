@@ -56,7 +56,7 @@ def verificar_paso1():
     rc, _, _=ejecutar_comando_check(["dpkg", "-s", "fail2ban"])
     if rc==0:
         # obtener la versión
-        rc2, salida,_=ejecutar_comando_check(["fail2ban-clietn", "--version"])
+        rc2, salida,_=ejecutar_comando_check(["fail2ban-client", "--version"])
 
         if rc2==0:
             resultado_ok(f"Fail2Ban instalado ({salida.strip()}).")
@@ -205,7 +205,7 @@ def verificar_paso5():
     resultado_ok(f"ignoreip configurado: {ignoreip}")
 
     # 5b. Verificar que incluye localhost
-    if "127.0.0.1" in ignoreip or "127.0.0.1" in ignoreip:
+    if "127.0.0.1" in ignoreip or "127.0.0.1/8" in ignoreip:
         resultado_ok("Localhost (127.0.0.1) IPv4 en whitelist")
     else:
         resultado_warn("Localhost (127.0.0.1) no está en la whitelist.")

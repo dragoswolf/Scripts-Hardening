@@ -72,11 +72,11 @@ def verificar_paso1():
 def verificar_paso3():
     print()
     print("="*100)
-    print("[PASO 2]: Verificar perfiles en modo enforce")
+    print("[PASO 3]: Verificar perfiles en modo enforce")
     print("="*100)
     print()
 
-    paso="Paso 2"
+    paso="Paso 3"
 
     rc, salida, _=ejecutar_comando_check(["aa-status"])
 
@@ -130,11 +130,11 @@ def verificar_paso3():
 def verificar_paso2():
     print()
     print("="*100)
-    print("[PASO 3]: Verificar perfiles adicionales de AppArmor")
+    print("[PASO 2]: Verificar perfiles adicionales de AppArmor")
     print("="*100)
     print()
 
-    paso="Paso 3"
+    paso="Paso 2"
 
     for paquete in PAQUETES_PERFILES:
         rc, _, _=ejecutar_comando_check(["dpkg", "-s", paquete])

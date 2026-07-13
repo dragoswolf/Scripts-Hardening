@@ -346,7 +346,7 @@ def paso5_gestionar_whitelist():
 
         # Acciones a seleccionar
         #Añadir IP
-        if opcion=="a":
+        if opcion=="1":
             ip=input("IP o subred a añadir: ").strip().lower()
             if not ip:
                 continue
@@ -361,7 +361,7 @@ def paso5_gestionar_whitelist():
                 print_error(f"Formato no válido: {ip}.")
                 print_info("Ejemplos: 192.168.1.10 o 10.0.0.0/24.")
         # Eliminar IP
-        elif opcion=="e":
+        elif opcion=="2":
             ip=input("Número de la IP a eliminar: ").strip()
             if not ip.isdigit():
                 print_error("Introduce un número válido.")
@@ -432,10 +432,12 @@ def mostrar_menu():
 def main():
     comprobar_root()
     configurar_logging(LOG_FILE)
+    ipsWhitelist=None
 
     while True:
         mostrar_menu()
         opcion=input("Selecciona una opción: ").strip().lower()
+
 
         match opcion:
             case "1":

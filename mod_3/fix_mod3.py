@@ -90,7 +90,7 @@ PARAMETROS_LOGIN_DEFS={
 }
 
 SHELLS_INTERACTIVAS=[
-    "bin/bash", 
+    "/bin/bash", 
     "/bin/sh", 
     "/bin/zsh", 
     "/bin/ksh", 
@@ -253,7 +253,7 @@ def paso3_configurar_sudo():
             return
         
     print_info("Creando configuración de hardening para sudo...")
-    exito=escribir_fichero(rutaHardening, CONTENIDO_SUDO_HARDENING, permisos=440, paso="Paso 3")
+    exito=escribir_fichero(rutaHardening, CONTENIDO_SUDO_HARDENING, permisos=0o440, paso="Paso 3")
 
     if exito:
         cambiar_permisos(rutaHardening, permisos=0o440, propietario=0, grupo=0, paso="Paso 3")
@@ -672,6 +672,7 @@ def mostar_menu():
     print("     8. Bloquear usuarios no-root con UID 0")
     print("     9. Bloqueo automático de cuentas inactivas")
     print("     10. Restringir acceso root directo")
+    print("     11. Establecer permisos de los directorios home")
     print()
     print("     q. Salir")
     print()
@@ -716,6 +717,9 @@ def main():
                 volver_al_menu()
             case "10":
                 paso10_restringir_root()
+                volver_al_menu()
+            case "11":
+                paso11_permisos_home()
                 volver_al_menu()
             case "q":
                 print_info("Saliendo del script.")

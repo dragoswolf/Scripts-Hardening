@@ -57,10 +57,10 @@ PASS_WARN_AGE_RECOMENDADO=14
 SHELLS_INTERACTIVAS=[
     "/bin/bash",
     "/bin/sh",
-    "bin/zsh",
-    "bin/ksh",
+    "/bin/zsh",
+    "/bin/ksh",
     "/bin/csh",
-    "bin/fish"
+    "/bin/fish"
 ]
 
 FICHEROS_INIT=[
@@ -194,7 +194,7 @@ def verificar_paso3():
                 if not linea.strip().startswith("#"):
                     resultado_warn(f"Regla NOPASSWD en sudoers.d: {linea.strip()}.")
             
-    rutaHardening=os.path.join("hardening", SUDOERS_DIR)
+    rutaHardening=os.path.join(SUDOERS_DIR, "hardening")
 
     if os.path.exists(rutaHardening):
         resultado_ok("Fichero de hardening en sudo presente.")
@@ -305,7 +305,7 @@ def verificar_paso5():
 
     if "PASS_MIN_DAYS" in valores:
         valorMin=int(valores["PASS_MIN_DAYS"])
-        if valorMax>=PASS_MIN_DAYS_RECOMENDADO:
+        if valorMin>=PASS_MIN_DAYS_RECOMENDADO:
             resultado_ok(f"PASS_MIN_DAYS={valorMin}.")
         else:
             resultado_fail(f"PASS_MIN_DAYS={valorMin} (debe ser >= {PASS_MIN_DAYS_RECOMENDADO}).", paso=paso)

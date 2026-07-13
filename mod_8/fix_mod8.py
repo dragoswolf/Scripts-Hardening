@@ -249,7 +249,7 @@ def paso3_enforce_perfiles():
     "       a modo enforce (bloqueo activo de accesos no permitidos)")
     print()
 
-    paso="Paso 2"
+    paso="Paso 3"
 
     # 3a. Obtener perfiles en complain
     perfilesComplain=obtener_perfiles_complain()

@@ -481,11 +481,14 @@ def verificar_paso7():
 
     codigoRet, salida, _=ejecutar_comando_check(["ss", "-tulnp"])
 
-    if codigoRet==0:
-        lineasPuertos=[
-            l for l in salida.splitlines()
-            if l.strip() and "State" not in l
-        ]
+    if codigoRet!=0:
+        resultado_fail("No se pudo ejecutar 'ss -tulnp'.")
+        return
+ 
+    lineasPuertos=[
+        l for l in salida.splitlines()
+        if l.strip() and "State" not in l
+    ]
 
     numeroPuertos=len(lineasPuertos)
     if numeroPuertos <=5:
@@ -584,11 +587,14 @@ def verificar_paso9():
     if chronyActivo:
         codigoRet, salida, _=ejecutar_comando_check(["chronyc", "sources"])
 
-        if codigoRet==0:
-            fuentesActivas=[
-                l for l in salida.splitlines()
-                if l.strip() and any(l.strip().startswith(p) for p in ("^*", "^+", "*", "+"))
-            ]
+        if codigoRet!=0:
+            resultado_fail("no se pudo ejecutar 'chronyc sources'.")
+            return
+        
+        fuentesActivas=[
+            l for l in salida.splitlines()
+            if l.strip() and any(l.strip().startswith(p) for p in ("^*", "^+", "*", "+"))
+        ]
         if fuentesActivas:
             resultado_ok(f"{len(fuentesActivas)} fuente(s) NTP activa(s).")
         else:
@@ -663,12 +669,12 @@ def verificar_paso11():
         for linea in contenidoShadow.splitlines():
             if not linea.strip():
                 continue
-        campos=linea.split(":")
-        if len(campos)>=2:
-            usuario=campos[0]
-            hashContrasena=campos[1]
-            if hashContrasena=="":
-                cuentasVacias.append(usuario)
+            campos=linea.split(":")
+            if len(campos)>=2:
+                usuario=campos[0]
+                hashContrasena=campos[1]
+                if hashContrasena=="":
+                    cuentasVacias.append(usuario)
 
         if cuentasVacias:
             resultado_fail(f"Cuentas con contraseña vacía: {', '.join(cuentasVacias)}")
@@ -698,7 +704,7 @@ def verificar_paso11():
     if contenidoPasswd is not None:
         cuentasConShell=[]
         
-        for linea in contenidoShadow.splitlines():
+        for linea in contenidoPasswd.splitlines():
             if not linea.strip():
                 continue
 

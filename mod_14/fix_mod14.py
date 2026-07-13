@@ -413,8 +413,8 @@ def verificar_gpg(paso="General"):
         return True
     
     print_info("GPG no está instalado. Instalando gnupg...")
-    ejecutar_comando(["apt", "install", "-y", "gnupg"], "instalando gnupg", paso, mostrarSalida=True)
-    if rc==0:
+    resultado= ejecutar_comando(["apt", "install", "-y", "gnupg"], "instalando gnupg", paso, mostrarSalida=True)
+    if resultado:
         print_correcto("GPG instalado correctamente.")
         return True
     else:

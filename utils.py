@@ -468,7 +468,7 @@ def obtener_permisos(ruta):
     Return:
         str: Permisos en forma octal de 3 dígitos
     """
-    return oct(os.stat(ruta).st_mode)[-3]    
+    return oct(os.stat(ruta).st_mode)[-3:]    
 
 # Los contadores se gestionan como un diccionario mutable para poder modificarlos
 # desde los scripts que importen este módulo sin usar variables globales

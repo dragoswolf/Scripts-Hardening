@@ -89,7 +89,7 @@ def verificar_paso1():
 
     print_info("Buscando binarios con bit SUID...")
 
-    rc, salida, _ = ejecutar_comando_check(["find", "/", "-xdev", "-type", "f", "-perm", "4000",
+    rc, salida, _ = ejecutar_comando_check(["find", "/", "-xdev", "-type", "f", "-perm", "-4000",
                                             "-not", "-path", "/proc/*", "-not", "-path", "/sys/*"])
     
     suidEncontrados=[l.strip() for l in salida.splitlines() if l.strip()]

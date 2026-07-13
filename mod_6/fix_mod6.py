@@ -47,14 +47,14 @@ LOG_FILE="/var/log/hardening/modulo6_fix.log"
 WHITELIST_SUID=[
     "/usr/bin/chfn",
     "/usr/bin/chsh",
-    "/usr/gpasswd",
+    "/usr/bin/gpasswd",
     "/usr/bin/mount",
-    "usr/bin/newgrp",
+    "/usr/bin/newgrp",
     "/usr/bin/passwd",
     "/usr/bin/su",
     "/usr/bin/sudo",
     "/usr/bin/umount",
-    "/usr/lib/dpus-1.0/dbus-daemon-launch-helper",
+    "/usr/lib/dbus-1.0/dbus-daemon-launch-helper",
     "/usr/lib/openssh/ssh-keysign",
     "/usr/libexec/polkit-agent-helper-1",
 ]
@@ -261,8 +261,8 @@ def paso2_auditoria_filesystem():
             if linea.startswith(dirExcluido+"/"):
                 excluido=True
                 break
-            if not excluido:
-                wwFicheros.append(linea)
+    if not excluido:
+        wwFicheros.append(linea)
 
     if wwFicheros:
         maxMostrar=20
