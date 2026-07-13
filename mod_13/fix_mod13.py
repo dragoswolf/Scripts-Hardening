@@ -423,7 +423,7 @@ def mostrar_menu():
     print("     2. Configurar whitelist de IPs inicial.")
     print("     3. Crear configuración.")
     print("     4. Habilitar y arrancar el servicio.")
-    print("     5. Gestionar whitelist.")
+    print("     5. Gestionar whitelist. [OPCIONAL]")
     print()
     print("     q. Salir")
     print()

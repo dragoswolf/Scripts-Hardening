@@ -290,7 +290,7 @@ def verificar_paso4():
     if codigoRet==0:
         lineasActualizables=[
             l for l in salida.splitlines()
-            if l.strip() and "Listing" not in l
+            if l.strip() and "Listing" not in l and "/" in l
         ]
 
         if len(lineasActualizables)==0:
