@@ -253,7 +253,8 @@ def paso3_deshabilitar_usb():
     print("="*100)
     print()
     print_info("Esta medida impide que se conecten dispositivos de almacenamiento USB al servidor,\n" \
-    "       previniendo la exfiltración de datos y ataques BadUSB. Los teclados y ratones USB NO se ven afectados.")
+    "       previniendo la exfiltración de datos y ataques BadUSB. Los teclados y ratones USB NO se ven afectados." \
+    "       Requiere reinicio del servidor.")
     print()
 
     #Comprobar si ya existe la regla
@@ -341,7 +342,8 @@ def paso4_reactivar_usb():
     print("="*100)
     print()
     print_info("Esta opción revierte el bloqueo de USB y permite volver a\n" \
-    "       conectar dispositivos de almacenamiento USB al servidor.")
+    "       conectar dispositivos de almacenamiento USB al servidor." \
+    "       Requiere reinicio del servidor.")
     print()
     print_aviso("Solo usa esta opción si necesitas conectar un")
     print("         dispositivo USB temporalmente.")
