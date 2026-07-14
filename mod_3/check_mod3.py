@@ -621,6 +621,7 @@ def main():
     verificar_paso8()
     verificar_paso9()
     verificar_paso10()
+    verificar_paso11()
 
     mostrar_resumen("fix_mod3.py")
 
