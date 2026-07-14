@@ -317,68 +317,7 @@ def paso7_icmp_echo_broadcast():
     aplicar_sysctl("net.ipv4.icmp_echo_ignore_broadcasts", "1", paso)
 
 
-def paso8_desactivar_ipv6():
-    """
-    Desactiva IPv6 completamente si no se utiliza. Verifica previamente que no hayan
-    servicios escuchando en IPv6.
-    """
-    print()
-    print("="*100)
-    print("[PASO 8]: Desactivar IPv6 (si no se usa)")
-    print("="*100)
-    print_info("Desactiva IPv6 completamente si no se utiliza. Verifica previamente que\n" \
-    "       no hayan servicios escuchando en IPv6")
-    print()
 
-    paso="Paso 8"
-
-    # 8a. Verifica estado actual
-    valorActual=obtener_valor_sysctl("net.ipv6.conf.default.disable_ipv6")
-    if valorActual=="1":
-        print_correcto("IPv6 ya está desactivado.")
-        persistir_sysctl("net.ipv6.conf.default.disable_ipv6", "1")
-        persistir_sysctl("net.ipv6.conf.lo.disable_ipv6", "1")
-        return
-
-    # 8b. Verifica si hay servicios activos escuchando en IPv6
-    print_info("Verificando si hay servicios escuchando en IPv6...")
-    print()
-
-    rc, salida, _ = ejecutar_comando_check(["ss", "-tlnp6"])
-
-    serviciosIPv6=[]
-    for linea in salida.strip().splitlines():
-        if linea.startswith("State") or not linea.strip():
-            continue
-        serviciosIPv6.append(linea.strip())
-    
-    if serviciosIPv6:
-        print_aviso(f"Se han detectado {len(serviciosIPv6)} servicio(s) escuchando en IPv6: ")
-        print()
-        for srv in serviciosIPv6:
-            # 8c. Extrae la información relevante del servicio
-            campos=srv.split()
-            if len(campos)>=4:
-                direccion=campos[3]
-                proceso=campos[5] if len(campos)>=6 else "(desconocido)"
-                print(f"    - {direccion} {proceso}")
-        print()
-        print_aviso("Desactivar IPv6 podría afectar a estos servicios.")
-        resp=input("¿Desactivar IPv6 de todas formas? (s/N): ").strip().lower()
-
-        if resp!="s":
-            print_info("IPv6 no se ha desactivado.")
-            return
-    else:
-        print_correcto("No hay servicios escuchando exclusivamente en IPv6.")
-        print()
-
-    # 8d. Desactiva IPv6
-    print_info("Desactivando IPv6...")
-    aplicar_sysctl("net.ipv6.conf.default.disable_ipv6", "1", paso=paso)
-    aplicar_sysctl("net.ipv6.conf.lo.disable_ipv6", "1", paso=paso)
-    print()
-    print_correcto("IPv6 desactivado.")
 
 
 def mostar_menu():
@@ -395,7 +334,6 @@ def mostar_menu():
     print("     5. Exec-Shield")
     print("     6. Registro de paquetes marcianos")
     print("     7. Ignorar echo broadcasts ICMP")
-    print("     8. Desactivar IPv6 (si no se usa)")
     print()
     print("     q. Salir")
     print()
@@ -431,9 +369,6 @@ def main():
                 volver_al_menu()
             case "7":
                 paso7_icmp_echo_broadcast()
-                volver_al_menu()
-            case "8":
-                paso8_desactivar_ipv6()
                 volver_al_menu()
             case "q":
                 print_info("Saliendo del script.")

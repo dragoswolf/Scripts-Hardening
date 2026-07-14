@@ -178,18 +178,6 @@ def verificar_paso7():
     verificar_sysctl("net.ipv4.icmp_echo_ignore_broadcasts", "1", paso)
 
 
-def verificar_paso8():
-    print()
-    print("="*100)
-    print("[PASO 8]: Verificar IPv6 desactivado")
-    print("="*100)
-    print()
-
-    paso="Paso 8"
-
-    verificar_sysctl("net.ipv6.conf.all.disable_ipv6", "1", paso=paso, nivel="warn")
-    verificar_sysctl("net.ipv6.conf.default.disable_ipv6", "1", paso=paso, nivel="warn")
-    verificar_sysctl("net.ipv6.conf.lo.disable_ipv6", "1", paso=paso, nivel="warn")
 
 
 def main():
@@ -213,7 +201,6 @@ def main():
     verificar_paso5()
     verificar_paso6()
     verificar_paso7()
-    verificar_paso8()
 
     mostrar_resumen("fix_mod7.py")
 
