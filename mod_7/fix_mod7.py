@@ -338,7 +338,6 @@ def paso8_desactivar_ipv6():
         print_correcto("IPv6 ya está desactivado.")
         persistir_sysctl("net.ipv6.conf.all.disable_ipv6", "1")
         persistir_sysctl("net.ipv6.conf.default.disable_ipv6", "1")
-        persistir_sysctl("net.ipv6.conf.lo.disable_ipv6", "1")
         return
 
     # 8b. Verifica si hay servicios activos escuchando en IPv6
@@ -378,7 +377,6 @@ def paso8_desactivar_ipv6():
     print_info("Desactivando IPv6...")
     aplicar_sysctl("net.ipv6.conf.all.disable_ipv6", "1", paso=paso)
     aplicar_sysctl("net.ipv6.conf.default.disable_ipv6", "1", paso=paso)
-    aplicar_sysctl("net.ipv6.conf.lo.disable_ipv6", "1", paso=paso)
     print()
     print_correcto("IPv6 desactivado.")
 
